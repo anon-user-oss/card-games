@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Energy Rush</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+
+
+
+<style>
+:root {
+  /* Layout: night-arena duel. Rival bench and active on top, battle message in the middle, your active, bench and hand below, action bar last. */
+  --bg: #0e1330;
+  --bg-hi: #1b2358;
+  --panel: rgba(0, 0, 0, 0.5);
+  --card: #fffdf5;
+  --ink: #14120f;
+  --fg: #ffffff;
+  --muted: #c9d1f2;
+  --gold: #ffd24a;
+  --good: #7dffb0;
+  --bad: #ffb4a8;
+  --line: rgba(255, 255, 255, 0.45);
+  --fire: #e8452c;
+  --water: #2f7de1;
+  --grass: #2e9e4f;
+  --electric: #f2c230;
+  --rock: #8b6f4e;
+  --display: 'Bricolage Grotesque', 'Trebuchet MS', system-ui, sans-serif;
+  --body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background-color: var(--bg);
+  background-image: radial-gradient(120% 70% at 50% 15%, var(--bg-hi), var(--bg) 70%);
+  color: var(--fg);
+  font-family: var(--body);
+  font-size: 16px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
+button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+button:disabled { cursor: not-allowed; }
+
+.app {
+  box-sizing: border-box; min-height: 100%; max-width: 560px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 8px;
+  padding-block: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.3rem; }
+.rec { font-size: 0.82rem; color: var(--muted); font-weight: 700; font-variant-numeric: tabular-nums; }
+.lbl { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+
+/* element colors */
+.fire { --c: var(--fire); --on: #fff; } .water { --c: var(--water); --on: #fff; } .grass { --c: var(--grass); --on: #fff; }
+.electric { --c: var(--electric); --on: #1a1400; } .rock { --c: var(--rock); --on: #fff; }
+.pip { display: inline-block; width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid #fff; background: var(--pc, #cfd3e6); vertical-align: middle; }
+.pip.fire { --pc: var(--fire); } .pip.water { --pc: var(--water); } .pip.grass { --pc: var(--grass); }
+.pip.electric { --pc: var(--electric); } .pip.rock { --pc: var(--rock); } .pip.any { --pc: #cfd3e6; }
+svg.g { fill: currentColor; width: 1em; height: 1em; display: block; }
+
+/* status rows */
+.srow { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; }
+.stat { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.prz { display: inline-flex; gap: 4px; align-items: center; }
+.prz i { width: 14px; height: 18px; border-radius: 3px; border: 2px solid var(--gold); display: inline-block; }
+.prz i.on { background: var(--gold); }
+.benchrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; flex: 1; max-width: 360px; }
+.bch {
+  box-sizing: border-box; min-height: 44px; border-radius: 10px; border: 2px solid var(--c, rgba(255,255,255,0.3)); background: var(--panel); color: var(--fg);
+  display: flex; align-items: center; gap: 6px; padding: 4px 7px; text-align: left; font-size: 0.74rem; font-weight: 700; line-height: 1.15; min-width: 0;
+}
+.bch .gi { color: var(--c); font-size: 1.3rem; flex: none; }
+.bch .bt { min-width: 0; overflow: hidden; }
+.bch .bt span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bch.empty { border-style: dashed; border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.45); justify-content: center; }
+.bch.target { box-shadow: 0 0 0 3px var(--gold); }
+
+/* active panel */
+.panel {
+  --c: #666; --on: #fff;
+  display: grid; grid-template-columns: 72px 1fr; background: var(--card); color: var(--ink); border-radius: 14px; overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.4), 0 8px 16px rgba(0,0,0,0.45); min-height: 112px;
+}
+.panel.target { box-shadow: 0 0 0 4px var(--gold), 0 8px 16px rgba(0,0,0,0.45); }
+.pl { background: var(--c); color: var(--on); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-family: var(--display); font-weight: 800; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 2px; }
+.pl .g { font-size: 2.4rem; }
+.pr { padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.nm { font-family: var(--display); font-weight: 800; font-size: 1.05rem; line-height: 1.1; display: flex; justify-content: space-between; gap: 6px; }
+.nm small { font-size: 0.72rem; color: #5b564c; font-weight: 700; white-space: nowrap; align-self: center; }
+.hpw { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.bar { flex: 1; height: 9px; background: #d9d4c4; border-radius: 99px; overflow: hidden; }
+.bar b { display: block; height: 100%; background: #1fa84f; border-radius: 99px; }
+.bar b.mid { background: #e0a800; } .bar b.low { background: #d22d1f; }
+.en { min-height: 16px; display: flex; gap: 4px; flex-wrap: wrap; align-items: center; font-size: 0.78rem; color: #5b564c; font-weight: 700; }
+.en .pip { border-color: #14120f; }
+.atks { display: flex; flex-direction: column; gap: 4px; }
+.atk {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 4px 10px; border-radius: 9px;
+  border: 2px solid var(--ink); background: #fff; color: var(--ink); font-weight: 800; font-size: 0.92rem; text-align: left;
+}
+.atk .cost { display: inline-flex; gap: 3px; margin-left: auto; }
+.atk .cost .pip { border-color: #14120f; }
+.atk .dm { font-variant-numeric: tabular-nums; min-width: 2.6ch; text-align: right; }
+.atk:disabled { opacity: 0.4; }
+.atk:not(:disabled):active { transform: translateY(1px); }
+.atk.static { border-style: dashed; border-color: #8a8577; background: transparent; min-height: 30px; font-size: 0.8rem; color: #3b372f; }
+.rt { font-size: 0.72rem; color: #5b564c; font-weight: 700; }
+.panel.empty { grid-template-columns: 1fr; place-items: center; color: var(--muted); background: var(--panel); min-height: 96px; font-weight: 700; text-align: center; padding: 10px; }
+
+/* message band */
+.band { text-align: center; display: flex; flex-direction: column; gap: 2px; padding-block: 2px; }
+.msg { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.2rem; text-wrap: balance; min-height: 1.5rem; }
+.msg.win { color: var(--gold); } .msg.lose { color: var(--bad); }
+.sub { margin: 0; font-size: 0.82rem; color: var(--muted); min-height: 1.1rem; text-wrap: balance; }
+
+/* hand */
+.hand { display: flex; gap: 8px; overflow-x: auto; padding: 6px 2px 8px; min-height: 92px; scrollbar-width: thin; }
+.hc {
+  flex: none; width: 66px; height: 88px; border-radius: 10px; border: 0; background: var(--card); color: var(--ink);
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 0 0 5px; overflow: hidden; font-family: var(--display); font-weight: 800;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.4), 0 4px 8px rgba(0,0,0,0.4);
+}
+.hc .t { width: 100%; background: var(--c); color: var(--on); font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 0; text-align: center; }
+.hc .g { font-size: 1.7rem; color: var(--c); }
+.hc .n { font-size: 0.68rem; line-height: 1.05; text-align: center; padding: 0 3px; }
+.hc .h { font-size: 0.72rem; color: #5b564c; }
+.hc.en { background: var(--c); color: var(--on); justify-content: center; gap: 4px; }
+.hc.en .g { color: var(--on); font-size: 2rem; }
+.hc.en .n { font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.hc.sel { transform: translateY(-6px); box-shadow: 0 0 0 4px var(--gold), 0 6px 12px rgba(0,0,0,0.5); }
+.hc:disabled { opacity: 0.55; }
+.handempty { color: var(--muted); font-size: 0.85rem; align-self: center; font-weight: 500; }
+
+/* action bar */
+.acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn { min-height: 52px; border-radius: 12px; border: 2px solid var(--gold); background: var(--panel); color: var(--gold); font-weight: 800; font-size: 0.98rem; line-height: 1.15; padding: 0 8px; }
+.btn.solid { background: var(--gold); color: #1a1200; }
+.btn:disabled { opacity: 0.4; }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.primary { min-height: 56px; width: 100%; border: 0; border-radius: 12px; background: var(--gold); color: #1a1200; font-weight: 800; font-size: 1.15rem; }
+
+/* menu */
+.menu { display: flex; flex-direction: column; gap: 14px; flex: 1; justify-content: center; }
+.menu h2 { margin: 0; font-family: var(--display); font-size: 1.6rem; text-wrap: balance; }
+.menu p { margin: 0; color: var(--muted); line-height: 1.45; max-width: 46ch; }
+.decks { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.deck { --c: #666; --on: #fff; min-height: 76px; border-radius: 14px; border: 0; background: var(--c); color: var(--on); display: flex; align-items: center; gap: 12px; padding: 0 14px; font-family: var(--display); font-weight: 800; font-size: 1.1rem; text-align: left; box-shadow: 0 6px 14px rgba(0,0,0,0.4); }
+.deck .g { font-size: 2rem; flex: none; }
+.deck small { display: block; font-family: var(--body); font-weight: 700; font-size: 0.72rem; opacity: 0.9; }
+.rules { margin: 0; padding-left: 18px; color: var(--muted); font-size: 0.88rem; line-height: 1.5; }
+.rules b { color: var(--fg); }
+@media (prefers-reduced-motion: no-preference) {
+  .hit { animation: hit 0.3s; }
+}
+@keyframes hit { 0% { transform: translateX(0); } 25% { transform: translateX(-6px); } 50% { transform: translateX(6px); } 100% { transform: none; } }
+</style>
+</head>
+<body>
+
+<main class="app" id="app"></main>
+
+<script>
+(function () {
+  /* ---------- Data (plain objects so a collection mode can reuse them) ---------- */
+  var ELS = ['fire', 'grass', 'rock', 'electric', 'water']; // each type beats the next two in this ring
+  var LABEL = { fire: 'Fire', grass: 'Grass', rock: 'Rock', electric: 'Electric', water: 'Water' };
+  var NAMES = {
+    fire: ['Cindrake', 'Embrit', 'Pyrowl', 'Scorchlet'], grass: ['Mosspup', 'Thornix', 'Leafwing', 'Bramblet'],
+    rock: ['Pebblo', 'Gravlin', 'Cragnoth', 'Boulbit'], electric: ['Zapling', 'Voltail', 'Sparkit', 'Arcmoth'],
+    water: ['Tidlet', 'Aquaphin', 'Brinejaw', 'Mistfin']
+  };
+  var ATK = { fire: ['Ember', 'Flare', 'Inferno'], water: ['Splash', 'Surge', 'Tsunami'], grass: ['Vine Whip', 'Bloom', 'Overgrowth'],
+    electric: ['Zap', 'Thunder', 'Storm'], rock: ['Pebble Toss', 'Quake', 'Landslide'] };
+  var GLYPH = {
+    fire: '<path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-4 3-7 1 2 2 2 3-5z"/>',
+    water: '<path d="M12 2c4 5 7 8 7 12a7 7 0 0 1-14 0c0-4 3-7 7-12z"/>',
+    grass: '<path d="M4 20C4 9 10 4 21 3c0 11-6 17-17 17z"/>',
+    electric: '<path d="M13 2 4 14h6l-1 8 9-12h-6z"/>',
+    rock: '<path d="M12 3l8 4v8l-8 6-8-6V7z"/>'
+  };
+  function glyph(el) { return '<svg class="g" viewBox="0 0 24 24" aria-hidden="true">' + GLYPH[el] + '</svg>'; }
+
+  var DEFS = {};
+  ELS.forEach(function (el) {
+    var n = NAMES[el], a = ATK[el];
+    DEFS[el] = [
+      { name: n[0], el: el, hp: 50, ex: false, retreat: 1, a: [{ n: a[0], dmg: 10, t: 1, x: 0 }, { n: a[1], dmg: 30, t: 1, x: 1 }] },
+      { name: n[1], el: el, hp: 70, ex: false, retreat: 2, a: [{ n: a[0], dmg: 10, t: 1, x: 0 }, { n: a[1], dmg: 40, t: 2, x: 0 }] },
+      { name: n[2], el: el, hp: 60, ex: false, retreat: 1, a: [{ n: a[0], dmg: 20, t: 1, x: 0 }, { n: a[1], dmg: 50, t: 1, x: 2 }] },
+      { name: n[3], el: el, hp: 110, ex: true, retreat: 2, a: [{ n: a[1], dmg: 30, t: 1, x: 1 }, { n: a[2], dmg: 90, t: 2, x: 1 }] }
+    ];
+  });
+
+  var WIN_PRIZES = 3, MAX_BENCH = 3;
+  function beats(a, b) { var d = (ELS.indexOf(b) - ELS.indexOf(a) + 5) % 5; return d === 1 || d === 2; }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function other(k) { return k === 'p' ? 'a' : 'p'; }
+
+  /* ---------- Deck building ---------- */
+  function buildDeck(main, second) {
+    var cards = [];
+    [0, 0, 1, 1, 2, 2, 3].forEach(function (i) { cards.push({ kind: 'creature', def: DEFS[main][i] }); });
+    [0, 1, 2].forEach(function (i) { cards.push({ kind: 'creature', def: DEFS[second][i] }); });
+    for (var i = 0; i < 9; i++) cards.push({ kind: 'energy', el: main });
+    for (var j = 0; j < 5; j++) cards.push({ kind: 'energy', el: second });
+    return shuffle(cards);
+  }
+  function mkSide(main, second) { return { main: main, deck: buildDeck(main, second), hand: [], active: null, bench: [], prizes: 0, discard: 0 }; }
+  function inst(def) { return { def: def, hp: def.hp, energy: [] }; }
+
+  /* ---------- State ---------- */
+  var G = null, record = { w: 0, l: 0 };
+  try { var r = JSON.parse(localStorage.getItem('energy-rush-record')); if (r && r.w >= 0 && r.l >= 0) record = r; } catch (e) {}
+  function saveRec() { try { localStorage.setItem('energy-rush-record', JSON.stringify(record)); } catch (e) {} }
+
+  var app = document.getElementById('app');
+
+  /* ---------- Game rules ---------- */
+  function drawCard(side, n) {
+    for (var i = 0; i < n; i++) { if (!side.deck.length) return false; side.hand.push(side.deck.pop()); }
+    return true;
+  }
+  function hasCreature(hand) { return hand.some(function (c) { return c.kind === 'creature'; }); }
+  function deal(side, main, second) {
+    do {
+      side.deck = buildDeck(main, second); side.hand = [];
+      drawCard(side, 5);
+    } while (!hasCreature(side.hand));
+  }
+  function canPay(c, atk) {
+    var typed = c.energy.filter(function (e) { return e === c.def.el; }).length;
+    return typed >= atk.t && c.energy.length >= atk.t + atk.x;
+  }
+  function calcDamage(att, dfn, atk) {
+    var d = atk.dmg, mod = 0;
+    if (beats(att.def.el, dfn.def.el)) { d += 30; mod = 1; }
+    else if (beats(dfn.def.el, att.def.el)) { d = Math.max(0, d - 20); mod = -1; }
+    return { dmg: d, mod: mod };
+  }
+  function takeFromHand(side, idx) { return side.hand.splice(idx, 1)[0]; }
+  function say(m, c, s) { G.msg = m; G.cls = c || ''; G.sub = s || ''; }
+
+  function startGame(theme) {
+    var second = shuffle(ELS.filter(function (e) { return e !== theme; }))[0];
+    var aMain = shuffle(ELS.filter(function (e) { return e !== theme; }))[0];
+    var aSecond = shuffle(ELS.filter(function (e) { return e !== aMain; }))[0];
+    G = { phase: 'setup', turn: 'p', p: mkSide(theme, second), a: mkSide(aMain, aSecond), sel: -1,
+      flags: { energy: false, retreat: false, extra: false }, noAtk: true, msg: '', cls: '', sub: '', busy: false };
+    deal(G.p, theme, second); deal(G.a, aMain, aSecond);
+    /* rival sets up */
+    var ai = G.a, cs = ai.hand.filter(function (c) { return c.kind === 'creature'; });
+    cs.sort(function (x, y) { return y.def.hp - x.def.hp; });
+    var first = cs[0]; ai.hand.splice(ai.hand.indexOf(first), 1); ai.active = inst(first.def);
+    say('Choose your active creature.', '', 'Tap a creature card in your hand. Rival plays a ' + LABEL[ai.main] + ' deck.');
+    render();
+  }
+
+  function beginTurn(k) {
+    var s = G[k];
+    G.turn = k; G.sel = -1;
+    G.flags = { energy: false, retreat: false, extra: false };
+    if (!drawCard(s, 1)) { endGame(other(k), k === 'p' ? 'Your deck ran out.' : 'Rival ran out of cards.'); return; }
+    if (k === 'p') {
+      G.phase = 'player';
+      say(G.noAtk ? 'Your turn. No attack on the first turn.' : 'Your turn.', '', 'Attach one Energy, bench creatures, then attack.');
+      render();
+    } else { G.phase = 'ai'; render(); aiTurn(); }
+  }
+
+  function endGame(winner, why) {
+    G.phase = 'over';
+    if (winner === 'p') { record.w++; say('You win the match!', 'win', why || ''); } else { record.l++; say('Rival wins the match.', 'lose', why || ''); }
+    saveRec(); render();
+  }
+
+  /* Applies an attack. Returns after resolving KO and prizes. */
+  async function attack(k, ai) {
+    var me = G[k], foe = G[other(k)];
+    var atk = me.active.def.a[ai], res = calcDamage(me.active, foe.active, atk);
+    foe.active.hp = Math.max(0, foe.active.hp - res.dmg);
+    var note = res.mod > 0 ? ' Type edge +30!' : (res.mod < 0 ? ' Resisted -20.' : '');
+    var who = k === 'p' ? '' : 'Rival ';
+    say(who + me.active.def.name + ' used ' + atk.n + ' for ' + res.dmg + '.', k === 'p' ? 'win' : 'lose', note.trim());
+    G.hitSide = other(k); render(); await sleep(750); G.hitSide = null;
+    if (foe.active.hp > 0) return false;
+    /* knockout */
+    var gain = foe.active.def.ex ? 2 : 1;
+    me.prizes += gain; foe.discard += 1 + foe.active.energy.length;
+    var kod = foe.active.def.name;
+    foe.active = null;
+    say(kod + ' is knocked out! ' + (k === 'p' ? 'You take ' : 'Rival takes ') + gain + ' Prize' + (gain > 1 ? 's' : '') + '.', k === 'p' ? 'win' : 'lose', '');
+    render(); await sleep(900);
+    if (me.prizes >= WIN_PRIZES) { endGame(k, 'All 3 Prizes taken.'); return true; }
+    if (!foe.bench.length) { endGame(k, 'No creatures left to fight.'); return true; }
+    return false;
+  }
+
+  /* promote helper for the rival */
+  function aiPromote() {
+    var ai = G.a, foe = G.p.active, best = 0, bs = -99;
+    ai.bench.forEach(function (c, i) {
+      var sc = c.energy.length * 2 + c.hp / 40 + (foe && beats(c.def.el, foe.def.el) ? 3 : 0) - (foe && beats(foe.def.el, c.def.el) ? 3 : 0);
+      if (sc > bs) { bs = sc; best = i; }
+    });
+    ai.active = ai.bench.splice(best, 1)[0];
+  }
+
+  async function finishPlayerAttack() {
+    var ended = await attack('p', G.pendingAtk);
+    if (ended) return;
+    if (!G.a.active) { aiPromote(); }
+    G.noAtk = false;
+    beginTurn('a');
+  }
+
+  /* ---------- Rival AI ---------- */
+  async function aiTurn() {
+    var ai = G.a, pl = G.p;
+    say('Rival’s turn.', '', ''); render(); await sleep(700);
+    /* bench */
+    var moved = 0;
+    for (var i = ai.hand.length - 1; i >= 0 && ai.bench.length < MAX_BENCH; i--) {
+      if (ai.hand[i].kind === 'creature') { ai.bench.push(inst(takeFromHand(ai, i).def)); moved++; }
+    }
+    /* attach one energy */
+    var en = null, tgt = null, idx;
+    for (idx = 0; idx < ai.hand.length && !tgt; idx++) {
+      var c = ai.hand[idx]; if (c.kind !== 'energy') continue;
+      if (c.el === ai.active.def.el) { en = idx; tgt = ai.active; }
+      else {
+        var bm = ai.bench.filter(function (b) { return b.def.el === c.el; })[0];
+        if (bm) { en = idx; tgt = bm; }
+      }
+    }
+    if (!tgt) {
+      for (idx = 0; idx < ai.hand.length; idx++) if (ai.hand[idx].kind === 'energy') { en = idx; tgt = ai.active; break; }
+    }
+    if (tgt) { tgt.energy.push(takeFromHand(ai, en).el); }
+    if (moved || tgt) { say('Rival builds up.', '', (moved ? 'Benched ' + moved + '. ' : '') + (tgt ? 'Attached an Energy.' : '')); render(); await sleep(800); }
+    /* retreat if clearly worse */
+    if (beats(pl.active.def.el, ai.active.def.el) && ai.bench.length && ai.active.energy.length >= ai.active.def.retreat) {
+      var bi = -1;
+      ai.bench.forEach(function (b, j) { if (bi < 0 && !beats(pl.active.def.el, b.def.el) && b.energy.length > 0) bi = j; });
+      if (bi >= 0) {
+        ai.active.energy.splice(0, ai.active.def.retreat);
+        var oldA = ai.active; ai.active = ai.bench.splice(bi, 1)[0]; ai.bench.push(oldA);
+        say('Rival retreats.', '', ai.active.def.name + ' steps up.'); render(); await sleep(800);
+      }
+    }
+    /* attack */
+    var best = -1, bestScore = -1;
+    ai.active.def.a.forEach(function (a, j) {
+      if (!canPay(ai.active, a)) return;
+      var r = calcDamage(ai.active, pl.active, a), sc = r.dmg + (r.dmg >= pl.active.hp ? 100 : 0);
+      if (sc > bestScore) { bestScore = sc; best = j; }
+    });
+    if (best < 0) { say('Rival cannot attack.', '', 'Not enough Energy.'); render(); await sleep(900); beginTurn('p'); return; }
+    var ended = await attack('a', best);
+    if (ended) return;
+    if (!pl.active) {
+      G.phase = 'promote'; say('Your creature was knocked out.', 'lose', 'Tap a benched creature to send it in.'); render(); return;
+    }
+    beginTurn('p');
+  }
+
+  /* ---------- Player actions ---------- */
+  function tapHand(i) {
+    var c = G.p.hand[i]; if (!c) return;
+    if (G.phase === 'setup') {
+      if (c.kind !== 'creature') { say('Choose your active creature.', '', 'Pick a creature, not Energy.'); render(); return; }
+      G.p.active = inst(takeFromHand(G.p, i).def); beginTurn('p'); return;
+    }
+    if (G.phase !== 'player') return;
+    if (c.kind === 'creature') {
+      if (G.p.bench.length >= MAX_BENCH) { say('Bench is full.', '', 'You can hold 3 creatures on the bench.'); render(); return; }
+      G.p.bench.push(inst(takeFromHand(G.p, i).def));
+      say('Benched ' + G.p.bench[G.p.bench.length - 1].def.name + '.', '', ''); render(); return;
+    }
+    G.sel = (G.sel === i ? -1 : i);
+    say(G.sel >= 0 ? 'Tap a creature to attach the Energy.' : 'Your turn.', '', G.sel >= 0 ? 'You can attach one Energy per turn.' : ''); render();
+  }
+  function attachTo(c) {
+    if (G.flags.energy) { say('Already attached an Energy this turn.', '', ''); G.sel = -1; render(); return; }
+    var card = takeFromHand(G.p, G.sel); G.sel = -1; c.energy.push(card.el); G.flags.energy = true;
+    say('Attached ' + LABEL[card.el] + ' Energy to ' + c.def.name + '.', '', ''); render();
+  }
+  function tapActive() { if (G.phase === 'player' && G.sel >= 0) attachTo(G.p.active); }
+  function tapBench(i) {
+    var c = G.p.bench[i]; if (!c) return;
+    if (G.phase === 'promote') {
+      G.p.active = G.p.bench.splice(i, 1)[0]; beginTurn('p'); return;
+    }
+    if (G.phase !== 'player') return;
+    if (G.sel >= 0) { attachTo(c); return; }
+    var a = G.p.active;
+    if (G.flags.retreat) { say('Already retreated this turn.', '', ''); render(); return; }
+    if (a.energy.length < a.def.retreat) { say('Retreat costs ' + a.def.retreat + ' Energy.', '', a.def.name + ' only has ' + a.energy.length + '.'); render(); return; }
+    a.energy.splice(0, a.def.retreat); G.p.discard += a.def.retreat;
+    G.p.active = G.p.bench.splice(i, 1)[0]; G.p.bench.push(a); G.flags.retreat = true;
+    say(G.p.active.def.name + ' steps up.', '', 'Retreated ' + a.def.name + '.'); render();
+  }
+  function tapAttack(i) {
+    if (G.phase !== 'player' || G.noAtk) return;
+    var a = G.p.active.def.a[i]; if (!canPay(G.p.active, a)) return;
+    G.phase = 'busy'; G.pendingAtk = i; G.sel = -1; render(); finishPlayerAttack();
+  }
+  function extraDraw() {
+    if (G.phase !== 'player' || G.flags.extra || !G.p.deck.length) return;
+    drawCard(G.p, 1); G.flags.extra = true;
+    var left = G.p.deck.length;
+    say('Drew an extra card.', '', left + ' cards left in your deck. If it runs out you lose.'); render();
+  }
+  function endTurn() {
+    if (G.phase !== 'player') return;
+    G.noAtk = false; G.sel = -1; beginTurn('a');
+  }
+
+  /* ---------- Rendering ---------- */
+  function costPips(a, el) { return '<span class="cost">' + new Array(a.t + 1).join('<i class="pip ' + el + '"></i>') + new Array(a.x + 1).join('<i class="pip any"></i>') + '</span>'; }
+  function energyPips(c) {
+    if (!c.energy.length) return '<span>No Energy</span>';
+    return c.energy.map(function (e) { return '<i class="pip ' + e + '"></i>'; }).join('');
+  }
+  function hpClass(c) { var p = c.hp / c.def.hp; return p <= 0.3 ? 'low' : (p <= 0.6 ? 'mid' : ''); }
+
+  function panel(c, mine, targetable) {
+    if (!c) return '<div class="panel empty">No active creature</div>';
+    var d = c.def, atks = d.a.map(function (a, i) {
+      if (mine) {
+        var can = G.phase === 'player' && !G.noAtk && canPay(c, a);
+        return '<button class="atk" data-a="atk" data-i="' + i + '"' + (can ? '' : ' disabled') + '><span>' + a.n + '</span>' + costPips(a, d.el) + '<span class="dm">' + a.dmg + '</span></button>';
+      }
+      return '<div class="atk static"><span>' + a.n + '</span>' + costPips(a, d.el) + '<span class="dm">' + a.dmg + '</span></div>';
+    }).join('');
+    return '<div class="panel ' + d.el + (targetable ? ' target' : '') + '" data-a="active">' +
+      '<div class="pl">' + glyph(d.el) + '<span>' + LABEL[d.el] + '</span></div>' +
+      '<div class="pr"><div class="nm"><span>' + d.name + (d.ex ? ' ex' : '') + '</span><small>Retreat ' + d.retreat + '</small></div>' +
+      '<div class="hpw"><div class="bar"><b class="' + hpClass(c) + '" style="width:' + Math.round(c.hp / d.hp * 100) + '%"></b></div><span>' + c.hp + '/' + d.hp + '</span></div>' +
+      '<div class="en">' + energyPips(c) + '</div><div class="atks">' + atks + '</div></div></div>';
+  }
+  function benchRow(side, mine) {
+    var out = '';
+    for (var i = 0; i < MAX_BENCH; i++) {
+      var c = side.bench[i];
+      if (!c) { out += '<div class="bch empty">Bench</div>'; continue; }
+      var tg = mine && (G.phase === 'promote' || (G.phase === 'player' && G.sel >= 0));
+      out += '<button class="bch ' + c.def.el + (tg ? ' target' : '') + '" ' + (mine ? 'data-a="bench" data-i="' + i + '"' : 'disabled') + '>' +
+        '<span class="gi">' + glyph(c.def.el) + '</span><span class="bt"><span>' + c.def.name + (c.def.ex ? ' ex' : '') + '</span><span>' + c.hp + ' HP · ' + c.energy.length + ' En</span></span></button>';
+    }
+    return '<div class="benchrow">' + out + '</div>';
+  }
+  function prizes(n) { var o = ''; for (var i = 0; i < WIN_PRIZES; i++) o += '<i class="' + (i < n ? 'on' : '') + '"></i>'; return '<span class="prz" aria-label="Prizes ' + n + ' of ' + WIN_PRIZES + '">' + o + '</span>'; }
+
+  function handHTML() {
+    var h = G.p.hand;
+    if (!h.length) return '<span class="handempty">Hand is empty. Use Draw extra for another card.</span>';
+    return h.map(function (c, i) {
+      var dis = !(G.phase === 'setup' || G.phase === 'player');
+      if (c.kind === 'energy') return '<button class="hc en ' + c.el + (G.sel === i ? ' sel' : '') + '" data-a="hand" data-i="' + i + '"' + (dis ? ' disabled' : '') + ' aria-label="' + LABEL[c.el] + ' Energy"><span class="g">' + glyph(c.el) + '</span><span class="n">Energy</span></button>';
+      return '<button class="hc ' + c.def.el + '" data-a="hand" data-i="' + i + '"' + (dis ? ' disabled' : '') + ' aria-label="' + c.def.name + ', ' + LABEL[c.def.el] + ', ' + c.def.hp + ' HP"><span class="t">' + LABEL[c.def.el] + '</span><span class="g">' + glyph(c.def.el) + '</span><span class="n">' + c.def.name + (c.def.ex ? ' ex' : '') + '</span><span class="h">' + c.def.hp + ' HP</span></button>';
+    }).join('');
+  }
+
+  function menuHTML() {
+    var d = ELS.map(function (e) { return '<button class="deck ' + e + '" data-a="deck" data-el="' + e + '"><span class="g">' + glyph(e) + '</span><span>' + LABEL[e] + '<small>' + NAMES[e][3] + ' ex leads</small></span></button>'; }).join('');
+    return '<div class="top"><h1>Energy Rush</h1><span class="rec">Record ' + record.w + 'W · ' + record.l + 'L</span></div>' +
+      '<div class="menu"><h2>Pick your starter deck</h2>' +
+      '<p>A duel of 24-card decks. Take 3 Prizes before your rival does.</p>' +
+      '<div class="decks">' + d + '</div>' +
+      '<ul class="rules">' +
+      '<li>Each turn you draw a card, attach <b>one Energy</b>, bench up to 3 creatures, then <b>attack</b>.</li>' +
+      '<li>Attacks need Energy. The colored dots must match your creature’s type.</li>' +
+      '<li>A <b>type edge</b> adds 30 damage. A weakness takes off 20. Fire beats Grass and Rock, Grass beats Rock and Electric, Rock beats Electric and Water, Electric beats Water and Fire, Water beats Fire and Grass.</li>' +
+      '<li>Knock out an <b>ex</b> and you take 2 Prizes.</li>' +
+      '<li>Tap a bench creature with no Energy selected to retreat. Draw extra if you need Energy, but running out of cards loses the match.</li></ul></div>';
+  }
+
+  function render() {
+    if (!G) { app.innerHTML = menuHTML(); return; }
+    var p = G.p, a = G.a, you = G.phase === 'player';
+    var hit = G.hitSide;
+    var html = '<div class="top"><h1>Energy Rush</h1><span class="rec">Record ' + record.w + 'W · ' + record.l + 'L</span></div>';
+    html += '<div class="srow"><div class="stat"><span class="lbl">Rival</span>' + prizes(a.prizes) + '<span>Deck ' + a.deck.length + '</span><span>Hand ' + a.hand.length + '</span></div></div>';
+    html += '<div class="srow">' + benchRow(a, false) + '</div>';
+    html += '<div' + (hit === 'a' ? ' class="hit"' : '') + '>' + panel(a.active, false, false) + '</div>';
+    html += '<div class="band"><p class="msg ' + G.cls + '" role="status">' + G.msg + '</p><p class="sub">' + G.sub + '</p></div>';
+    html += '<div' + (hit === 'p' ? ' class="hit"' : '') + '>' + (G.phase === 'setup' ? '<div class="panel empty">Choose an active creature from your hand</div>' : panel(p.active, true, you && G.sel >= 0)) + '</div>';
+    html += '<div class="srow">' + benchRow(p, true) + '</div>';
+    html += '<div class="srow"><div class="stat"><span class="lbl">You</span>' + prizes(p.prizes) + '<span>Deck ' + p.deck.length + '</span></div></div>';
+    html += '<div class="hand" id="hand">' + handHTML() + '</div>';
+    if (G.phase === 'over') html += '<button class="primary" data-a="menu">Play again</button>';
+    else html += '<div class="acts"><button class="btn" data-a="extra"' + (you && !G.flags.extra && p.deck.length ? '' : ' disabled') + '>Draw extra card</button><button class="btn solid" data-a="end"' + (you ? '' : ' disabled') + '>End turn</button></div>';
+    var hs = document.getElementById('hand'), sl = hs ? hs.scrollLeft : 0;
+    app.innerHTML = html;
+    var hn = document.getElementById('hand'); if (hn) hn.scrollLeft = sl;
+  }
+
+  app.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-a]'); if (!t || t.disabled) return;
+    var act = t.getAttribute('data-a'), i = parseInt(t.getAttribute('data-i'), 10);
+    if (act === 'deck') startGame(t.getAttribute('data-el'));
+    else if (act === 'menu') { G = null; render(); }
+    else if (!G) return;
+    else if (act === 'hand') tapHand(i);
+    else if (act === 'active') tapActive();
+    else if (act === 'bench') tapBench(i);
+    else if (act === 'atk') tapAttack(i);
+    else if (act === 'extra') extraDraw();
+    else if (act === 'end') endTurn();
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Type Clash</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+
+
+
+<style>
+:root {
+  /* Layout: night-arena screen. Dealer creature on top, battle message in the middle, your three creatures below, controls at the bottom. */
+  --bg: #0e1330;
+  --bg-hi: #1b2358;
+  --panel: rgba(0, 0, 0, 0.45);
+  --card: #fffdf5;
+  --ink: #14120f;
+  --fg: #ffffff;
+  --muted: #c9d1f2;
+  --gold: #ffd24a;
+  --good: #7dffb0;
+  --bad: #ffb4a8;
+  --line: rgba(255, 255, 255, 0.45);
+  --fire: #e8452c;
+  --water: #2f7de1;
+  --grass: #2e9e4f;
+  --electric: #f2c230;
+  --rock: #8b6f4e;
+  --display: 'Bricolage Grotesque', 'Trebuchet MS', system-ui, sans-serif;
+  --body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ch: clamp(8rem, 21svh, 11rem);
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background-color: var(--bg);
+  background-image: radial-gradient(120% 70% at 50% 20%, var(--bg-hi), var(--bg) 70%);
+  color: var(--fg);
+  font-family: var(--body);
+  font-size: 16px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
+button:focus-visible, summary:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+.app {
+  box-sizing: border-box;
+  min-height: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex; flex-direction: column; gap: 10px;
+  padding-block: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.3rem; }
+.bank { display: flex; align-items: baseline; gap: 8px; }
+.lbl { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+#bank { font-family: var(--display); font-weight: 800; font-size: 1.6rem; color: var(--gold); font-variant-numeric: tabular-nums; }
+
+.table { flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; }
+.seat { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.who { font-size: 0.82rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
+
+/* creature card */
+.cr {
+  --c: var(--fire); --on: #fff;
+  position: relative; box-sizing: border-box; height: var(--ch); width: 100%;
+  background: var(--card); color: var(--ink); border-radius: 14px; overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 8px 16px rgba(0, 0, 0, 0.5);
+  display: flex; flex-direction: column; text-align: center; padding: 0; border: 0;
+  font-family: var(--display);
+}
+.cr.fire { --c: var(--fire); } .cr.water { --c: var(--water); } .cr.grass { --c: var(--grass); }
+.cr.electric { --c: var(--electric); --on: #1a1400; } .cr.rock { --c: var(--rock); }
+.cr .hd { background: var(--c); color: var(--on); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; padding: 5px 4px; }
+.cr .art { flex: 1; display: grid; place-items: center; color: var(--c); }
+.cr .art svg { width: 46%; max-width: 64px; height: auto; fill: currentColor; }
+.cr .nm { font-weight: 800; font-size: 0.95rem; line-height: 1.1; padding: 0 4px; }
+.cr .pw { font-weight: 800; font-size: 1.8rem; line-height: 1; padding: 2px 0 8px; font-variant-numeric: tabular-nums; }
+.cr .pw small { display: block; font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: #5b564c; font-weight: 700; padding-top: 2px; }
+.cr .eff { position: absolute; top: 30px; right: 6px; font-size: 0.8rem; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: var(--ink); color: #fff; }
+.cr .eff.up { background: #0b7a3a; } .cr .eff.down { background: #a3201a; }
+button.cr:active { transform: translateY(1px); }
+button.cr:disabled { cursor: default; }
+button.cr.pick { box-shadow: 0 0 0 4px var(--gold), 0 8px 16px rgba(0, 0, 0, 0.5); transform: translateY(-4px); }
+button.cr.dim { opacity: 0.45; }
+.cr.back { background: #243285; color: #fff; }
+.cr.back .art { color: rgba(255, 255, 255, 0.35); font-size: 4rem; font-weight: 800; }
+.cr.back .hd { background: rgba(0, 0, 0, 0.35); color: #fff; }
+.cr.back .hd b { font-weight: 800; }
+.ph { visibility: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+  .flip { animation: flip 0.35s ease-out; }
+}
+@keyframes flip { from { transform: rotateY(90deg); } to { transform: none; } }
+
+.dealerwrap { width: min(46%, 12rem); }
+
+.band { text-align: center; display: flex; flex-direction: column; gap: 4px; }
+.msg { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.45rem; text-wrap: balance; min-height: 2.2rem; }
+.msg.win { color: var(--gold); } .msg.lose { color: var(--bad); }
+.sub { margin: 0; font-size: 0.85rem; color: var(--muted); font-weight: 500; min-height: 1.2rem; }
+.rules { margin: 0; font-size: 0.8rem; color: var(--muted); }
+.rules b { color: var(--gold); font-weight: 700; }
+
+.controls { display: flex; flex-direction: column; gap: 8px; }
+.betline { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.9rem; color: var(--muted); font-weight: 700; }
+.betline b { color: var(--fg); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.chips { display: flex; gap: 10px; justify-content: center; }
+.chip {
+  width: 58px; height: 58px; border-radius: 50%; border: 3px dashed #fff; background: #b3202a; color: #fff;
+  font-weight: 800; font-size: 1.05rem; font-variant-numeric: tabular-nums; box-shadow: inset 0 0 0 4px rgba(0, 0, 0, 0.3);
+}
+.chip[data-v="25"] { background: #17803f; } .chip[data-v="50"] { background: #1f5fa8; } .chip[data-v="100"] { background: #1a1a1a; }
+.chip[aria-pressed="true"] { transform: translateY(-4px); box-shadow: 0 0 0 4px var(--gold), inset 0 0 0 4px rgba(0, 0, 0, 0.3); }
+.chip:disabled { opacity: 0.4; cursor: not-allowed; }
+.primary { min-height: 56px; border: 0; border-radius: 12px; background: var(--gold); color: #1a1200; font-weight: 800; font-size: 1.15rem; }
+.primary:active { transform: translateY(1px); }
+.acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.act { min-height: 58px; border-radius: 12px; border: 2px solid var(--gold); background: var(--panel); color: var(--gold); font-weight: 800; font-size: 0.98rem; line-height: 1.15; }
+.act[aria-pressed="true"] { background: var(--gold); color: #1a1200; }
+.act:disabled { opacity: 0.4; cursor: not-allowed; }
+.chart { font-size: 0.82rem; color: var(--muted); }
+.chart summary { cursor: pointer; font-weight: 700; padding: 2px 0; }
+.chart ul { margin: 6px 0 0; padding-left: 18px; line-height: 1.5; }
+.chart b { color: var(--fg); }
+</style>
+</head>
+<body>
+
+<main class="app">
+  <header class="top">
+    <h1>Type Clash</h1>
+    <div class="bank"><span class="lbl">Chips</span><span id="bank">$500</span></div>
+  </header>
+
+  <section class="table">
+    <div class="seat">
+      <span class="who">Rival</span>
+      <div class="dealerwrap" id="dealer"></div>
+    </div>
+
+    <div class="band">
+      <p class="msg" id="msg" role="status">Pick a chip and start the clash.</p>
+      <p class="sub" id="sub"></p>
+      <p class="rules"><b>Type edge +3 power</b> · <b>Underdog win pays 2:1</b></p>
+    </div>
+
+    <div class="seat">
+      <div class="row3" id="mine"></div>
+      <span class="who">Your team</span>
+    </div>
+  </section>
+
+  <section class="controls">
+    <div class="betline"><span id="wlabel">Bet</span><b id="wager">$25</b></div>
+    <div id="betRow" class="stack">
+      <div class="chips" role="group" aria-label="Bet size">
+        <button class="chip" data-v="10" aria-pressed="false">10</button>
+        <button class="chip" data-v="25" aria-pressed="true">25</button>
+        <button class="chip" data-v="50" aria-pressed="false">50</button>
+        <button class="chip" data-v="100" aria-pressed="false">100</button>
+      </div>
+      <details class="chart">
+        <summary>Type chart and rules</summary>
+        <ul>
+          <li><b>Fire</b> beats Grass and Rock</li>
+          <li><b>Grass</b> beats Rock and Electric</li>
+          <li><b>Rock</b> beats Electric and Water</li>
+          <li><b>Electric</b> beats Water and Fire</li>
+          <li><b>Water</b> beats Fire and Grass</li>
+          <li>You see the rival's type but not its power. Pick one of your three creatures. A type edge adds 3 power, a weakness subtracts 3. Highest total wins.</li>
+          <li>Win pays 1:1. Win while at a type disadvantage pays 2:1. A tie returns your bet.</li>
+          <li><b>Boost</b> adds 3 power and <b>Redraw</b> swaps your team. Each costs half your bet.</li>
+        </ul>
+      </details>
+      <button class="primary" id="deal">Start clash</button>
+    </div>
+    <div class="acts" id="actRow" hidden>
+      <button class="act" id="boost" aria-pressed="false">Boost +3</button>
+      <button class="act" id="redraw">Redraw team</button>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  /* Roster is plain data so a future collection mode can reuse it (see plan). */
+  var ELEMENTS = ['fire', 'grass', 'rock', 'electric', 'water']; // each beats the next two in this ring
+  var LABEL = { fire: 'Fire', grass: 'Grass', rock: 'Rock', electric: 'Electric', water: 'Water' };
+  var NAMES = {
+    fire: ['Cindrake', 'Embrit', 'Pyrowl', 'Scorchlet'],
+    grass: ['Mosspup', 'Thornix', 'Leafwing', 'Bramblet'],
+    rock: ['Pebblo', 'Gravlin', 'Cragnoth', 'Boulbit'],
+    electric: ['Zapling', 'Voltail', 'Sparkit', 'Arcmoth'],
+    water: ['Tidlet', 'Aquaphin', 'Brinejaw', 'Mistfin']
+  };
+  var POWERS = [2, 4, 6, 8];
+  var GLYPH = {
+    fire: '<path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-4 3-7 1 2 2 2 3-5z"/>',
+    water: '<path d="M12 2c4 5 7 8 7 12a7 7 0 0 1-14 0c0-4 3-7 7-12z"/>',
+    grass: '<path d="M4 20C4 9 10 4 21 3c0 11-6 17-17 17zm1-1 9-9" />',
+    electric: '<path d="M13 2 4 14h6l-1 8 9-12h-6z"/>',
+    rock: '<path d="M12 3l8 4v8l-8 6-8-6V7z"/>'
+  };
+  var ROSTER = [];
+  ELEMENTS.forEach(function (e) { NAMES[e].forEach(function (n, i) { ROSTER.push({ id: e + i, name: n, el: e, power: POWERS[i] }); }); });
+
+  var START = 500, MIN = 10, CHIPS = [100, 50, 25, 10];
+  var bank = START, bet = 25, wager = 25, extra = 0, boost = false, redrew = false;
+  var mine = [], rival = null, phase = 'bet'; // bet | pick | busy | done
+  var msg = 'Pick a chip and start the clash.', msgClass = '', sub = '';
+  var revealed = false, picked = -1, lastEff = null;
+
+  try { var sv = parseInt(localStorage.getItem('type-clash-bank'), 10); if (sv >= MIN) bank = sv; } catch (e) {}
+  function save() { try { localStorage.setItem('type-clash-bank', String(bank)); } catch (e) {} }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var el = { bank: $('bank'), wager: $('wager'), wlabel: $('wlabel'), msg: $('msg'), sub: $('sub'), dealer: $('dealer'), mine: $('mine'),
+    betRow: $('betRow'), actRow: $('actRow'), deal: $('deal'), boost: $('boost'), redraw: $('redraw') };
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function beats(a, b) { var i = ELEMENTS.indexOf(a), d = (ELEMENTS.indexOf(b) - i + 5) % 5; return d === 1 || d === 2; }
+  function edge(a, b) { return beats(a, b) ? 3 : (beats(b, a) ? -3 : 0); }
+
+  function creatureHTML(c, opts) {
+    opts = opts || {};
+    var eff = opts.eff;
+    var tag = eff ? '<span class="eff ' + (eff > 0 ? 'up' : 'down') + '">' + (eff > 0 ? '+' : '') + eff + '</span>' : '';
+    return '<div class="hd">' + LABEL[c.el] + '</div>' + tag +
+      '<div class="art"><svg viewBox="0 0 24 24" aria-hidden="true">' + GLYPH[c.el] + '</svg></div>' +
+      '<div class="nm">' + c.name + '</div>' +
+      '<div class="pw">' + c.power + '<small>Power</small></div>';
+  }
+  function setNode(node, cls, html, label, flip) {
+    node.className = cls + (flip ? ' flip' : '');
+    node.innerHTML = html;
+    node.setAttribute('aria-label', label);
+  }
+
+  function render() {
+    el.bank.textContent = '$' + bank;
+    var betting = phase === 'bet' || phase === 'done';
+    el.wlabel.textContent = betting ? 'Bet' : (extra ? 'In play (bet + extras)' : 'In play');
+    el.wager.textContent = '$' + (betting ? bet : wager + extra);
+    el.msg.textContent = msg; el.msg.className = 'msg' + (msgClass ? ' ' + msgClass : '');
+    el.sub.textContent = sub;
+
+    /* rival */
+    var dn = el.dealer.firstElementChild;
+    if (!dn) { dn = document.createElement('div'); el.dealer.appendChild(dn); }
+    if (!rival) { setNode(dn, 'cr back', '<div class="hd">Rival</div><div class="art">?</div><div class="nm">&nbsp;</div><div class="pw">&nbsp;<small>&nbsp;</small></div>', 'Rival creature, not dealt'); dn._k = 'none'; }
+    else if (!revealed) {
+      if (dn._k !== 'hid' + rival.id) setNode(dn, 'cr back ' + rival.el, '<div class="hd"><b>' + LABEL[rival.el] + '-type</b></div><div class="art">?</div><div class="nm">Power hidden</div><div class="pw">?<small>Power</small></div>', 'Rival creature, ' + LABEL[rival.el] + ' type, power hidden');
+      dn._k = 'hid' + rival.id;
+    } else {
+      if (dn._k !== 'rev' + rival.id) setNode(dn, 'cr ' + rival.el, creatureHTML(rival, { eff: lastEff ? lastEff.rivalEdge : 0 }), rival.name + ', ' + LABEL[rival.el] + ', power ' + rival.power, true);
+      dn._k = 'rev' + rival.id;
+    }
+
+    /* mine */
+    var n = mine.length || 3;
+    while (el.mine.children.length < 3) el.mine.appendChild(document.createElement('div'));
+    for (var i = 0; i < 3; i++) {
+      var node = el.mine.children[i], c = mine[i];
+      if (!c) {
+        if (node._k !== 'ph') { node.className = 'cr back'; node.innerHTML = '<div class="hd">Empty</div><div class="art">?</div><div class="nm">&nbsp;</div><div class="pw">&nbsp;<small>&nbsp;</small></div>'; node.removeAttribute('onclick'); }
+        node._k = 'ph';
+        if (node.tagName !== 'DIV') { /* keep as is */ }
+        continue;
+      }
+      var key = c.id + '|' + phase + '|' + (rival ? rival.id : '') + '|' + (picked === i) + '|' + (revealed && picked === i && lastEff ? lastEff.myEdge : '');
+      if (node._k === key) continue;
+      var fresh = node._card !== c;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      var eff = (rival && phase !== 'busy' && phase !== 'done') ? edge(c.el, rival.el) : 0;
+      var shownEff = (revealed && picked === i && lastEff) ? lastEff.myEdge : eff;
+      btn.className = 'cr ' + c.el + (picked === i ? ' pick' : '') + (picked >= 0 && picked !== i ? ' dim' : '') + (fresh ? ' flip' : '');
+      btn.innerHTML = creatureHTML(c, { eff: rival ? shownEff : 0 });
+      btn.setAttribute('aria-label', 'Play ' + c.name + ', ' + LABEL[c.el] + ', power ' + c.power + (rival && eff ? (eff > 0 ? ', type edge' : ', type weakness') : ''));
+      btn.disabled = phase !== 'pick';
+      (function (idx) { btn.addEventListener('click', function () { play(idx); }); })(i);
+      btn._k = key; btn._card = c;
+      el.mine.replaceChild(btn, node);
+    }
+
+    el.betRow.hidden = !betting;
+    el.actRow.hidden = phase !== 'pick';
+    chips.forEach(function (c) { var v = parseInt(c.dataset.v, 10); c.disabled = v > bank; c.setAttribute('aria-pressed', String(v === bet)); });
+    el.deal.textContent = bank < MIN ? 'New game' : (phase === 'done' ? 'Next clash' : 'Start clash');
+    var half = Math.floor(wager / 2);
+    el.boost.textContent = boost ? 'Boost on (+3)' : 'Boost +3 · $' + half;
+    el.boost.setAttribute('aria-pressed', String(boost));
+    el.boost.disabled = phase !== 'pick' || (!boost && bank < half);
+    el.redraw.textContent = redrew ? 'Redrawn' : 'Redraw team · $' + half;
+    el.redraw.disabled = phase !== 'pick' || redrew || bank < half;
+  }
+
+  function say(t, c, s) { msg = t; msgClass = c || ''; sub = s || ''; }
+
+  function dealTeam() {
+    var d = shuffle(ROSTER);
+    mine = [d[0], d[1], d[2]]; rival = d[3];
+  }
+
+  function startClash() {
+    if (phase !== 'bet' && phase !== 'done') return;
+    if (bank < MIN) { bank = START; bet = 25; save(); mine = []; rival = null; revealed = false; picked = -1; say('Fresh stack of $' + START + '. Pick a chip and start the clash.'); phase = 'bet'; render(); return; }
+    if (bet > bank) bet = CHIPS.filter(function (v) { return v <= bank; })[0];
+    wager = bet; bank -= wager; extra = 0; boost = false; redrew = false; revealed = false; picked = -1; lastEff = null;
+    save(); dealTeam(); phase = 'pick';
+    say('Rival sends a ' + LABEL[rival.el] + '-type. Pick your creature.', '', 'Power is hidden. Weigh type edge against raw power.');
+    el.mine.textContent = ''; render();
+  }
+
+  function toggleBoost() {
+    if (phase !== 'pick') return;
+    var half = Math.floor(wager / 2);
+    if (!boost) { if (bank < half) return; bank -= half; extra += half; boost = true; }
+    save(); render();
+  }
+  function redraw() {
+    if (phase !== 'pick' || redrew) return;
+    var half = Math.floor(wager / 2);
+    if (bank < half) return;
+    bank -= half; extra += half; redrew = true; save();
+    var d = shuffle(ROSTER.filter(function (c) { return c !== rival; }));
+    mine = [d[0], d[1], d[2]];
+    say('Fresh team. Pick your creature.', '', 'Rival is still a ' + LABEL[rival.el] + '-type.');
+    render();
+  }
+
+  async function play(i) {
+    if (phase !== 'pick') return;
+    phase = 'busy'; picked = i;
+    var me = mine[i];
+    var myEdge = edge(me.el, rival.el), rivalEdge = edge(rival.el, me.el);
+    var mine_p = me.power + myEdge + (boost ? 3 : 0), rival_p = rival.power + rivalEdge;
+    lastEff = { myEdge: myEdge, rivalEdge: rivalEdge };
+    say('Clash!', '', ''); render();
+    await sleep(500);
+    revealed = true; render();
+    await sleep(500);
+    var detail = me.name + ' ' + mine_p + ' vs ' + rival.name + ' ' + rival_p;
+    var back = 0;
+    if (mine_p > rival_p) {
+      var under = myEdge < 0;
+      back = wager * (under ? 3 : 2);
+      var gain = wager * (under ? 2 : 1);
+      say(under ? 'Underdog win! +$' + gain : 'You win +$' + gain, 'win', detail + (under ? ' (paid 2:1)' : ''));
+    } else if (mine_p < rival_p) {
+      say('Rival wins. -$' + (wager + extra), 'lose', detail);
+    } else {
+      back = wager;
+      say('Tie. Bet returned.', '', detail);
+    }
+    bank += back; save();
+    if (bank < MIN) say('Out of chips. Start a new game for $' + START + '.', 'lose', detail);
+    if (bet > bank && bank >= MIN) bet = CHIPS.filter(function (v) { return v <= bank; })[0];
+    phase = 'done'; render();
+  }
+
+  chips.forEach(function (c) { c.addEventListener('click', function () { if (phase === 'pick' || phase === 'busy') return; bet = parseInt(c.dataset.v, 10); render(); }); });
+  el.deal.addEventListener('click', startClash);
+  el.boost.addEventListener('click', toggleBoost);
+  el.redraw.addEventListener('click', redraw);
+
+  if (bet > bank) bet = CHIPS.filter(function (v) { return v <= bank; })[0];
+  render();
+})();
+</script>
+
+</body>
+</html>
