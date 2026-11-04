@@ -165,15 +165,33 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
 .act.hit { background: #fff; color: var(--ink); }
 .act.dbl, .act.spl, .act.yes { border-color: var(--brass); color: var(--brass); }
 .act:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.tags { display: flex; gap: 8px; flex-wrap: wrap; }
+.tags:empty { display: none; }
+.tag { font-size: 0.8rem; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: #fff; color: var(--ink); font-variant-numeric: tabular-nums; }
+.tag.debt { background: var(--lose); }
+.tag.wanted { background: var(--brass); }
+.paybtn { min-height: 46px; border-radius: 12px; border: 2px solid var(--lose); background: rgba(0, 0, 0, 0.45); color: var(--lose); font-weight: 800; font-size: 0.98rem; }
+.modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(0, 0, 0, 0.78);
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.sheet { box-sizing: border-box; width: 100%; max-width: 380px; background: var(--card); color: var(--ink); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6); }
+.sheet svg { width: 96px; height: 96px; }
+.sheet h2 { margin: 0; font-family: var(--display); font-size: 1.4rem; text-wrap: balance; }
+.sheet p { margin: 0; line-height: 1.45; font-size: 0.98rem; text-wrap: pretty; }
+.sheet .fine { font-size: 0.78rem; color: #5b564c; }
+.mbtns { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 4px; }
+.mbtns button { min-height: 50px; border-radius: 12px; border: 2px solid var(--ink); background: #fff; color: var(--ink); font-weight: 800; font-size: 1rem; }
+.mbtns button.go { background: var(--ink); color: #fff; }
 </style>
 </head>
 <body>
 
 <main class="app">
   <header class="top">
-    <h1>Pocket Blackjack</h1>
+    <h1 id="title">Pocket Blackjack</h1>
     <div class="bank"><span class="lbl">Chips</span><span id="bank">$500</span></div>
   </header>
+  <div class="tags" id="tags"></div>
 
   <section class="table">
     <div class="seat">
@@ -212,6 +230,7 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
         <p><b>21+3</b> (your two cards plus the dealer's up card): flush 5:1, straight 10:1, three of a kind 30:1, straight flush 40:1, suited trips 100:1.</p>
         <p><b>Insurance</b> is offered when the dealer shows an Ace. It costs half your bet and pays 2:1.</p>
       </details>
+      <button class="paybtn" id="pay" hidden></button>
       <button class="primary" id="deal">Deal</button>
     </div>
 
@@ -229,12 +248,34 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
   </section>
 </main>
 
+<div class="modal" id="modal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="mt">
+    <svg viewBox="0 0 100 100" aria-hidden="true">
+      <path d="M12 100 Q50 66 88 100Z" fill="#2a2a3a"/>
+      <path d="M42 80 L50 94 L58 80 L50 74Z" fill="#fff"/>
+      <circle cx="50" cy="50" r="27" fill="#f1c9a5"/>
+      <path d="M20 42 Q50 4 80 42Z" fill="#3a3a48"/>
+      <rect x="17" y="40" width="66" height="7" rx="3.5" fill="#22222c"/>
+      <rect x="27" y="49" width="19" height="11" rx="4" fill="#111"/>
+      <rect x="54" y="49" width="19" height="11" rx="4" fill="#111"/>
+      <path d="M46 53 H54" stroke="#111" stroke-width="3"/>
+      <path d="M33 68 Q50 58 67 68 Q58 77 50 70 Q42 77 33 68Z" fill="#2b1b12"/>
+    </svg>
+    <h2 id="mt"></h2>
+    <p id="mb"></p>
+    <p class="fine">Play money only. Nobody is actually coming.</p>
+    <div class="mbtns" id="mbtns"></div>
+  </div>
+</div>
+
 <script>
 (function () {
   var SUITS = ['♠', '♥', '♦', '♣'];
   var NAMES = { '♠': 'spades', '♥': 'hearts', '♦': 'diamonds', '♣': 'clubs' };
   var RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
   var START = 500, MIN = 10, MAX_HANDS = 4;
+  var LOAN = 200, RATE = 0.1, LIMIT = 600, STAKE = 100; // Sal's terms
+  var debt = 0, wanted = 0, taps = 0, tapTimer = null, interestMsg = '';
   var SIDE_STEPS = [0, 5, 10, 25];
   var CHIPS = [100, 50, 25, 10];
 
@@ -246,9 +287,11 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
 
   try {
     var saved = parseInt(localStorage.getItem('pocket-bj-bank'), 10);
-    if (saved >= MIN) bank = saved;
+    if (saved >= 0) bank = saved;
+    var sd = parseInt(localStorage.getItem('pocket-bj-debt'), 10); if (sd > 0) debt = sd;
+    var sw = parseInt(localStorage.getItem('pocket-bj-wanted'), 10); if (sw > 0) wanted = sw;
   } catch (e) {}
-  function save() { try { localStorage.setItem('pocket-bj-bank', String(bank)); } catch (e) {} }
+  function save() { try { localStorage.setItem('pocket-bj-bank', String(bank)); localStorage.setItem('pocket-bj-debt', String(debt)); localStorage.setItem('pocket-bj-wanted', String(wanted)); } catch (e) {} }
 
   var $ = function (id) { return document.getElementById(id); };
   var el = {
@@ -260,6 +303,65 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
     ppBtn: $('ppBtn'), t3Btn: $('t3Btn'), ppAmt: $('ppAmt'), t3Amt: $('t3Amt')
   };
   var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
+
+  /* ---------- Sal the loan shark ---------- */
+  function showModal(title, body, buttons) {
+    $('mt').textContent = title; $('mb').textContent = body;
+    var box = $('mbtns'); box.textContent = '';
+    buttons.forEach(function (b, i) {
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.textContent = b.label; if (i === 0) btn.className = 'go';
+      btn.addEventListener('click', function () { $('modal').hidden = true; b.fn(); });
+      box.appendChild(btn);
+    });
+    $('modal').hidden = false;
+    if (box.firstChild) box.firstChild.focus();
+  }
+  function resetStack() {
+    bank = START; bet = 25; pp = 0; t3 = 0; hands = []; dealer = []; sideMsg = '';
+    say('Fresh stack of $' + START + '. Pick a chip and deal.', ''); phase = 'bet'; save(); render();
+  }
+  function takeLoan() {
+    bank += LOAN; debt += LOAN; sideMsg = '';
+    if (bet > bank) bet = CHIPS.filter(function (v) { return v <= bank; })[0] || MIN;
+    say('Sal slides you $' + LOAN + '.', '', 'You owe $' + debt + '. Interest adds 10% every hand.');
+    save(); render();
+  }
+  function showVisit() {
+    var owed = debt; wanted++; debt = 0; bank = STAKE; bet = 25; pp = 0; t3 = 0; sideMsg = '';
+    save(); say('Sal came by.', 'lose', 'Fresh start with $' + STAKE + '. You are Wanted x' + wanted + '.'); render();
+    showModal('Sal paid a visit',
+      'Sal strolls in, adjusts his cap, and counts the room. "You owe me $' + owed + ', kid. Nice little game you got here. Shame if somebody kept borrowing." He takes your chips, tears up the slip, and leaves you $' + STAKE + ' to start over. You are now Wanted x' + wanted + '.',
+      [{ label: 'Phew. Thanks, Sal', fn: function () {} }]);
+  }
+  function showBroke() {
+    if (debt === 0) {
+      showModal('Out of chips?', 'A man in a flat cap leans on the table. "Name\'s Sal. I can fix that. $' + LOAN + ' now, and I only charge 10% interest every hand. Easy."',
+        [{ label: 'Borrow $' + LOAN, fn: takeLoan }, { label: 'No thanks, new game', fn: resetStack }]);
+    } else if (debt + LOAN <= LIMIT) {
+      showModal('Back again?', 'Sal sighs. "You still owe me $' + debt + '. Fine. Another $' + LOAN + '. But I am watching you."',
+        [{ label: 'Borrow $' + LOAN + ' more', fn: takeLoan }]);
+    } else showVisit();
+  }
+  function checkSal() {
+    if (debt > LIMIT) showVisit(); else if (bank < MIN) showBroke();
+  }
+  function renderDebt() {
+    var parts = [];
+    if (debt > 0) parts.push('<span class="tag debt">Debt $' + debt + ' (+10% per hand)</span>');
+    if (wanted > 0) parts.push('<span class="tag wanted">Wanted x' + wanted + '</span>');
+    $('tags').innerHTML = parts.join('');
+    var pay = $('pay'), can = debt > 0 && bank > 0 && (phase === 'bet' || phase === 'done');
+    pay.hidden = !can;
+    if (can) pay.textContent = 'Pay Sal $' + Math.min(bank, debt);
+  }
+  function paySal() {
+    if (!(debt > 0 && bank > 0) || (phase !== 'bet' && phase !== 'done')) return;
+    var amt = Math.min(bank, debt); bank -= amt; debt -= amt;
+    if (bet > bank) bet = CHIPS.filter(function (v) { return v <= bank; })[0] || MIN;
+    sideMsg = ''; say(debt ? 'Paid Sal $' + amt + '.' : 'Debt cleared. Sal tips his cap.', debt ? '' : 'win', debt ? 'You still owe $' + debt + '.' : '');
+    save(); render(); checkSal();
+  }
 
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
@@ -321,7 +423,7 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
       if (r2) { bank += t3 * (r2[1] + 1); parts.push('21+3: ' + r2[0] + ' wins $' + (t3 * r2[1])); }
       else parts.push('21+3 lost $' + t3);
     }
-    sideMsg = parts.join(' · ');
+    sideMsg = (interestMsg ? [interestMsg].concat(parts) : parts).join(' · ');
     save();
   }
 
@@ -378,6 +480,7 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
 
   function render() {
     el.bank.textContent = '$' + bank;
+    renderDebt();
     var betting = phase === 'bet' || phase === 'done';
     if (betting) {
       el.wlabel.textContent = (pp + t3) > 0 ? 'Bet + side bets' : 'Bet';
@@ -482,13 +585,14 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
       else if (net < 0) say(tally + 'Net -$' + (-net), 'lose');
       else say(tally + 'Even.', '');
     }
-    if (bank < MIN) say('Out of chips. Start a new game for $' + START + '.', 'lose');
+    if (bank < MIN) say('Out of chips.', 'lose');
     save();
 
     if (bet + pp + t3 > bank) { pp = 0; t3 = 0; }
     if (bet > bank && bank >= MIN) bet = CHIPS.filter(function (v) { return v <= bank; })[0];
     phase = 'done';
     render();
+    checkSal();
   }
 
   function startPlay() {
@@ -533,6 +637,8 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
     if (bet > bank) bet = CHIPS.filter(function (v) { return v <= bank; })[0];
     phase = 'busy'; bank -= bet + pp + t3; save();
     insBet = 0; sideMsg = ''; dealer = []; hole = true;
+    interestMsg = '';
+    if (debt > 0) { debt = Math.ceil(Math.round(debt * (1 + RATE) * 100) / 100); interestMsg = 'Sal\'s interest: you now owe $' + debt; save(); }
     hands = [makeHand([], bet, false)]; active = 0;
     say('Dealing…', ''); render();
     var order = [hands[0].cards, dealer, hands[0].cards, dealer];
@@ -635,8 +741,21 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
     for (var i = 0; i < el.pHands.children.length; i++) setOverlap(el.pHands.children[i].firstChild);
   });
 
-  if (bet > bank) bet = CHIPS.filter(function (v) { return v <= bank; })[0];
+  $('pay').addEventListener('click', paySal);
+  $('title').addEventListener('click', function () {
+    taps++; clearTimeout(tapTimer); tapTimer = setTimeout(function () { taps = 0; }, 1500);
+    if (taps >= 5) {
+      taps = 0;
+      if (phase !== 'bet' && phase !== 'done') return;
+      if (debt + LOAN <= LIMIT) showModal('Psst, kid.', 'Sal steps out of the shadows. "Heard you found my secret. Need a little help? $' + LOAN + ', 10% interest every hand."',
+        [{ label: 'Borrow $' + LOAN, fn: takeLoan }, { label: 'Maybe later', fn: function () {} }]);
+      else showModal('Sal is busy', '"You owe me enough already. Come back when you are square."', [{ label: 'Okay', fn: function () {} }]);
+    }
+  });
+
+  if (bank >= MIN && bet > bank) bet = CHIPS.filter(function (v) { return v <= bank; })[0];
   render();
+  checkSal();
 })();
 </script>
 
