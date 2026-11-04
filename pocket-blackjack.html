@@ -183,6 +183,7 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
 .mbtns { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 4px; }
 .mbtns button { min-height: 50px; border-radius: 12px; border: 2px solid var(--ink); background: #fff; color: var(--ink); font-weight: 800; font-size: 1rem; }
 .mbtns button.go { background: var(--ink); color: #fff; }
+.ver { margin: 0; text-align: center; font-size: 0.7rem; color: var(--muted); opacity: 0.6; }
 </style>
 </head>
 <body>
@@ -247,9 +248,10 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
       <button class="act spl" id="spl">Split</button>
     </div>
   </section>
+<p class="ver">v3</p>
 </main>
 
-<div class="modal" id="modal" hidden>
+<div class="modal" id="modal" hidden style="display:none">
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="mt">
     <svg viewBox="0 0 100 100" aria-hidden="true">
       <path d="M12 100 Q50 66 88 100Z" fill="#2a2a3a"/>
@@ -306,16 +308,18 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
   var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
 
   /* ---------- Sal the loan shark ---------- */
-  function showModal(title, body, buttons) {
+  function closeModal() { $('modal').style.display = 'none'; $('modal').hidden = true; }
+  function showModal(title, body, buttons, closable) {
     $('mt').textContent = title; $('mb').textContent = body;
     var box = $('mbtns'); box.textContent = '';
     buttons.forEach(function (b, i) {
       var btn = document.createElement('button');
       btn.type = 'button'; btn.textContent = b.label; if (i === 0) btn.className = 'go';
-      btn.addEventListener('click', function () { $('modal').hidden = true; b.fn(); });
+      btn.addEventListener('click', function () { closeModal(); b.fn(); });
       box.appendChild(btn);
     });
-    $('modal').hidden = false;
+    $('modal')._closable = !!closable;
+    $('modal').hidden = false; $('modal').style.display = 'grid';
     if (box.firstChild) box.firstChild.focus();
   }
   function resetStack() {
@@ -333,7 +337,7 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
     save(); say('Sal came by.', 'lose', 'Fresh start with $' + STAKE + '. You are Wanted x' + wanted + '.'); render();
     showModal('Sal paid a visit',
       'Sal strolls in, adjusts his cap, and counts the room. "You owe me $' + owed + ', kid. Nice little game you got here. Shame if somebody kept borrowing." He takes your chips, tears up the slip, and leaves you $' + STAKE + ' to start over. You are now Wanted x' + wanted + '.',
-      [{ label: 'Phew. Thanks, Sal', fn: function () {} }]);
+      [{ label: 'Phew. Thanks, Sal', fn: function () {} }], true);
   }
   function showBroke() {
     if (debt === 0) {
@@ -742,6 +746,7 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
     for (var i = 0; i < el.pHands.children.length; i++) setOverlap(el.pHands.children[i].firstChild);
   });
 
+  $('modal').addEventListener('click', function (e) { if (e.target === this && this._closable) closeModal(); });
   $('pay').addEventListener('click', paySal);
   $('title').addEventListener('click', function () {
     taps++; clearTimeout(tapTimer); tapTimer = setTimeout(function () { taps = 0; }, 1500);
@@ -750,7 +755,7 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
       if (phase !== 'bet' && phase !== 'done') return;
       if (debt + LOAN <= LIMIT) showModal('Psst, kid.', 'Sal steps out of the shadows. "Heard you found my secret. Need a little help? $' + LOAN + ', 10% interest every hand."',
         [{ label: 'Borrow $' + LOAN, fn: takeLoan }, { label: 'Maybe later', fn: function () {} }]);
-      else showModal('Sal is busy', '"You owe me enough already. Come back when you are square."', [{ label: 'Okay', fn: function () {} }]);
+      else showModal('Sal is busy', '"You owe me enough already. Come back when you are square."', [{ label: 'Okay', fn: function () {} }], true);
     }
   });
 
