@@ -237,6 +237,48 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .sharkrow { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
 .sharkrow[hidden] { display: none; }
 .fleebtn { min-height: 40px; border-radius: 12px; border: 2px solid #ff8f7f; background: rgba(255, 90, 70, 0.28); color: #ffd9d1; font-weight: 800; font-size: 0.85rem; }
+
+/* ---- Tables, stakes and the Roach Derby ---- */
+.sharkrow { gap: 6px; }
+.sharkbtn, .paybtn, .fleebtn, .tablebtn { font-size: 0.8rem; padding-inline: 4px; }
+.tablebtn { min-height: 40px; border-radius: 12px; border: 2px solid #fff; background: rgba(255, 255, 255, 0.16); color: #fff; font-weight: 800; }
+.stakesbtn { min-height: 30px; padding: 0 12px; border-radius: 999px; border: 2px solid #ffe27a; background: rgba(255, 210, 74, 0.25); color: #ffe27a; font-weight: 800; font-size: 0.8rem; }
+.derby { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.dhead h2 { margin: 0; font-family: var(--display); font-size: 1.15rem; color: #fff; }
+.dsub { margin: 2px 0 0; font-size: 0.85rem; color: #fff; }
+.lanes { display: flex; flex-direction: column; gap: 4px; padding: 8px; border-radius: 16px; background-color: #17120e; border: 2px solid rgba(255, 210, 74, 0.5);
+  background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 22px); }
+.lane { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 6px 0 0; border-radius: 10px; border: 2px solid transparent; background: rgba(255, 255, 255, 0.07); color: #fff; text-align: left; }
+.lane[aria-pressed="true"] { border-color: var(--brass); background: rgba(255, 210, 74, 0.2); }
+.lane:disabled { cursor: default; }
+.lname { flex: 0 0 98px; display: flex; flex-direction: column; padding-left: 8px; line-height: 1.15; }
+.lname b { font-size: 0.8rem; }
+.lname em { font-style: normal; font-size: 0.82rem; color: #ffe27a; font-weight: 800; font-variant-numeric: tabular-nums; }
+.trk { position: relative; flex: 1; height: 36px; border-radius: 6px; background: rgba(0, 0, 0, 0.55); overflow: hidden; }
+.fin { position: absolute; right: 0; top: 0; bottom: 0; width: 10px; background: repeating-conic-gradient(#fff 0 25%, #111 0 50%) 0 0 / 10px 10px; }
+.roach { position: absolute; left: 0; top: 4px; width: 20%; height: 28px; transition: left 0.05s linear; }
+.roach svg { width: 100%; height: 100%; overflow: visible; transition: transform 0.2s; }
+.roach::after { position: absolute; left: 30%; top: -4px; font-size: 0.62rem; font-weight: 800; color: #fff; background: rgba(0, 0, 0, 0.7); padding: 0 4px; border-radius: 6px; }
+.roach[data-mode="crumb"]::after { content: "nom"; }
+.roach[data-mode="nap"]::after { content: "zzz"; }
+.roach[data-mode="lost"]::after { content: "?!"; }
+.roach[data-mode="flip"]::after { content: "help"; }
+.roach[data-mode="turbo"]::after { content: "WEEE"; color: #ffe27a; }
+.roach[data-mode="flip"] svg { transform: rotate(180deg); }
+.roach[data-mode="lost"] svg { transform: scaleX(-1); }
+.roach[data-mode="turbo"] svg { filter: drop-shadow(0 0 5px #ffd24a); }
+.roach[data-mode="out"] svg { transform: scale(1.25, 0.16); transform-origin: 50% 90%; filter: saturate(0.4); }
+.roach[data-win="1"] svg { filter: drop-shadow(0 0 6px #ffd24a); }
+@media (prefers-reduced-motion: no-preference) {
+  .roach[data-mode="run"] .legs, .roach[data-mode="turbo"] .legs, .roach[data-mode="lost"] .legs { animation: scurry 0.12s infinite; }
+  .roach[data-mode="flip"] .legs { animation: scurry 0.07s infinite; }
+}
+@keyframes scurry { 50% { transform: translateY(1.6px); } }
+.boot { position: absolute; top: 0; width: 26px; height: 100%; animation: bootdrop 0.32s ease-in both; pointer-events: none; }
+.boot svg { width: 100%; height: 100%; }
+@keyframes bootdrop { from { transform: translateY(-110%); } to { transform: translateY(0); } }
+.ticker { margin: 0; min-height: 2.4em; text-align: center; font-size: 0.92rem; font-weight: 700; color: #ffe27a; text-wrap: balance; }
+.dmsg { font-size: 1.25rem; min-height: 1.6rem; text-align: center; }
 </style>
 </head>
 <body>
@@ -249,9 +291,9 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     <div class="bank"><span class="lbl">Chips</span><span id="bank">$500</span></div>
   </header>
   <div class="tags" id="tags"></div>
-  <div class="sharkrow" id="sharkRow"><button class="paybtn" id="pay" hidden></button><button class="sharkbtn" id="sharkBtn">Loan sharks</button><button class="fleebtn" id="fleeBtn" hidden>Flee country</button></div>
+  <div class="sharkrow" id="sharkRow"><button class="paybtn" id="pay" hidden></button><button class="sharkbtn" id="sharkBtn">Loans</button><button class="fleebtn" id="fleeBtn" hidden>Flee</button><button class="tablebtn" id="tablesBtn">Tables</button></div>
 
-  <section class="table">
+  <section class="table" id="bjTable">
     <div class="seat">
       <div class="meta"><span class="who">Dealer</span><span class="tot" id="dTot"></span></div>
       <div class="hand" id="dHand"></div>
@@ -268,8 +310,19 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     </div>
   </section>
 
-  <section class="controls">
-    <div class="betline"><span id="wlabel">Bet</span><b id="wager">$25</b></div>
+  <section class="derby" id="derby" hidden>
+    <div class="dhead"><h2>Back Alley Roach Derby</h2><p class="dsub" id="dsub">Tap a bug to bet on it.</p></div>
+    <div class="lanes" id="lanes"></div>
+    <p class="ticker" id="ticker" role="status"></p>
+    <p class="msg dmsg" id="dmsg"></p>
+    <div class="betline"><span id="dlabel">Bet</span><button class="stakesbtn" id="stakesBtn2" hidden>Raise stakes</button><b id="dwager">$25</b></div>
+    <div class="chips" id="dChips" role="group" aria-label="Bet size"></div>
+    <div class="sides"><button class="sidebtn" id="dProp" aria-pressed="false">Boot Stomp 3:1<span id="dPropAmt">$0</span></button><button class="sidebtn" id="dForm" type="button">Race card<span id="dFormAmt">odds</span></button></div>
+    <button class="primary" id="dGo">Pick a bug</button>
+  </section>
+
+  <section class="controls" id="bjControls">
+    <div class="betline"><span id="wlabel">Bet</span><button class="stakesbtn" id="stakesBtn" hidden>Raise stakes</button><b id="wager">$25</b></div>
 
     <div id="betRow" class="stack">
       <div class="chips" role="group" aria-label="Bet size">
@@ -324,12 +377,15 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
   var START = 500, MAX_HANDS = 4, STAKE = 100;
   var ROOMS = {
     low:  { min: 10,  chips: [10, 25, 50, 100],     sides: [0, 5, 10, 25],    bet: 25 },
+    mid:  { min: 50,  chips: [50, 100, 250, 500],   sides: [0, 10, 25, 50],   bet: 50 },
     high: { min: 100, chips: [100, 250, 500, 1000], sides: [0, 25, 50, 100], bet: 100 }
   };
+  var STAKES_UNLOCK = 1000; // chips needed to open the higher-stakes bets
   var MIN = 10, CHIPS = [100, 50, 25, 10], SIDE_STEPS = [0, 5, 10, 25];
-  var room = 'low', unlocked = false, cleared = {};
+  var room = 'low', unlocked = false, cleared = {}, stakes = false, stakesUnlocked = false, game = 'bj';
   var wanted = 0, taps = 0, tapTimer = null, interestMsg = '', blindNext = false, blind = false;
-  function applyRoom() { var r = ROOMS[room]; MIN = r.min; CHIPS = r.chips.slice().reverse(); SIDE_STEPS = r.sides; }
+  function curCfg() { return room === 'low' && stakes ? ROOMS.mid : ROOMS[room]; }
+  function applyRoom() { var r = curCfg(); MIN = r.min; CHIPS = r.chips.slice().reverse(); SIDE_STEPS = r.sides; }
 
   var deck = [], dealer = [], hands = [], active = -1;
   var bank = START, bet = 25, pp = 0, t3 = 0, insBet = 0;
@@ -379,17 +435,17 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
       var sd = parseInt(localStorage.getItem('pocket-bj-debt'), 10); if (sd > 0) S.sal.debt = sd; // old single-shark save
     }
     var mj = localStorage.getItem('pocket-bj-meta');
-    if (mj) { var m = JSON.parse(mj); unlocked = !!m.unlocked; cleared = m.cleared || {}; if (m.room === 'high' && unlocked) room = 'high'; }
+    if (mj) { var m = JSON.parse(mj); unlocked = !!m.unlocked; cleared = m.cleared || {}; if (m.room === 'high' && unlocked) room = 'high'; stakesUnlocked = !!m.stakesUnlocked || bank >= STAKES_UNLOCK; stakes = !!m.stakes && stakesUnlocked && bank >= ROOMS.mid.min * 2; }
   } catch (e) {}
   applyRoom();
-  if (room === 'high') bet = ROOMS.high.bet;
+  if (room === 'high') bet = ROOMS.high.bet; else if (stakes) bet = ROOMS.mid.bet;
 
   function save() {
     try {
       localStorage.setItem('pocket-bj-bank', String(bank));
       localStorage.setItem('pocket-bj-wanted', String(wanted));
       localStorage.setItem('pocket-bj-sharks', JSON.stringify(S));
-      localStorage.setItem('pocket-bj-meta', JSON.stringify({ room: room, unlocked: unlocked, cleared: cleared }));
+      localStorage.setItem('pocket-bj-meta', JSON.stringify({ room: room, unlocked: unlocked, cleared: cleared, stakes: stakes, stakesUnlocked: stakesUnlocked }));
     } catch (e) {}
   }
 
@@ -401,7 +457,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     deal: $('deal'), hit: $('hit'), stand: $('stand'), dbl: $('dbl'), spl: $('spl'),
     insYes: $('insYes'), insNo: $('insNo'),
     ppBtn: $('ppBtn'), t3Btn: $('t3Btn'), ppAmt: $('ppAmt'), t3Amt: $('t3Amt'),
-    dim: $('dim'), redv: $('redv'), sharkBtn: $('sharkBtn'), fleeBtn: $('fleeBtn'), roomBtn: $('roomBtn')
+    dim: $('dim'), redv: $('redv'), sharkBtn: $('sharkBtn'), fleeBtn: $('fleeBtn'), roomBtn: $('roomBtn'), stakesBtn: $('stakesBtn'), stakesBtn2: $('stakesBtn2')
   };
   var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
 
@@ -463,7 +519,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     $('modal').querySelector('.sheet').scrollTop = 0;
   }
   function resetStack() {
-    bank = START; bet = 25; pp = 0; t3 = 0; hands = []; dealer = []; sideMsg = '';
+    bank = START; stakes = false; applyRoom(); bet = 25; pp = 0; t3 = 0; hands = []; dealer = []; sideMsg = '';
     say('Fresh stack of $' + START + '. Pick a chip and deal.', ''); phase = 'bet'; save(); render();
   }
 
@@ -619,7 +675,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
   /* High-Roller Room */
   function setRoom(r, text) {
     room = r; applyRoom();
-    bet = ROOMS[r].bet; if (bet > bank) bet = bestChip();
+    bet = curCfg().bet; if (bet > bank) bet = bestChip();
     pp = 0; t3 = 0; sideMsg = ''; hands = []; dealer = []; phase = 'bet'; hole = true; blind = false;
     say(text || (r === 'high' ? 'Welcome upstairs. $' + ROOMS.high.min + ' minimum.' : 'Back in the basement.'), '');
     save(); render();
@@ -649,6 +705,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
       parts.push('<span class="tag debt">' + s.short + ' $' + st.debt + (r > 0 ? ' +' + Math.round(r * 100) + '%' : '') + (s.id === 'tony' ? ' · due in ' + st.due : '') + '</span>');
     });
     SHARKS.forEach(function (s) { if (S[s.id].bounty > 0) parts.push('<span class="tag debt">' + s.short + ' bounty $' + S[s.id].bounty + '</span>'); });
+    if (stakes && room === 'low') parts.push('<span class="tag wanted">High stakes</span>');
     if (wanted > 0) parts.push('<span class="tag wanted">Wanted x' + wanted + '</span>');
     if (unlocked) parts.push('<span class="tag wanted">' + (room === 'high' ? 'High-Roller Room' : 'High-Roller Room open') + '</span>');
     else if (clearedCount() > 0) parts.push('<span class="tag">Sharks paid off ' + clearedCount() + '/' + SHARKS.length + '</span>');
@@ -659,7 +716,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     pay.hidden = !can;
     if (can) pay.textContent = 'Pay $' + owedNow;
     el.fleeBtn.hidden = !(betting && room === 'low' && totalDebt() > 0);
-    $('sharkRow').hidden = !(betting && room === 'low');
+    $('sharkRow').hidden = !betting;
     el.sharkBtn.hidden = !(betting && room === 'low');
     el.roomBtn.hidden = !(betting && unlocked);
     el.roomBtn.textContent = room === 'high' ? 'Back to the basement' : 'Enter the High-Roller Room';
@@ -669,7 +726,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     el.dim.style.opacity = String(heat * 0.5);
     el.redv.style.opacity = String(heat);
     document.body.classList.toggle('hr', room === 'high');
-    $('title').textContent = room === 'high' ? 'High-Roller Blackjack' : 'Pocket Blackjack';
+    $('title').textContent = game === 'derby' ? 'Roach Derby' : (room === 'high' ? 'High-Roller Blackjack' : 'Pocket Blackjack');
   }
 
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
@@ -788,6 +845,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
   }
 
   function render() {
+    fixStakes();
     el.bank.textContent = '$' + bank;
     renderDebt();
     var betting = phase === 'bet' || phase === 'done';
@@ -856,6 +914,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     el.stand.disabled = !canAct;
     el.dbl.disabled = !canDouble();
     el.spl.disabled = !canSplit();
+    renderTables();
   }
 
   function say(text, cls) { msg = text; msgClass = cls || ''; }
@@ -908,7 +967,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     if (bet > bank && bank >= MIN) bet = CHIPS.filter(function (v) { return v <= bank; })[0];
     phase = 'done';
     render();
-    if (!maybeReveal(net)) checkSal();
+    if (!maybeReveal(net)) { if (!checkStakes()) checkSal(); }
   }
 
   function startPlay() {
@@ -941,19 +1000,8 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     render();
   }
 
-  /* Actions */
-  async function deal() {
-    if (phase !== 'bet' && phase !== 'done') return;
-    if (bank < MIN) {
-      bank = START; bet = 25; pp = 0; t3 = 0; save();
-      hands = []; dealer = []; sideMsg = ''; say('Fresh stack of $' + START + '. Pick a chip and deal.', '');
-      phase = 'bet'; render(); return;
-    }
-    if (bet + pp + t3 > bank) { pp = 0; t3 = 0; }
-    if (bet > bank) bet = CHIPS.filter(function (v) { return v <= bank; })[0];
-    phase = 'busy'; bank -= bet + pp + t3; save();
-    insBet = 0; sideMsg = ''; dealer = []; hole = true;
-    interestMsg = '';
+  /* Interest, Big Tony's blind hands and bounty hunters: runs once per hand or race */
+  function tickDebts() {
     SHARKS.forEach(function (s) {
       var st = S[s.id]; if (st.debt <= 0) return;
       var r = rateOf(s); st.held++;
@@ -968,6 +1016,244 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
       var hs = hunters[Math.floor(Math.random() * hunters.length)], cut = Math.min(bank, Math.max(10, Math.ceil(bank * 0.15)));
       if (cut > 0) { bank -= cut; notes.push(hs.short + '\'s guys found you: -$' + cut); }
     }
+    return notes;
+  }
+
+
+  /* ---------- Higher stakes ---------- */
+  function fixStakes() {
+    if (stakes && room === 'low' && bank < ROOMS.mid.min * 2 && (phase === 'bet' || phase === 'done')) {
+      stakes = false; applyRoom(); pp = 0; t3 = 0; bet = bestChip(); save();
+    }
+  }
+  function toggleStakes() {
+    if ((phase !== 'bet' && phase !== 'done') || room !== 'low' || !stakesUnlocked || derby.phase === 'run') return;
+    if (!stakes && bank < ROOMS.mid.min * 2) { say('You need at least $' + (ROOMS.mid.min * 2) + ' for higher stakes.', 'lose'); render(); return; }
+    stakes = !stakes; applyRoom(); pp = 0; t3 = 0; bet = curCfg().bet; if (bet > bank) bet = bestChip();
+    say(stakes ? 'Higher stakes: $' + MIN + ' minimum.' : 'Back to the low-stakes bets.', ''); save(); render();
+  }
+  function checkStakes() {
+    if (stakesUnlocked || bank < STAKES_UNLOCK) return false;
+    stakesUnlocked = true; save(); render();
+    showModal('Higher stakes unlocked', 'You are up to $' + bank + ', and the dealer lifts a rope. You can now play with $' + ROOMS.mid.chips.join(', $') + ' chips and bigger side bets. Use the "Raise stakes" button any time, and drop back down whenever you like.',
+      [{ label: 'Raise stakes now', fn: function () { if (!stakes) toggleStakes(); } }, { label: 'Maybe later', fn: function () { checkSal(); }, go: false }], true, 'neutral');
+    return true;
+  }
+
+  /* ---------- Switching tables ---------- */
+  function setGame(g) {
+    if (g === game) return;
+    game = g;
+    if (g === 'derby') { if (CHIPS.indexOf(bet) < 0 || bet > bank) bet = bestChip(); newRace(); }
+    render();
+    if (bank < MIN) checkSal();
+  }
+  function tablesMenu() {
+    if (phase !== 'bet' && phase !== 'done') return;
+    var btns = [
+      { label: 'Blackjack' + (game === 'bj' ? ' (here)' : ''), sub: 'Splits, side bets, loan sharks', go: false, disabled: game === 'bj', fn: function () { setGame('bj'); } },
+      { label: 'Back Alley Roach Derby' + (game === 'derby' ? ' (here)' : ''), sub: room === 'high' ? 'Back alley only. Head downstairs first.' : 'Bet on bugs. Boots may fall.', go: false, disabled: game === 'derby' || room === 'high', fn: function () { setGame('derby'); } },
+      { label: 'Close', go: false, fn: function () {} }
+    ];
+    showModal('Pick a table', 'Same chips and same loan sharks at every table.', btns, true, 'neutral');
+  }
+  function renderTables() {
+    var d = game === 'derby', betting = phase === 'bet' || phase === 'done';
+    $('bjTable').hidden = d; $('bjControls').hidden = d; $('derby').hidden = !d;
+    el.stakesBtn.hidden = !(stakesUnlocked && room === 'low' && !d && betting);
+    el.stakesBtn.textContent = stakes ? 'Lower stakes' : 'Raise stakes';
+    el.stakesBtn2.hidden = !(stakesUnlocked && room === 'low' && d && derby.phase !== 'run');
+    el.stakesBtn2.textContent = stakes ? 'Lower stakes' : 'Raise stakes';
+    if (d) renderDerby();
+  }
+
+  /* ---------- Back Alley Roach Derby ---------- */
+  var TRACK = 100, DT = 0.05, STOMP_P = 0.22, STOMP_MULT = 4;
+  var ROACHES = [
+    { name: 'Scuttles', color: '#c26a2e' }, { name: 'Crumbo', color: '#8a5a2b' }, { name: 'Kevin', color: '#6b4423' },
+    { name: 'Brenda', color: '#b0592d' }, { name: 'Greasy Gary', color: '#4a3319' }, { name: 'Lil\' Spaghetti', color: '#c79a45' }
+  ];
+  var EVENTS = [['crumb', 0.28], ['nap', 0.12], ['lost', 0.2], ['flip', 0.12], ['turbo', 0.28]];
+  var derby = { phase: 'bet', pick: -1, prop: 0, form: [], mult: [], R: null, stompAt: null, stomped: -1, timer: null, ticker: '', result: '', resultClass: '', built: false, lanes: [], sig: '', prevPhase: 'bet', raceNo: 0, win: -1, nextEv: '' };
+
+  function roachSvg(c) {
+    return '<svg viewBox="0 0 52 30" aria-hidden="true"><g class="legs" stroke="#150c05" stroke-width="1.7" stroke-linecap="round"><path d="M14 12 L7 4 M24 11 L21 2 M33 12 L39 4 M14 18 L7 26 M24 19 L21 28 M33 18 L39 26"/></g>' +
+      '<path d="M44 12 Q50 7 52 3 M44 17 Q50 22 52 27" stroke="#150c05" stroke-width="1.2" fill="none"/>' +
+      '<ellipse cx="24" cy="15" rx="17" ry="9" fill="' + c + '" stroke="#150c05" stroke-width="1.6"/><path d="M10 15 H38" stroke="rgba(0,0,0,.35)" stroke-width="1.2"/>' +
+      '<circle cx="42" cy="15" r="5.5" fill="#2a170a" stroke="#150c05" stroke-width="1.4"/><ellipse cx="22" cy="11" rx="8" ry="2.6" fill="rgba(255,255,255,.25)"/></svg>';
+  }
+  function pickEvent() { var r = Math.random(), a = 0, i; for (i = 0; i < EVENTS.length; i++) { a += EVENTS[i][1]; if (r < a) return EVENTS[i][0]; } return 'crumb'; }
+  function mkRace(form) {
+    return { f: form, pos: form.map(function () { return 0; }), mood: form.map(function () { return 1; }), mode: form.map(function () { return 'run'; }), left: form.map(function () { return 0; }), t: 0, done: false, winner: -1, margin: 99 };
+  }
+  function stepRace(R, dt, onEv) {
+    var i;
+    R.t += dt;
+    for (i = 0; i < R.pos.length; i++) {
+      if (R.mode[i] === 'out') continue;
+      R.mood[i] = Math.max(0.75, Math.min(1.25, R.mood[i] + (Math.random() - 0.5) * 0.05));
+      var v = 0, base = 10 * R.f[i] * R.mood[i] * (0.9 + Math.random() * 0.2);
+      if (R.mode[i] === 'run') {
+        v = base;
+        if (Math.random() < 0.006) {
+          var ev = pickEvent(); R.mode[i] = ev;
+          R.left[i] = ev === 'crumb' ? 0.8 + Math.random() * 0.8 : ev === 'nap' ? 1.2 + Math.random() * 0.8 : ev === 'lost' ? 0.7 + Math.random() * 0.5 : ev === 'flip' ? 1.2 + Math.random() * 0.6 : 1 + Math.random() * 0.6;
+          if (onEv) onEv(i, ev);
+        }
+      } else {
+        R.left[i] -= dt;
+        v = R.mode[i] === 'turbo' ? base * 1.8 : (R.mode[i] === 'lost' ? -6 : 0);
+        if (R.left[i] <= 0) R.mode[i] = 'run';
+      }
+      R.pos[i] = Math.max(0, R.pos[i] + v * dt);
+    }
+    var best = -1, bp = TRACK, second = -1;
+    for (i = 0; i < R.pos.length; i++) { if (R.mode[i] !== 'out' && R.pos[i] >= bp) { bp = R.pos[i]; best = i; } }
+    if (best >= 0) {
+      for (i = 0; i < R.pos.length; i++) if (i !== best && R.mode[i] !== 'out') second = Math.max(second, R.pos[i]);
+      R.done = true; R.winner = best; R.margin = bp - second;
+    }
+  }
+  function newRace() {
+    derby.form = ROACHES.map(function () { return 0.94 + Math.random() * 0.12; });
+    var n = 400, wins = ROACHES.map(function () { return 0; }), k, g, R;
+    for (k = 0; k < n; k++) { R = mkRace(derby.form); g = 0; while (!R.done && g++ < 2500) stepRace(R, DT); if (R.winner >= 0) wins[R.winner]++; }
+    derby.mult = wins.map(function (w) { var m = Math.round(0.85 / (Math.max(w, 6) / n) * 2) / 2; return Math.max(1.5, Math.min(30, m)); });
+    derby.R = mkRace(derby.form); derby.stomped = -1; derby.win = -1; derby.phase = 'bet';
+    derby.ticker = 'Odds are posted. Pick your bug.'; derby.result = ''; derby.resultClass = '';
+  }
+  function buildLanes() {
+    var box = $('lanes'); box.textContent = ''; derby.lanes = [];
+    ROACHES.forEach(function (r, i) {
+      var row = document.createElement('button'); row.type = 'button'; row.className = 'lane';
+      row.innerHTML = '<span class="lname"><b></b><em></em></span><span class="trk"><span class="fin"></span><span class="roach" data-mode="run">' + roachSvg(r.color) + '</span></span>';
+      row.querySelector('b').textContent = r.name;
+      row.addEventListener('click', function () { if (derby.phase === 'run') return; derby.pick = i; render(); });
+      box.appendChild(row);
+      derby.lanes.push({ row: row, odds: row.querySelector('em'), roach: row.querySelector('.roach'), trk: row.querySelector('.trk') });
+    });
+    derby.built = true;
+  }
+  function oddsText(i) { var o = derby.mult[i] - 1; return (o % 1 ? o.toFixed(1) : String(o)) + ':1'; }
+  function cycleProp() {
+    if (derby.phase === 'run') return;
+    var i = SIDE_STEPS.indexOf(derby.prop), next = 0, k, v;
+    for (k = 1; k <= SIDE_STEPS.length; k++) { v = SIDE_STEPS[(i + k) % SIDE_STEPS.length]; if (bet + v <= bank) { next = v; break; } }
+    derby.prop = next; render();
+  }
+  function showRaceCard() {
+    var lines = ROACHES.map(function (r, i) { return r.name + ' ' + oddsText(i); }).join(' · ');
+    showModal('Race card', 'Odds this race: ' + lines + '. Pick a bug and the bet pays its odds plus your stake back. Boot Stomp pays 3:1 if a boot squashes anyone, and the squashed bug is out.', [{ label: 'Got it', fn: function () {} }], true, 'neutral');
+  }
+  function renderDerby() {
+    if (!derby.built) buildLanes();
+    var running = derby.phase === 'run', R = derby.R || mkRace(ROACHES.map(function () { return 1; }));
+    derby.lanes.forEach(function (l, i) {
+      l.odds.textContent = derby.mult.length ? 'pays ' + oddsText(i) : '';
+      l.row.setAttribute('aria-pressed', String(derby.pick === i));
+      l.row.disabled = running;
+      l.roach.style.left = (Math.min(R.pos[i], TRACK) * 0.76) + '%';
+      l.roach.dataset.mode = R.mode[i] === 'fin' ? 'run' : R.mode[i];
+      l.roach.dataset.win = (derby.phase === 'done' && derby.win === i) ? '1' : '0';
+    });
+    $('ticker').textContent = derby.ticker;
+    var dm = $('dmsg'); dm.textContent = derby.result; dm.className = 'msg dmsg' + (derby.resultClass ? ' ' + derby.resultClass : '');
+    $('dsub').textContent = running ? 'They are off!' : (derby.pick < 0 ? 'Tap a bug to bet on it.' : 'You picked ' + ROACHES[derby.pick].name + ' at ' + oddsText(derby.pick) + '.');
+    $('dwager').textContent = '$' + bet + (derby.prop > 0 ? ' + $' + derby.prop : '');
+    $('dlabel').textContent = derby.prop > 0 ? 'Bet + stomp' : 'Bet';
+    var sig = CHIPS.join(','), box = $('dChips');
+    if (derby.sig !== sig) {
+      derby.sig = sig; box.textContent = '';
+      CHIPS.slice().reverse().forEach(function (v) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.dataset.v = String(v); b.textContent = v >= 1000 ? (v / 1000) + 'K' : String(v);
+        b.addEventListener('click', function () { if (derby.phase === 'run') return; bet = v; if (bet + derby.prop > bank) derby.prop = 0; render(); });
+        box.appendChild(b);
+      });
+    }
+    Array.prototype.forEach.call(box.children, function (b) {
+      var v = parseInt(b.dataset.v, 10);
+      b.disabled = running || v > bank; b.setAttribute('aria-pressed', String(v === bet));
+    });
+    $('dProp').setAttribute('aria-pressed', String(derby.prop > 0)); $('dPropAmt').textContent = '$' + derby.prop; $('dProp').disabled = running;
+    var go = $('dGo'), can = !running && derby.pick >= 0 && bank >= bet + derby.prop && bank >= MIN;
+    go.disabled = !can;
+    go.textContent = running ? 'Racing…' : (derby.pick < 0 ? 'Pick a bug' : (bank < bet + derby.prop ? 'Not enough chips' : (derby.phase === 'done' ? 'Race again: $' + bet + ' on ' + ROACHES[derby.pick].name : 'Start race: $' + bet + ' on ' + ROACHES[derby.pick].name)));
+  }
+  function startRace() {
+    if (derby.phase === 'run' || (phase !== 'bet' && phase !== 'done') || derby.pick < 0) return;
+    if (derby.phase === 'done') newRace();
+    if (bet + derby.prop > bank) { derby.prop = 0; if (bet > bank) return; }
+    derby.prevPhase = phase; phase = 'busy'; derby.phase = 'run';
+    bank -= bet + derby.prop; save();
+    var notes = tickDebts(); blindNext = false; save();
+    derby.R = mkRace(derby.form); derby.stompAt = Math.random() < STOMP_P ? 2 + Math.random() * 4 : null; derby.stomped = -1; derby.win = -1;
+    derby.result = ''; derby.resultClass = ''; derby.raceNo++;
+    derby.ticker = (notes.length ? notes.join(' · ') + ' · ' : '') + 'And they\'re off!';
+    render();
+    clearInterval(derby.timer);
+    derby.timer = setInterval(raceTick, DT * 1000);
+  }
+  function evText(i, ev) {
+    var n = ROACHES[i].name;
+    return ev === 'crumb' ? n + ' stops for a crumb.' : ev === 'nap' ? n + ' takes a nap. Seriously.' : ev === 'lost' ? n + ' turns around, confused.' : ev === 'flip' ? n + ' flips onto its back!' : n + ' found spilled beer. TURBO!';
+  }
+  function raceTick() {
+    var R = derby.R;
+    stepRace(R, DT, function (i, ev) { derby.ticker = evText(i, ev); });
+    if (derby.stompAt !== null && R.t >= derby.stompAt && derby.stomped < 0 && !R.done) {
+      var alive = [], i;
+      for (i = 0; i < R.pos.length; i++) if (R.mode[i] !== 'out' && R.pos[i] < 88) alive.push(i);
+      if (alive.length > 1) {
+        i = alive[Math.floor(Math.random() * alive.length)]; derby.stomped = i; R.mode[i] = 'out';
+        derby.ticker = 'A BOOT! ' + ROACHES[i].name + ' has been stomped.';
+        var trk = derby.lanes[i].trk, boot = document.createElement('span');
+        boot.className = 'boot'; boot.style.left = (R.pos[i] * 0.76) + '%';
+        boot.innerHTML = '<svg viewBox="0 0 26 40" aria-hidden="true"><path d="M5 0 H17 V24 Q26 26 26 34 V40 H0 V6 Z" fill="#3b2a1a" stroke="#000" stroke-width="1.6"/><rect x="0" y="34" width="26" height="6" fill="#111"/></svg>';
+        trk.appendChild(boot); setTimeout(function () { if (boot.parentNode) boot.parentNode.removeChild(boot); }, 1100);
+        derby.stompAt = null;
+      }
+    }
+    if (R.done) { finishRace(); return; }
+    renderDerby();
+  }
+  function finishRace() {
+    clearInterval(derby.timer); derby.timer = null;
+    var R = derby.R, W = R.winner, name = ROACHES[W].name, parts = [], pays = 0;
+    derby.win = W; derby.phase = 'done'; phase = derby.prevPhase;
+    var photo = R.margin < 1.5 ? 'PHOTO FINISH! ' : '';
+    if (derby.pick === W) {
+      var win = Math.floor(bet * derby.mult[W]); bank += win; pays = win - bet;
+      derby.result = photo + name + ' wins! You win $' + pays; derby.resultClass = 'win';
+    } else if (derby.pick === derby.stomped) {
+      derby.result = name + ' wins, and ' + ROACHES[derby.pick].name + ' got stomped. You lose $' + bet; derby.resultClass = 'lose';
+    } else {
+      derby.result = photo + name + ' wins. You lose $' + bet; derby.resultClass = 'lose';
+    }
+    if (derby.prop > 0) {
+      if (derby.stomped >= 0) { bank += derby.prop * STOMP_MULT; parts.push('Boot Stomp paid $' + (derby.prop * (STOMP_MULT - 1))); }
+      else parts.push('No boot fell. Stomp lost $' + derby.prop);
+    }
+    derby.ticker = parts.length ? parts.join(' · ') : 'Tap Race again for a new card.';
+    if (bet + derby.prop > bank) { derby.prop = 0; }
+    if (bet > bank) bet = bestChip();
+    save(); render();
+    if (!checkStakes()) checkSal();
+  }
+
+  /* Actions */
+  async function deal() {
+    if (phase !== 'bet' && phase !== 'done') return;
+    if (bank < MIN) {
+      bank = START; bet = 25; pp = 0; t3 = 0; save();
+      hands = []; dealer = []; sideMsg = ''; say('Fresh stack of $' + START + '. Pick a chip and deal.', '');
+      phase = 'bet'; render(); return;
+    }
+    if (bet + pp + t3 > bank) { pp = 0; t3 = 0; }
+    if (bet > bank) bet = CHIPS.filter(function (v) { return v <= bank; })[0];
+    phase = 'busy'; bank -= bet + pp + t3; save();
+    insBet = 0; sideMsg = ''; dealer = []; hole = true;
+    interestMsg = '';
+    var notes = tickDebts();
     interestMsg = notes.join(' \u00b7 ');
     blind = blindNext; blindNext = false; save();
     hands = [makeHand([], bet, false)]; active = 0;
@@ -1078,6 +1364,12 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
   el.sharkBtn.addEventListener('click', sharkMenu);
   el.fleeBtn.addEventListener('click', fleeMenu);
   el.roomBtn.addEventListener('click', toggleRoom);
+  el.stakesBtn.addEventListener('click', toggleStakes);
+  el.stakesBtn2.addEventListener('click', toggleStakes);
+  $('tablesBtn').addEventListener('click', tablesMenu);
+  $('dGo').addEventListener('click', startRace);
+  $('dProp').addEventListener('click', cycleProp);
+  $('dForm').addEventListener('click', showRaceCard);
   $('title').addEventListener('click', function () {
     taps++; clearTimeout(tapTimer); tapTimer = setTimeout(function () { taps = 0; }, 1500);
     if (taps >= 5) { taps = 0; sharkMenu(); }
@@ -1085,7 +1377,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 
   if (bank >= MIN && bet > bank) bet = CHIPS.filter(function (v) { return v <= bank; })[0];
   render();
-  checkSal();
+  if (!checkStakes()) checkSal();
 })();
 </script>
 
