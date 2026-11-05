@@ -179,7 +179,7 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
 .tag { font-size: 0.8rem; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: #fff; color: var(--ink); font-variant-numeric: tabular-nums; }
 .tag.debt { background: var(--lose); }
 .tag.wanted { background: var(--brass); }
-.paybtn { min-height: 46px; border-radius: 12px; border: 2px solid var(--lose); background: rgba(0, 0, 0, 0.45); color: var(--lose); font-weight: 800; font-size: 0.98rem; }
+.paybtn { min-height: 40px; border-radius: 12px; border: 2px solid var(--lose); background: rgba(0, 0, 0, 0.45); color: var(--lose); font-weight: 800; font-size: 0.85rem; }
 .modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(0, 0, 0, 0.78);
   padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
 .sheet { box-sizing: border-box; width: 100%; max-width: 380px; background: var(--card); color: var(--ink); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6); }
@@ -205,7 +205,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .dim, .redv { position: fixed; inset: 0; pointer-events: none; z-index: 40; opacity: 0; transition: opacity 1.4s ease; }
 .dim { background: #000; }
 .redv { background: radial-gradient(ellipse at 50% 45%, rgba(120, 0, 0, 0) 25%, rgba(160, 8, 8, 0.75) 125%); }
-.sharkbtn { min-height: 46px; border-radius: 12px; border: 2px solid var(--brass); background: rgba(0, 0, 0, 0.45); color: var(--brass); font-weight: 800; font-size: 0.98rem; }
+.sharkbtn { min-height: 40px; border-radius: 12px; border: 2px solid var(--brass); background: rgba(0, 0, 0, 0.45); color: var(--brass); font-weight: 800; font-size: 0.85rem; }
 .sidebtn:disabled { opacity: 0.5; cursor: not-allowed; }
 .sheet { max-height: calc(100dvh - 32px); overflow-y: auto; }
 .av { display: grid; place-items: center; }
@@ -234,10 +234,9 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .sharkbtn { background: rgba(255, 210, 74, 0.22); color: #ffe27a; border-color: #ffe27a; }
 .tot { background: rgba(0, 0, 0, 0.7); color: #fff; border-color: #fff; }
 .chip { color: #fff; font-size: 1.15rem; }
-#deal { position: sticky; bottom: max(10px, env(safe-area-inset-bottom, 0px)); z-index: 5; box-shadow: 0 -8px 16px rgba(0, 0, 0, 0.5), 0 0 0 3px rgba(0, 0, 0, 0.35); }
-.sharkrow { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; }
+.sharkrow { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
 .sharkrow[hidden] { display: none; }
-.fleebtn { min-height: 46px; border-radius: 12px; border: 2px solid #ff8f7f; background: rgba(255, 90, 70, 0.28); color: #ffd9d1; font-weight: 800; font-size: 0.98rem; }
+.fleebtn { min-height: 40px; border-radius: 12px; border: 2px solid #ff8f7f; background: rgba(255, 90, 70, 0.28); color: #ffd9d1; font-weight: 800; font-size: 0.85rem; }
 </style>
 </head>
 <body>
@@ -250,6 +249,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     <div class="bank"><span class="lbl">Chips</span><span id="bank">$500</span></div>
   </header>
   <div class="tags" id="tags"></div>
+  <div class="sharkrow" id="sharkRow"><button class="paybtn" id="pay" hidden></button><button class="sharkbtn" id="sharkBtn">Loan sharks</button><button class="fleebtn" id="fleeBtn" hidden>Flee country</button></div>
 
   <section class="table">
     <div class="seat">
@@ -288,8 +288,6 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
         <p><b>21+3</b> (your two cards plus the dealer's up card): flush 5:1, straight 10:1, three of a kind 30:1, straight flush 40:1, suited trips 100:1.</p>
         <p><b>Insurance</b> is offered when the dealer shows an Ace. It costs half your bet and pays 2:1.</p>
       </details>
-      <button class="paybtn" id="pay" hidden></button>
-      <div class="sharkrow"><button class="sharkbtn" id="sharkBtn">Loan sharks</button><button class="fleebtn" id="fleeBtn" hidden>Flee the country</button></div>
       <button class="sharkbtn" id="roomBtn" hidden></button>
       <button class="primary" id="deal">Deal</button>
     </div>
@@ -659,8 +657,9 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     var betting = phase === 'bet' || phase === 'done';
     var pay = $('pay'), owedNow = visibleDebt() + totalBounty(), can = owedNow > 0 && bank > 0 && betting;
     pay.hidden = !can;
-    if (can) pay.textContent = 'Pay sharks ($' + owedNow + ' owed)';
+    if (can) pay.textContent = 'Pay $' + owedNow;
     el.fleeBtn.hidden = !(betting && room === 'low' && totalDebt() > 0);
+    $('sharkRow').hidden = !(betting && room === 'low');
     el.sharkBtn.hidden = !(betting && room === 'low');
     el.roomBtn.hidden = !(betting && unlocked);
     el.roomBtn.textContent = room === 'high' ? 'Back to the basement' : 'Enter the High-Roller Room';
