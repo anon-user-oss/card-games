@@ -66,6 +66,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
   var FLIP_LEN = 62, FLIP_UP_SPEED = 14, FLIP_DOWN_SPEED = 9; // rad/s. Flippers swing, not snap.
   var LOW_PTS = 100, HIGH_PTS = 500, TARGET_PTS = 250, TARGET_BONUS = 5000;
   var MAX_MULT = 8, START_BALLS = 3, MAX_EXTRA_BALLS = 2;
+  var LOGO_SNAKE = 'cobra'; // 'cobra' = hissing cobra head on the backboard, 'python' = the old green python
   var COBRA_LIFE = 5, COBRA_PAUSE = 0.5, COBRA_MIN_WAIT = 9, COBRA_MAX_WAIT = 20;
 
   var W = 360, H = 620, S = 2;
@@ -86,8 +87,8 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
   var GATE = [322, 252, 322, 204];
 
   /* 3-D ramp: shoot the ball up the left side with the extra flipper and it rides an overpass to the top right */
-  var RAMP_IN = { x: 46, y: 396, r: 26 }, RAMP_SPEED = 380, RAMP_BASE = 1500, RAMP_STEP = 500, RAMP_MAXN = 6;
-  var ramp = { on: false, d: 0, count: 0 };
+  var RAMP_IN = { x: 46, y: 396, r: 26 }, RAMP_SPEED = 560, RAMP_HOLD = 1.1, MINI_KICK = 120, MINI_E = 0.8, RAMP_BASE = 1500, RAMP_STEP = 500, RAMP_MAXN = 6;
+  var ramp = { on: false, d: 0, count: 0, hold: 0 };
   var rampPts = (function () {
     var c = [[44, 392], [40, 332], [50, 276], [88, 230], [150, 208], [215, 208], [268, 226], [298, 262]], out = [], i, k, t;
     function g(i) { return c[Math.max(0, Math.min(c.length - 1, i))]; }
@@ -133,7 +134,9 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     { x: 205, y: 330, r: 21, kind: 'low', pts: LOW_PTS, note: 392, flash: 0 },
     { x: 165, y: 395, r: 21, kind: 'low', pts: LOW_PTS, note: 494, flash: 0 },
     { x: 88, y: 240, r: 17, kind: 'high', pts: HIGH_PTS, note: 988, flash: 0 },
-    { x: 252, y: 240, r: 17, kind: 'high', pts: HIGH_PTS, note: 1319, flash: 0 }
+    { x: 252, y: 240, r: 17, kind: 'high', pts: HIGH_PTS, note: 1319, flash: 0 },
+    /* small guard bumper at the tube exit: slows the ball so it cannot shoot straight down to the flippers */
+    { x: 300, y: 288, r: 10, kind: 'mini', pts: 50, note: 740, flash: 0 }
   ];
   var LETTERS = ['S', 'T', 'E', 'E', 'L'];
   var targets = [105, 140, 175, 210, 245].map(function (x, i) { return { x: x, y: 182, r: 9, lit: false, flash: 0, ch: LETTERS[i] }; });
@@ -169,6 +172,15 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     g.gain.setValueAtTime(vol || 0.15, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
     o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + d + 0.03);
   }
+  function hiss(d, vol) {
+    var a = audio(); if (!a || muted) return;
+    var n = Math.floor(a.sampleRate * d), buf = a.createBuffer(1, n, a.sampleRate), data = buf.getChannelData(0), k;
+    for (k = 0; k < n; k++) data[k] = Math.random() * 2 - 1;
+    var src = a.createBufferSource(), hp = a.createBiquadFilter(), g = a.createGain(), t = a.currentTime;
+    src.buffer = buf; hp.type = 'highpass'; hp.frequency.value = 3500;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.08); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    src.connect(hp); hp.connect(g); g.connect(a.destination); src.start(t);
+  }
   var sfx = {
     low: function (n) { tone(n, 0.12, 'square', 0.16, n * 1.5); },
     high: function (n) { tone(n, 0.35, 'triangle', 0.22); tone(n * 2, 0.25, 'sine', 0.12); },
@@ -176,13 +188,14 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     flip: function () { tone(140, 0.05, 'square', 0.1, 70); },
     launch: function () { tone(180, 0.4, 'sawtooth', 0.14, 900); },
     wall: function () { tone(220, 0.03, 'square', 0.04); },
-    cobraIn: function () { tone(700, 0.45, 'sawtooth', 0.14, 120); },
+    cobraIn: function () { hiss(0.55, 0.16); tone(700, 0.45, 'sawtooth', 0.06, 120); },
     cobraHit: function () { tone(110, 0.3, 'sawtooth', 0.22, 55); tone(90, 0.3, 'square', 0.16, 45); },
     lost: function () { tone(440, 0.6, 'square', 0.16, 70); },
     extra: function () { [523, 659, 784, 1047, 1319].forEach(function (f, i) { tone(f, 0.16, 'square', 0.16, null, i * 0.09); }); },
     mult: function (m) { tone(600 + m * 90, 0.12, 'square', 0.15); tone(900 + m * 120, 0.18, 'triangle', 0.15, null, 0.08); },
     over: function () { [392, 330, 262, 196].forEach(function (f, i) { tone(f, 0.3, 'square', 0.16, null, i * 0.22); }); },
-    ramp: function () { tone(300, 0.5, 'sawtooth', 0.1, 1100); },
+    ramp: function () { tone(260, 0.45, 'sawtooth', 0.12, 1300); },
+    rampIn: function () { tone(520, 0.35, 'triangle', 0.14, 110); tone(90, 0.5, 'square', 0.08, 60, 0.1); },
     path: function (i) { tone(420 + i * 45, 0.07, 'square', 0.1); },
     lap: function () { [659, 784, 988, 1175, 1568].forEach(function (f, i) { tone(f, 0.12, 'triangle', 0.18, null, i * 0.07); }); },
     go: function () { [262, 330, 392, 523].forEach(function (f, i) { tone(f, 0.1, 'square', 0.14, null, i * 0.07); }); }
@@ -245,11 +258,12 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
   }
   function rampPoints() { return RAMP_BASE + RAMP_STEP * Math.min(ramp.count, RAMP_MAXN); }
   function startRamp() {
-    ramp.on = true; ramp.d = 0; ball.vx = 0; ball.vy = 0; sfx.ramp(); shake = 3; say('RAMP!', '#7de8ff');
+    ramp.on = true; ramp.d = 0; ramp.hold = RAMP_HOLD + Math.random() * 0.2; ball.vx = 0; ball.vy = 0; ball.x = rampPts[0][0]; ball.y = rampPts[0][1];
+    sfx.rampIn(); shake = 2; say('RAMP!', '#7de8ff');
   }
   function finishRamp() {
     var end = rampAt(1e9), pts = rampPoints() * mult;
-    ramp.on = false; ramp.count++; ball.x = end.x; ball.y = end.y; ball.vx = -70 - Math.random() * 40; ball.vy = 40; ball.ax = undefined; ball.at = 0;
+    ramp.on = false; ramp.count++; ball.x = end.x; ball.y = end.y; ball.vx = -55 - Math.random() * 30; ball.vy = 15; ball.ax = undefined; ball.at = 0;
     score += pts; if (score > hiScore) { hiScore = score; newHigh = true; }
     popup(end.x - 20, end.y + 10, '+' + pts, '#7de8ff', 14, 1.2); advancePath(3); shake = 4;
   }
@@ -322,9 +336,9 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     var i, hit;
     for (i = 0; i < walls.length; i++) { hit = collideSeg(walls[i][0], walls[i][1], walls[i][2], walls[i][3], 0.55); if (hit > 220) sfx.wall(); }
     if (ball.entered) collideSeg(GATE[0], GATE[1], GATE[2], GATE[3], 0.5);
-    for (i = 0; i < bumpers.length; i++) { if (collideCircle(bumpers[i], bumpers[i].kind === 'high' ? 330 : 240, 0.9)) hitBumper(bumpers[i]); }
+    for (i = 0; i < bumpers.length; i++) { var bk = bumpers[i].kind; if (collideCircle(bumpers[i], bk === 'high' ? 330 : (bk === 'mini' ? MINI_KICK : 240), bk === 'mini' ? MINI_E : 0.9)) hitBumper(bumpers[i]); }
     for (i = 0; i < targets.length; i++) { if (collideCircle(targets[i], 0, 0.6)) hitTarget(targets[i], i); }
-    if (cobra.active && collideCircle({ x: cobra.x, y: cobra.y, r: 15 }, 160, 0.8)) hitCobra();
+    if (cobra.active && collideCircle({ x: cobra.x, y: cobra.y, r: 17 }, 160, 0.8)) hitCobra();
     for (i = 0; i < flippers.length; i++) collideFlipper(flippers[i]);
     if (!ramp.on && ball.entered && ball.vy < -60 && Math.hypot(ball.x - RAMP_IN.x, ball.y - RAMP_IN.y) < RAMP_IN.r) startRamp();
   }
@@ -378,8 +392,15 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     if (mode === 'playing') {
       var sub = Math.max(1, Math.ceil(dt / (1 / 240))), h = dt / sub;
       if (ramp.on) {
-        stepFlippers(dt); ramp.d += RAMP_SPEED * dt; var rp = rampAt(ramp.d); ball.x = rp.x; ball.y = rp.y; ball.ax = undefined; ball.at = 0;
-        if (ramp.d >= rampLen[rampLen.length - 1]) finishRamp();
+        stepFlippers(dt); ball.ax = undefined; ball.at = 0;
+        if (ramp.hold > 0) {
+          /* ball is swallowed by the tube and hidden for a moment */
+          ramp.hold -= dt; ball.x = rampPts[0][0]; ball.y = rampPts[0][1]; ball.vx = 0; ball.vy = 0;
+          if (ramp.hold <= 0) { sfx.ramp(); shake = 4; }
+        } else {
+          ramp.d += RAMP_SPEED * dt; var rp = rampAt(ramp.d); ball.x = rp.x; ball.y = rp.y;
+          if (ramp.d >= rampLen[rampLen.length - 1]) finishRamp();
+        }
       } else for (var s = 0; s < sub; s++) { physics(h); if (ball.y > H + 30 || ramp.on) break; }
       if (cobra.cd > 0) cobra.cd -= dt;
       if (cobra.active) { cobra.life -= dt; if (cobra.life <= 0) { cobra.active = false; cobra.next = COBRA_MIN_WAIT + Math.random() * (COBRA_MAX_WAIT - COBRA_MIN_WAIT); } }
@@ -530,16 +551,104 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     ctx.strokeStyle = '#ff3b30'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(14, 2); ctx.lineTo(22, 4); ctx.moveTo(22, 4); ctx.lineTo(26, 1); ctx.moveTo(22, 4); ctx.lineTo(26, 7); ctx.stroke();
     ctx.restore(); ctx.restore();
   }
+  /* The cobra artwork itself, drawn around (0,0): hood centre. Shared by the table hazard and the backboard. */
+  function cobraArt(t, strike) {
+    var cyc = (t % 1.5) / 1.5, burst = cyc < 0.5 ? Math.sin(cyc / 0.5 * Math.PI) : 0;
+    var open = Math.max(0.3 + 0.7 * burst, strike);
+    var sway = Math.sin(t * 2.2) * 1.6, flare = 1 + 0.035 * Math.sin(t * 7) + 0.1 * strike + 0.05 * burst;
+    var i, j;
+    /* hood */
+    function hood() {
+      ctx.beginPath(); ctx.moveTo(-7, -17);
+      ctx.bezierCurveTo(-22 * flare, -18, -27 * flare, -2, -21 * flare, 9);
+      ctx.bezierCurveTo(-17 * flare, 17, -10, 21, -8, 29);
+      ctx.lineTo(8, 29);
+      ctx.bezierCurveTo(10, 21, 17 * flare, 17, 21 * flare, 9);
+      ctx.bezierCurveTo(27 * flare, -2, 22 * flare, -18, 7, -17);
+      ctx.quadraticCurveTo(0, -21, -7, -17); ctx.closePath();
+    }
+    var hg = ctx.createLinearGradient(-26, 0, 26, 0);
+    hg.addColorStop(0, '#1a0f06'); hg.addColorStop(0.3, '#4a2f14'); hg.addColorStop(0.5, '#5d3b19'); hg.addColorStop(0.7, '#4a2f14'); hg.addColorStop(1, '#1a0f06');
+    hood(); ctx.fillStyle = hg; ctx.fill();
+    ctx.save(); hood(); ctx.clip();
+    /* overlapping scales */
+    ctx.strokeStyle = 'rgba(0,0,0,0.38)'; ctx.lineWidth = 0.8;
+    for (j = 0; j < 12; j++) for (i = -7; i <= 7; i++) {
+      var sx = i * 4 + (j % 2 ? 2 : 0), sy = -14 + j * 3.8;
+      ctx.beginPath(); ctx.arc(sx, sy, 2.2, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(255,214,150,0.16)'; ctx.lineWidth = 0.7;
+    for (j = 0; j < 12; j++) for (i = -7; i <= 7; i++) {
+      var hx = i * 4 + (j % 2 ? 2 : 0), hy = -15.2 + j * 3.8;
+      ctx.beginPath(); ctx.arc(hx, hy, 2.2, 1.15 * Math.PI, 1.85 * Math.PI); ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(255,225,160,0.07)'; ctx.fillRect(-16, -20, 9, 42);
+    /* dark edge shading so the hood reads as a rounded form */
+    var sh = ctx.createLinearGradient(-26, 0, 26, 0);
+    sh.addColorStop(0, 'rgba(0,0,0,0.55)'); sh.addColorStop(0.22, 'rgba(0,0,0,0)'); sh.addColorStop(0.78, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,0.55)');
+    ctx.fillStyle = sh; ctx.fillRect(-30, -22, 60, 55);
+    /* pale throat with dark cross band */
+    var tg = ctx.createLinearGradient(0, -4, 0, 29); tg.addColorStop(0, '#d9c796'); tg.addColorStop(1, '#a58e5b');
+    ctx.beginPath(); ctx.moveTo(-5, -4); ctx.bezierCurveTo(-11, 4, -9, 14, -7, 29); ctx.lineTo(7, 29); ctx.bezierCurveTo(9, 14, 11, 4, 5, -4); ctx.closePath();
+    ctx.fillStyle = tg; ctx.fill();
+    ctx.fillStyle = 'rgba(30,18,8,0.75)'; ctx.fillRect(-12, 6, 24, 3.4);
+    ctx.strokeStyle = 'rgba(60,40,15,0.55)'; ctx.lineWidth = 0.7;
+    for (j = 0; j < 6; j++) { var by = 12 + j * 3.2; ctx.beginPath(); ctx.moveTo(-8, by); ctx.quadraticCurveTo(0, by + 1.6, 8, by); ctx.stroke(); }
+    ctx.restore();
+    hood(); ctx.strokeStyle = '#0c0603'; ctx.lineWidth = 1.6; ctx.stroke();
+
+    /* head, facing the player */
+    var hx0 = sway * 0.6;
+    ctx.save(); ctx.translate(hx0, -9); ctx.scale(0.92, 0.92);
+    var hdg = ctx.createRadialGradient(-2, -6, 1, 0, -2, 14); hdg.addColorStop(0, '#6a4521'); hdg.addColorStop(1, '#2c1a0a');
+    ctx.beginPath(); ctx.moveTo(-7.5, -9); ctx.bezierCurveTo(-11, -4, -10, 3, -6, 8); ctx.quadraticCurveTo(0, 13, 6, 8); ctx.bezierCurveTo(10, 3, 11, -4, 7.5, -9); ctx.quadraticCurveTo(0, -13, -7.5, -9); ctx.closePath();
+    ctx.fillStyle = hdg; ctx.fill(); ctx.strokeStyle = '#0c0603'; ctx.lineWidth = 1.3; ctx.stroke();
+    /* head plates */
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 0.7;
+    ctx.beginPath(); ctx.moveTo(0, -11); ctx.lineTo(0, -2); ctx.moveTo(-5, -6); ctx.lineTo(0, -4); ctx.lineTo(5, -6); ctx.moveTo(-6, 2); ctx.lineTo(-2, -1); ctx.moveTo(6, 2); ctx.lineTo(2, -1); ctx.stroke();
+    /* mouth: lower jaw drops open, pale palate, two fangs, forked tongue */
+    var mo = open * 6.5;
+    ctx.fillStyle = '#3a0b0e'; ctx.beginPath(); ctx.ellipse(0, 5 + mo * 0.25, 5.2, 1.4 + mo, 0, 0, Math.PI * 2); ctx.fill();
+    var jg = ctx.createLinearGradient(0, 5, 0, 5 + mo * 2); jg.addColorStop(0, '#d9a0a0'); jg.addColorStop(1, '#7a2328');
+    ctx.fillStyle = jg; ctx.beginPath(); ctx.ellipse(0, 5 + mo * 0.55, 3.6, 0.6 + mo * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#0c0603'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(0, 5 + mo * 0.25, 5.2, 1.4 + mo, 0, 0, Math.PI * 2); ctx.stroke();
+    if (open > 0.25) {
+      ctx.fillStyle = '#f4f1e4'; ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 0.5;
+      var fl = 2 + 4 * open;
+      [-3.3, 3.3].forEach(function (fx) { ctx.beginPath(); ctx.moveTo(fx - 1.1, 4.6); ctx.quadraticCurveTo(fx + (fx < 0 ? 0.4 : -0.4), 4.6 + fl * 0.6, fx, 4.6 + fl); ctx.quadraticCurveTo(fx + (fx < 0 ? 1.1 : -1.1), 4.6 + fl * 0.5, fx + 1.1, 4.6); ctx.closePath(); ctx.fill(); ctx.stroke(); });
+      var tl = 2.5 + 5.5 * (0.5 + 0.5 * Math.sin(t * 24)), tx = Math.sin(t * 11) * 1.4, ty = 6.5 + mo * 0.55;
+      ctx.strokeStyle = '#b81a24'; ctx.lineWidth = 1; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(0, ty); ctx.lineTo(tx, ty + tl); ctx.moveTo(tx, ty + tl); ctx.lineTo(tx - 2.2, ty + tl + 2.4); ctx.moveTo(tx, ty + tl); ctx.lineTo(tx + 2.2, ty + tl + 2.4); ctx.stroke();
+    }
+    /* nostrils and heavy brow ridges give the hard glare */
+    ctx.fillStyle = '#0c0603'; ctx.beginPath(); ctx.arc(-2.3, 2.2, 0.8, 0, Math.PI * 2); ctx.arc(2.3, 2.2, 0.8, 0, Math.PI * 2); ctx.fill();
+    [-1, 1].forEach(function (sd) {
+      var ex = sd * 5.8, ey = -3;
+      ctx.fillStyle = '#c98418'; ctx.beginPath(); ctx.ellipse(ex, ey, 2.2, 1.7, sd * 0.35, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#050302'; ctx.beginPath(); ctx.arc(ex, ey, 1.05, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(ex - 0.5, ey - 0.6, 0.4, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#0c0603'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(ex - sd * 3.8, ey - 4.6); ctx.lineTo(ex + sd * 3, ey - 1.1); ctx.stroke();
+    });
+    ctx.restore();
+  }
   function drawCobra(x, y, t) {
+    /* A cobra rising off the table, hood flared, facing the player and hissing. */
+    var age = COBRA_LIFE - cobra.life, rise = Math.min(1, age / 0.35), fall = Math.min(1, cobra.life / 0.3);
+    var e = Math.max(0, Math.min(rise, fall)); e = e * e * (3 - 2 * e);
+    var strike = cobra.cd > 0 ? Math.min(1, cobra.cd / COBRA_PAUSE) : 0;
+    var sway = Math.sin(t * 2.2) * 1.6;
     ctx.save(); ctx.translate(x, y);
     var pulse = 0.5 + 0.5 * Math.sin(t * 14);
-    ctx.strokeStyle = 'rgba(255,60,48,' + (0.35 + 0.4 * pulse) + ')'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 20 + pulse * 3, 0, Math.PI * 2); ctx.stroke();
-    ctx.fillStyle = '#5b3a12'; ctx.strokeStyle = '#1d1005'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(-6, 14); ctx.bezierCurveTo(-22, 8, -20, -12, -4, -16); ctx.lineTo(4, -16); ctx.bezierCurveTo(20, -12, 22, 8, 6, 14); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#c98f3a'; ctx.beginPath(); ctx.ellipse(0, 1, 7, 10, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#ffdf3a'; ctx.beginPath(); ctx.arc(-4, -8, 2.4, 0, Math.PI * 2); ctx.arc(4, -8, 2.4, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#000'; ctx.fillRect(-4.6, -10.5, 1.2, 4.5); ctx.fillRect(3.4, -10.5, 1.2, 4.5);
-    ctx.strokeStyle = '#ff3b30'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(0, 3); ctx.stroke();
+    var glow = ctx.createRadialGradient(0, 6, 6, 0, 6, 34); glow.addColorStop(0, 'rgba(255,40,30,' + (0.28 + 0.2 * pulse) * e + ')'); glow.addColorStop(1, 'rgba(255,40,30,0)');
+    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 6, 34, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.ellipse(2, 24, 22 * e, 6 * e, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = Math.max(0.05, e);
+    /* rise out of the table, lunge a little when it strikes */
+    ctx.translate(0, 24); ctx.scale((0.55 + 0.45 * e) * (1 + 0.06 * strike), (0.2 + 0.8 * e) * (1 + 0.1 * strike)); ctx.translate(sway * 0.4, -24);
+    ctx.scale(0.86, 0.86);
+
+    cobraArt(t, strike);
     ctx.restore();
   }
 
@@ -548,7 +657,11 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, 125);
     ctx.strokeStyle = '#6a7084'; ctx.lineWidth = 3; ctx.strokeRect(3, 3, W - 6, 119);
     ctx.fillStyle = '#8c92a8'; [[10, 10], [W - 10, 10], [10, 115], [W - 10, 115]].forEach(function (p) { ctx.beginPath(); ctx.arc(p[0], p[1], 2.4, 0, Math.PI * 2); ctx.fill(); });
-    drawPython(10, 12, 0.92);
+    if (LOGO_SNAKE === 'cobra') {
+      var bg2 = ctx.createRadialGradient(52, 66, 8, 52, 66, 56); bg2.addColorStop(0, 'rgba(255,50,35,0.22)'); bg2.addColorStop(1, 'rgba(255,50,35,0)');
+      ctx.fillStyle = bg2; ctx.fillRect(4, 6, 100, 112);
+      ctx.save(); ctx.beginPath(); ctx.rect(6, 6, 86, 112); ctx.clip(); ctx.translate(51, 63); ctx.scale(1.55, 1.55); ctx.scale(0.86, 0.86); cobraArt(time, 0); ctx.restore();
+    } else drawPython(10, 12, 0.92);
     ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
     ctx.font = '34px "Metal Mania", Impact, "Arial Black", sans-serif';
     ctx.lineWidth = 5; ctx.strokeStyle = '#2a0a08'; ctx.strokeText('STEELICA', 224, 40);
@@ -585,7 +698,8 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     ctx.shadowColor = '#7de8ff'; ctx.shadowBlur = 10; ctx.strokeStyle = '#7de8ff'; ctx.lineWidth = 1.6; rampPath(-4.5, -4.5); ctx.stroke(); rampPath(4.5, 4.5); ctx.stroke(); ctx.shadowBlur = 0;
     ctx.setLineDash([3, 11]); ctx.lineDashOffset = -time * 40; ctx.strokeStyle = ramp.on ? '#ffffff' : '#ffd84a'; ctx.lineWidth = 2.5; rampPath(0, 0); ctx.stroke(); ctx.setLineDash([]);
     /* entrance marker */
-    var pulse = 0.5 + 0.5 * Math.sin(time * 6);
+    var held = ramp.on && ramp.hold > 0, pulse = 0.5 + 0.5 * Math.sin(time * (held ? 28 : 6));
+    if (held) { ctx.fillStyle = 'rgba(125,232,255,' + (0.18 + 0.25 * pulse) + ')'; ctx.beginPath(); ctx.arc(RAMP_IN.x, RAMP_IN.y + 4, RAMP_IN.r, 0, Math.PI * 2); ctx.fill(); }
     ctx.shadowColor = '#7de8ff'; ctx.shadowBlur = 14; ctx.strokeStyle = 'rgba(125,232,255,' + (0.5 + 0.5 * pulse) + ')'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(RAMP_IN.x, RAMP_IN.y + 4, RAMP_IN.r, 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0;
     ctx.fillStyle = '#7de8ff'; ctx.font = '7px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.fillText('RAMP', RAMP_IN.x + 6, RAMP_IN.y + 28); ctx.textAlign = 'left';
@@ -642,14 +756,14 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     ctx.textAlign = 'left';
     /* bumpers: cyan = 100, gold = 500 (multiplier) */
     bumpers.forEach(function (b) {
-      var hot = b.flash > 0, high = b.kind === 'high', glow = high ? '#ffb020' : '#27e0ff'; halo(b.x, b.y, b.r + 4);
+      var hot = b.flash > 0, high = b.kind === 'high', mini = b.kind === 'mini', glow = high ? '#ffb020' : (mini ? '#ff6adf' : '#27e0ff'); halo(b.x, b.y, b.r + 4);
       ctx.save(); ctx.shadowColor = glow; ctx.shadowBlur = hot ? 28 : 16;
       ctx.strokeStyle = glow; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(b.x, b.y, b.r + 2, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
       var rg = ctx.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.3, 2, b.x, b.y, b.r);
-      rg.addColorStop(0, '#ffffff'); rg.addColorStop(1, hot ? '#ffffff' : (high ? '#ffd24a' : '#7fefff'));
+      rg.addColorStop(0, '#ffffff'); rg.addColorStop(1, hot ? '#ffffff' : (high ? '#ffd24a' : (mini ? '#ffb3f0' : '#7fefff')));
       ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = high ? '#4a2400' : '#003344'; ctx.font = (high ? '9' : '10') + 'px "Press Start 2P", monospace'; ctx.textAlign = 'center';
-      ctx.fillText(high ? '500' : '100', b.x, b.y + 4); ctx.textAlign = 'left';
+      ctx.fillStyle = high ? '#4a2400' : (mini ? '#4a0038' : '#003344'); ctx.font = (high ? '9' : (mini ? '7' : '10')) + 'px "Press Start 2P", monospace'; ctx.textAlign = 'center';
+      ctx.fillText(high ? '500' : (mini ? '50' : '100'), b.x, b.y + (mini ? 3 : 4)); ctx.textAlign = 'left';
     });
     if (cobra.active) drawCobra(cobra.x, cobra.y, time);
     drawRamp();
@@ -666,7 +780,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     /* plunger */
     ctx.fillStyle = '#6a7084'; ctx.fillRect(326, 592 - 4, 20, 4);
     /* ball: fading trail, glow halo, bright core */
-    if (mode !== 'over' && mode !== 'title' && !(mode === 'lost' && ball.y > H)) {
+    if (mode !== 'over' && mode !== 'title' && !(mode === 'lost' && ball.y > H) && !(ramp.on && ramp.hold > 0)) {
       var lastT = trail[trail.length - 1];
       if (!lastT || Math.abs(lastT.x - ball.x) + Math.abs(lastT.y - ball.y) > 1.5) { if (lastT && Math.abs(lastT.x - ball.x) + Math.abs(lastT.y - ball.y) > 90) trail.length = 0; trail.push({ x: ball.x, y: ball.y }); if (trail.length > 9) trail.shift(); }
       trail.forEach(function (q, i) { var k = (i + 1) / trail.length; ctx.fillStyle = 'rgba(160,235,255,' + (0.28 * k) + ')'; ctx.beginPath(); ctx.arc(q.x, q.y, BALL_R * (0.45 + 0.5 * k), 0, Math.PI * 2); ctx.fill(); });
