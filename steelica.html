@@ -85,11 +85,32 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
   }
   var GATE = [322, 252, 322, 204];
 
+  /* 3-D ramp: shoot the ball up the left side with the extra flipper and it rides an overpass to the top right */
+  var RAMP_IN = { x: 46, y: 396, r: 26 }, RAMP_SPEED = 380, RAMP_BASE = 1500, RAMP_STEP = 500, RAMP_MAXN = 6;
+  var ramp = { on: false, d: 0, count: 0 };
+  var rampPts = (function () {
+    var c = [[44, 392], [40, 332], [50, 276], [88, 230], [150, 208], [215, 208], [268, 226], [298, 262]], out = [], i, k, t;
+    function g(i) { return c[Math.max(0, Math.min(c.length - 1, i))]; }
+    for (i = 0; i < c.length - 1; i++) for (k = 0; k < 12; k++) {
+      t = k / 12; var p0 = g(i - 1), p1 = g(i), p2 = g(i + 1), p3 = g(i + 2);
+      out.push([0.5 * (2 * p1[0] + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t * t + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t * t * t),
+                0.5 * (2 * p1[1] + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t * t + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t * t * t)]);
+    }
+    out.push(c[c.length - 1]); return out;
+  })();
+  var rampLen = (function () { var l = [0], i; for (i = 1; i < rampPts.length; i++) l.push(l[i - 1] + Math.hypot(rampPts[i][0] - rampPts[i - 1][0], rampPts[i][1] - rampPts[i - 1][1])); return l; })();
+  function rampAt(d) {
+    var tot = rampLen[rampLen.length - 1], i = 1; d = Math.max(0, Math.min(tot, d));
+    while (i < rampLen.length - 1 && rampLen[i] < d) i++;
+    var f = (d - rampLen[i - 1]) / Math.max(1e-6, rampLen[i] - rampLen[i - 1]);
+    return { x: rampPts[i - 1][0] + (rampPts[i][0] - rampPts[i - 1][0]) * f, y: rampPts[i - 1][1] + (rampPts[i][1] - rampPts[i - 1][1]) * f };
+  }
+
   /* Neon trail: a lap of lights around the table. Hits light the next lights; a full lap pays a bonus. */
   var PATH_N = 18, PATH_BONUS = 2500, pathLit = 0, pathFlash = 0;
   var trailPoly = (function () {
     var pts = [], i, a;
-    for (i = 470; i >= 293; i -= 4) pts.push([27, i]);
+    for (i = 410; i >= 293; i -= 4) pts.push([27, i]);
     for (a = Math.PI; a <= 2 * Math.PI + 1e-6; a += Math.PI / 90) pts.push([167 + 140 * Math.cos(a), 293 + 152 * Math.sin(a)]);
     for (i = 293; i <= 470; i += 4) pts.push([307, i]);
     return pts;
@@ -118,9 +139,10 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
   var targets = [105, 140, 175, 210, 245].map(function (x, i) { return { x: x, y: 182, r: 9, lit: false, flash: 0, ch: LETTERS[i] }; });
   var flippers = [
     { px: 97, py: 548, s: 1, a: 0.5, rest: 0.5, up: -0.45, w: 0, held: false },
-    { px: 237, py: 548, s: -1, a: 0.5, rest: 0.5, up: -0.45, w: 0, held: false }
+    { px: 237, py: 548, s: -1, a: 0.5, rest: 0.5, up: -0.45, w: 0, held: false },
+    { px: 24, py: 440, s: 1, a: 0.5, rest: 0.5, up: -0.5, w: 0, held: false, len: 46, mirror: 0 }
   ];
-  var cobraSpots = [{ x: 50, y: 430 }, { x: 272, y: 430 }, { x: 50, y: 330 }, { x: 272, y: 330 }];
+  var cobraSpots = [{ x: 110, y: 455 }, { x: 272, y: 430 }, { x: 75, y: 330 }, { x: 272, y: 330 }];
 
   /* ---------- Game state ---------- */
   var mode = 'title'; // title | ready | playing | lost | over
@@ -160,6 +182,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     extra: function () { [523, 659, 784, 1047, 1319].forEach(function (f, i) { tone(f, 0.16, 'square', 0.16, null, i * 0.09); }); },
     mult: function (m) { tone(600 + m * 90, 0.12, 'square', 0.15); tone(900 + m * 120, 0.18, 'triangle', 0.15, null, 0.08); },
     over: function () { [392, 330, 262, 196].forEach(function (f, i) { tone(f, 0.3, 'square', 0.16, null, i * 0.22); }); },
+    ramp: function () { tone(300, 0.5, 'sawtooth', 0.1, 1100); },
     path: function (i) { tone(420 + i * 45, 0.07, 'square', 0.1); },
     lap: function () { [659, 784, 988, 1175, 1568].forEach(function (f, i) { tone(f, 0.12, 'triangle', 0.18, null, i * 0.07); }); },
     go: function () { [262, 330, 392, 523].forEach(function (f, i) { tone(f, 0.1, 'square', 0.14, null, i * 0.07); }); }
@@ -220,6 +243,16 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
       }
     }
   }
+  function rampPoints() { return RAMP_BASE + RAMP_STEP * Math.min(ramp.count, RAMP_MAXN); }
+  function startRamp() {
+    ramp.on = true; ramp.d = 0; ball.vx = 0; ball.vy = 0; sfx.ramp(); shake = 3; say('RAMP!', '#7de8ff');
+  }
+  function finishRamp() {
+    var end = rampAt(1e9), pts = rampPoints() * mult;
+    ramp.on = false; ramp.count++; ball.x = end.x; ball.y = end.y; ball.vx = -70 - Math.random() * 40; ball.vy = 40; ball.ax = undefined; ball.at = 0;
+    score += pts; if (score > hiScore) { hiScore = score; newHigh = true; }
+    popup(end.x - 20, end.y + 10, '+' + pts, '#7de8ff', 14, 1.2); advancePath(3); shake = 4;
+  }
   function hitBumper(b) {
     b.flash = 0.18; shake = Math.max(shake, b.kind === 'high' ? 5 : 2); advancePath(b.kind === 'high' ? 2 : 1);
     if (b.kind === 'high') {
@@ -261,20 +294,21 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
 
   /* ---------- Physics ---------- */
   function stepFlippers(h) {
+    flippers[2].held = flippers[0].held;
     flippers.forEach(function (f) {
       var target = f.held ? f.up : f.rest, speed = f.held ? FLIP_UP_SPEED : FLIP_DOWN_SPEED, old = f.a;
       if (f.a > target) f.a = Math.max(target, f.a - speed * h); else if (f.a < target) f.a = Math.min(target, f.a + speed * h);
       f.w = (f.a - old) / h;
     });
   }
-  function flipTip(f) { return { x: f.px + f.s * FLIP_LEN * Math.cos(f.a), y: f.py + FLIP_LEN * Math.sin(f.a) }; }
+  function flipTip(f) { var L = f.len || FLIP_LEN; return { x: f.px + f.s * L * Math.cos(f.a), y: f.py + L * Math.sin(f.a) }; }
   function collideFlipper(f) {
     var tip = flipTip(f), c = closestOnSeg(ball.x, ball.y, f.px, f.py, tip.x, tip.y), rad = 8 - 3 * c.t;
     var dx = ball.x - c.x, dy = ball.y - c.y, d = Math.sqrt(dx * dx + dy * dy), min = BALL_R + rad;
     if (d >= min) return false;
     var nx, ny; if (d < 1e-6) { nx = 0; ny = -1; } else { nx = dx / d; ny = dy / d; }
     ball.x = c.x + nx * min; ball.y = c.y + ny * min;
-    var dist = c.t * FLIP_LEN, sx = dist * (-f.s * Math.sin(f.a)) * f.w, sy = dist * Math.cos(f.a) * f.w;
+    var dist = c.t * (f.len || FLIP_LEN), sx = dist * (-f.s * Math.sin(f.a)) * f.w, sy = dist * Math.cos(f.a) * f.w;
     var rvx = ball.vx - sx, rvy = ball.vy - sy, vn = rvx * nx + rvy * ny;
     if (vn < 0) { ball.vx -= 1.35 * vn * nx; ball.vy -= 1.35 * vn * ny; }
     return true;
@@ -292,15 +326,16 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     for (i = 0; i < targets.length; i++) { if (collideCircle(targets[i], 0, 0.6)) hitTarget(targets[i], i); }
     if (cobra.active && collideCircle({ x: cobra.x, y: cobra.y, r: 15 }, 160, 0.8)) hitCobra();
     for (i = 0; i < flippers.length; i++) collideFlipper(flippers[i]);
+    if (!ramp.on && ball.entered && ball.vy < -60 && Math.hypot(ball.x - RAMP_IN.x, ball.y - RAMP_IN.y) < RAMP_IN.r) startRamp();
   }
 
   /* ---------- Flow ---------- */
   function resetBall() {
-    ball.x = 335; ball.y = 584; ball.vx = 0; ball.vy = 0; ball.entered = false; ball.still = 0; ball.ax = undefined; ball.at = 0; laneStill = 0;
+    ball.x = 335; ball.y = 584; ball.vx = 0; ball.vy = 0; ball.entered = false; ramp.on = false; ball.still = 0; ball.ax = undefined; ball.at = 0; laneStill = 0;
   }
   function newGame() {
     score = 0; mult = 1; ballNum = 1; totalBalls = START_BALLS; newHigh = false; popups = []; banner = null;
-    targets.forEach(function (t) { t.lit = false; }); pathLit = 0; pathFlash = 0; cobra.active = false; cobra.next = 10 + Math.random() * 8;
+    targets.forEach(function (t) { t.lit = false; }); pathLit = 0; pathFlash = 0; ramp.on = false; ramp.count = 0; cobra.active = false; cobra.next = 10 + Math.random() * 8;
     resetBall(); mode = 'ready'; sfx.go(); say('BALL 1', '#ffffff');
   }
   function launch() {
@@ -308,7 +343,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     ball.vy = -(930 + Math.random() * 70); ball.vx = 0; mode = 'playing'; sfx.launch();
   }
   function loseBall() {
-    mode = 'lost'; lostTimer = 1.6; mult = 1; cobra.active = false; pathLit = 0; pathFlash = 0; targets.forEach(function (t) { t.lit = false; }); sfx.lost(); say('BALL LOST', '#ff6a5c');
+    mode = 'lost'; lostTimer = 1.6; mult = 1; cobra.active = false; ramp.on = false; ramp.count = 0; pathLit = 0; pathFlash = 0; targets.forEach(function (t) { t.lit = false; }); sfx.lost(); say('BALL LOST', '#ff6a5c');
     if (score > hiScore) { hiScore = score; newHigh = true; }
     saveHi();
   }
@@ -342,13 +377,16 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     if (mode === 'lost') { lostTimer -= dt; if (lostTimer <= 0) afterLost(); }
     if (mode === 'playing') {
       var sub = Math.max(1, Math.ceil(dt / (1 / 240))), h = dt / sub;
-      for (var s = 0; s < sub; s++) { physics(h); if (ball.y > H + 30) break; }
+      if (ramp.on) {
+        stepFlippers(dt); ramp.d += RAMP_SPEED * dt; var rp = rampAt(ramp.d); ball.x = rp.x; ball.y = rp.y; ball.ax = undefined; ball.at = 0;
+        if (ramp.d >= rampLen[rampLen.length - 1]) finishRamp();
+      } else for (var s = 0; s < sub; s++) { physics(h); if (ball.y > H + 30 || ramp.on) break; }
       if (cobra.cd > 0) cobra.cd -= dt;
       if (cobra.active) { cobra.life -= dt; if (cobra.life <= 0) { cobra.active = false; cobra.next = COBRA_MIN_WAIT + Math.random() * (COBRA_MAX_WAIT - COBRA_MIN_WAIT); } }
       else if (ball.entered) { cobra.next -= dt; if (cobra.next <= 0) spawnCobra(); }
       var sp = Math.abs(ball.vx) + Math.abs(ball.vy);
       if (!ball.entered && ball.y > 450 && sp < 15) { laneStill += dt; if (laneStill > 0.8) { resetBall(); mode = 'ready'; say('RELAUNCH', '#ffffff'); } } else laneStill = 0;
-      if (ball.entered && mode === 'playing') {
+      if (ball.entered && mode === 'playing' && !ramp.on) {
         /* watchdog: if the ball has barely moved for a couple of seconds, a hidden kicker shoots it back into play */
         var dxa = ball.x - ball.ax, dya = ball.y - ball.ay;
         if (ball.ax === undefined || dxa * dxa + dya * dya > 26 * 26) { ball.ax = ball.x; ball.ay = ball.y; ball.at = 0; }
@@ -533,6 +571,26 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     ctx.textAlign = 'left';
   }
 
+  function rampPath(dx, dy) { ctx.beginPath(); rampPts.forEach(function (q, i) { if (i) ctx.lineTo(q[0] + dx, q[1] + dy); else ctx.moveTo(q[0] + dx, q[1] + dy); }); }
+  function drawRamp() {
+    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    /* soft drop shadow far below the deck gives the lift */
+    ctx.strokeStyle = 'rgba(0,0,0,0.38)'; ctx.lineWidth = 15; rampPath(7, 11); ctx.stroke();
+    /* support posts */
+    ctx.strokeStyle = 'rgba(20,30,60,0.9)'; ctx.lineWidth = 2.5;
+    for (var i = 10; i < rampPts.length - 6; i += 14) { ctx.beginPath(); ctx.moveTo(rampPts[i][0], rampPts[i][1]); ctx.lineTo(rampPts[i][0] + 7, rampPts[i][1] + 11); ctx.stroke(); }
+    ctx.strokeStyle = '#0a1020'; ctx.lineWidth = 15; rampPath(0, 0); ctx.stroke();
+    var g = ctx.createLinearGradient(0, 200, 300, 380); g.addColorStop(0, '#d7e6ff'); g.addColorStop(1, '#6f8ccf');
+    ctx.strokeStyle = g; ctx.lineWidth = 11; ctx.globalAlpha = 0.9; rampPath(0, 0); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.shadowColor = '#7de8ff'; ctx.shadowBlur = 10; ctx.strokeStyle = '#7de8ff'; ctx.lineWidth = 1.6; rampPath(-4.5, -4.5); ctx.stroke(); rampPath(4.5, 4.5); ctx.stroke(); ctx.shadowBlur = 0;
+    ctx.setLineDash([3, 11]); ctx.lineDashOffset = -time * 40; ctx.strokeStyle = ramp.on ? '#ffffff' : '#ffd84a'; ctx.lineWidth = 2.5; rampPath(0, 0); ctx.stroke(); ctx.setLineDash([]);
+    /* entrance marker */
+    var pulse = 0.5 + 0.5 * Math.sin(time * 6);
+    ctx.shadowColor = '#7de8ff'; ctx.shadowBlur = 14; ctx.strokeStyle = 'rgba(125,232,255,' + (0.5 + 0.5 * pulse) + ')'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(RAMP_IN.x, RAMP_IN.y + 4, RAMP_IN.r, 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0;
+    ctx.fillStyle = '#7de8ff'; ctx.font = '7px "Press Start 2P", monospace'; ctx.textAlign = 'center'; ctx.fillText('RAMP', RAMP_IN.x + 6, RAMP_IN.y + 28); ctx.textAlign = 'left';
+    ctx.restore();
+  }
   function drawField() {
     var g = ctx.createLinearGradient(0, 125, 0, H); g.addColorStop(0, '#191b26'); g.addColorStop(1, '#0c0d12');
     ctx.fillStyle = g; ctx.fillRect(0, 125, W, H - 125);
@@ -594,6 +652,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
       ctx.fillText(high ? '500' : '100', b.x, b.y + 4); ctx.textAlign = 'left';
     });
     if (cobra.active) drawCobra(cobra.x, cobra.y, time);
+    drawRamp();
     /* flippers */
     flippers.forEach(function (f) {
       var tip = flipTip(f), ang = Math.atan2(tip.y - f.py, tip.x - f.px), nx = -Math.sin(ang), ny = Math.cos(ang);
@@ -611,7 +670,9 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
       var lastT = trail[trail.length - 1];
       if (!lastT || Math.abs(lastT.x - ball.x) + Math.abs(lastT.y - ball.y) > 1.5) { if (lastT && Math.abs(lastT.x - ball.x) + Math.abs(lastT.y - ball.y) > 90) trail.length = 0; trail.push({ x: ball.x, y: ball.y }); if (trail.length > 9) trail.shift(); }
       trail.forEach(function (q, i) { var k = (i + 1) / trail.length; ctx.fillStyle = 'rgba(160,235,255,' + (0.28 * k) + ')'; ctx.beginPath(); ctx.arc(q.x, q.y, BALL_R * (0.45 + 0.5 * k), 0, Math.PI * 2); ctx.fill(); });
-      var R = BALL_R * 1.15, hg = ctx.createRadialGradient(ball.x, ball.y, R * 0.8, ball.x, ball.y, R * 2.6);
+      var lift = ramp.on ? 1 : 0, R = BALL_R * (1.15 + 0.25 * lift);
+      if (lift) { ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(ball.x + 7, ball.y + 11, R * 0.9, R * 0.55, 0, 0, Math.PI * 2); ctx.fill(); }
+      var hg = ctx.createRadialGradient(ball.x, ball.y, R * 0.8, ball.x, ball.y, R * 2.6);
       hg.addColorStop(0, 'rgba(255,255,255,0.55)'); hg.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(ball.x, ball.y, R * 2.6, 0, Math.PI * 2); ctx.fill();
       var bg = ctx.createRadialGradient(ball.x - 2.5, ball.y - 3, 1, ball.x, ball.y, R);
       bg.addColorStop(0, '#ffffff'); bg.addColorStop(0.55, '#e6ebf8'); bg.addColorStop(1, '#8e97b4');
@@ -697,7 +758,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     update(dt); draw(); requestAnimationFrame(frame);
   }
   if (window.__steelicaTest) {
-    window.__steelica = { update: update, draw: draw, centerAction: centerAction, setFlip: setFlip, state: function () { return { mode: mode, score: score, mult: mult, ball: ball, ballNum: ballNum, totalBalls: totalBalls, cobra: cobra, newHigh: newHigh, hi: hiScore, pathLit: pathLit, pathFlash: pathFlash }; }, setCobra: function () { spawnCobra(); } };
+    window.__steelica = { update: update, draw: draw, centerAction: centerAction, setFlip: setFlip, state: function () { return { mode: mode, score: score, mult: mult, ball: ball, ballNum: ballNum, totalBalls: totalBalls, cobra: cobra, newHigh: newHigh, hi: hiScore, pathLit: pathLit, pathFlash: pathFlash, ramp: ramp }; }, setCobra: function () { spawnCobra(); } };
   } else { requestAnimationFrame(frame); }
   updateButton();
   draw();
