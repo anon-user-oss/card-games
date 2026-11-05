@@ -400,28 +400,28 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 
   /* ---------- The loan sharks ---------- */
   var SHARKS = [
-    { id: 'eddie', name: 'Fast Eddie', short: 'Eddie', loan: 150, rate: 0.25, limit: 500,
-      terms: '$150 fast. 25% interest every hand.',
+    { id: 'eddie', name: 'Fast Eddie', short: 'Eddie', loan: 300, rate: 0.25, limit: 1000,
+      terms: '$300 fast. 25% interest every hand.',
       hello: '"Cash now, kid. No paperwork, no patience."',
       visit: 'Fast Eddie snaps his fingers and two big guys empty your chips.' },
-    { id: 'viper', name: 'Madame Viper', short: 'Viper', loan: 300, rate: 0.05, limit: 700,
-      terms: '$300 at 5% a hand. She holds your side bets as collateral.',
+    { id: 'viper', name: 'Madame Viper', short: 'Viper', loan: 600, rate: 0.05, limit: 1400,
+      terms: '$600 at 5% a hand. She holds your side bets as collateral.',
       hello: '"Lovely rate, darling. I only keep one little thing as collateral: your side bets."',
       visit: 'Madame Viper glides in and collects, smiling the whole time.' },
-    { id: 'tony', name: 'Big Tony', short: 'Tony', loan: 250, rate: 0.04, limit: 650,
-      terms: '$250 at 4% a hand. Go 5 hands without paying and your next hand is blind.',
+    { id: 'tony', name: 'Big Tony', short: 'Tony', loan: 500, rate: 0.04, limit: 1300,
+      terms: '$500 at 4% a hand. Go 5 hands without paying and your next hand is blind.',
       hello: '"Cheap money, pal. Just do not make me come find you."',
       visit: 'Big Tony fills the doorway and holds out one huge hand.' },
-    { id: 'acct', name: 'The Accountant', short: 'Accountant', loan: 200, rate: 0.02, limit: 600,
-      terms: '$200. Starts at 2% a hand, and the rate climbs 1% every hand you hold it.',
+    { id: 'acct', name: 'The Accountant', short: 'Accountant', loan: 400, rate: 0.02, limit: 1200,
+      terms: '$400. Starts at 2% a hand, and the rate climbs 1% every hand you hold it.',
       hello: '"Everything is in writing. Please initial here, and here, and here."',
       visit: 'The Accountant clicks his pen and slides over an itemized invoice.' },
-    { id: 'lou', name: 'Lucky Lou', short: 'Lou', loan: 200, rate: 0, limit: 800,
-      terms: '$200 on a coin flip. Heads you owe nothing. Tails you owe $400.',
+    { id: 'lou', name: 'Lucky Lou', short: 'Lou', loan: 400, rate: 0, limit: 1600,
+      terms: '$400 on a coin flip. Heads you owe nothing. Tails you owe $800.',
       hello: '"Heads, it is a gift. Tails, you owe double. Feeling lucky?"',
       visit: 'Lucky Lou flips a coin, catches it, and somehow it always lands his way.' },
-    { id: 'sal', name: 'Sal the Ghost', short: 'Sal', loan: 200, rate: 0.03, limit: 600,
-      terms: '$200 at 3% a hand. His slip stays hidden until he decides to show it. Paying off costs a silence fee.',
+    { id: 'sal', name: 'Sal the Ghost', short: 'Sal', loan: 400, rate: 0.03, limit: 1200,
+      terms: '$400 at 3% a hand. His slip stays hidden until he decides to show it. Paying off costs a silence fee.',
       hello: '"No slip. No record. We will talk later."',
       visit: 'Sal the Ghost appears out of nowhere and the lights flicker.' }
   ];
@@ -1094,7 +1094,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     { name: 'Brenda', color: '#b0592d' }, { name: 'Greasy Gary', color: '#4a3319' }, { name: 'Lil\' Spaghetti', color: '#c79a45' }
   ];
   var EVENTS = [['crumb', 0.28], ['nap', 0.12], ['lost', 0.2], ['flip', 0.12], ['turbo', 0.28]];
-  var derby = { phase: 'bet', pick: -1, betType: 'win', prop: 0, form: [], multW: [], multP: [], R: null, stompAt: null, stomped: -1, timer: null, ticker: '', result: '', resultClass: '', built: false, lanes: [], sig: '', prevPhase: 'bet', raceNo: 0, win: -1, nextEv: '', seed: 0, truth: null, run: null, tipBug: -1, tipStreak: 0 };
+  var derby = { phase: 'bet', pick: -1, betType: 'win', prop: 0, form: [], multW: [], multP: [], R: null, stompAt: null, stomped: -1, timer: null, ticker: '', result: '', resultClass: '', built: false, lanes: [], sig: '', prevPhase: 'bet', raceNo: 0, win: -1, nextEv: '', seed: 0, truth: null, run: null, tipBug: -1, tipStreak: 0, tipBet: 0 };
 
   function roachSvg(c) {
     return '<svg viewBox="0 0 52 30" aria-hidden="true"><g class="legs" stroke="#150c05" stroke-width="1.7" stroke-linecap="round"><path d="M14 12 L7 4 M24 11 L21 2 M33 12 L39 4 M14 18 L7 26 M24 19 L21 28 M33 18 L39 26"/></g>' +
@@ -1237,7 +1237,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     }
     Array.prototype.forEach.call(box.children, function (b) {
       var v = parseInt(b.dataset.v, 10);
-      b.disabled = running || v > bank; b.setAttribute('aria-pressed', String(v === bet));
+      b.disabled = running || v > bank || (derby.tipBug >= 0 && v > derby.tipBet); b.setAttribute('aria-pressed', String(v === bet));
     });
     $('dProp').setAttribute('aria-pressed', String(derby.prop > 0)); $('dPropAmt').textContent = '$' + derby.prop; $('dProp').disabled = running;
     var go = $('dGo'), kind = derby.betType === 'place' ? ' top 3' : '';
@@ -1247,22 +1247,21 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     else if (bank < bet + derby.prop || bank < MIN) { go.disabled = true; go.textContent = 'Not enough chips'; }
     else { go.disabled = false; go.textContent = 'Start race: $' + bet + ' on ' + ROACHES[derby.pick].name + kind; }
   }
-  var TIP_ACC = 0.35;
-  function tipFee() { return Math.max(MIN, Math.round(bet * 0.6 * Math.pow(1.5, derby.tipStreak) / MIN) * MIN); }
+  var TIP_BONUS = 1.25;
+  function tipFee() { var m = derby.truth ? derby.multW[derby.truth.winner] : 3; return Math.max(MIN, Math.round(bet * m * 0.6 * Math.pow(1.5, derby.tipStreak) / MIN) * MIN); }
   function tipMenu() {
     if (derby.phase === 'run') return;
     if (derby.phase === 'done') { derby.pick = -1; newRace(); render(); }
     if (derby.tipBug >= 0) { showModal('Slippery Sid', 'You already bought a tip for this race: ' + ROACHES[derby.tipBug].name + '. Sid does not give refunds.', [{ label: 'OK', fn: function () {} }], true, 'neutral'); return; }
     var fee = tipFee();
-    showModal('Slippery Sid, the bookie', 'Psst. For $' + fee + ' I whisper which bug wins this race. Honest: my tips come in about 1 time in 3, and I never refund. Tips cost more the more you buy in a row.',
+    showModal('Slippery Sid, the bookie', 'Psst. For $' + fee + ' I whisper which bug wins this race. The race is fixed and my tip is never wrong. The price follows the bug\'s odds and your bet, and climbs if you buy back to back. You cannot raise your bet above its current size after paying. Bet the max chip on the fixed bug and I even bump the payout 25%. No refunds.',
       [{ label: 'Buy the tip: $' + fee, sub: bank >= fee + bet ? '' : 'You need $' + (fee + bet) + ' to buy it and still bet.', disabled: bank < fee + bet, fn: function () { buyTip(fee); } },
        { label: 'No thanks', go: false, fn: function () {} }], true, 'neutral');
   }
   function buyTip(fee) {
     if (derby.phase !== 'bet' || bank < fee + bet) return;
-    bank -= fee; var w = derby.truth.winner, pick = w;
-    if (Math.random() >= TIP_ACC) { var o = []; ROACHES.forEach(function (r, i) { if (i !== w) o.push(i); }); pick = o[Math.floor(Math.random() * o.length)]; }
-    derby.tipBug = pick; derby.pick = pick;
+    bank -= fee; var pick = derby.truth.winner;
+    derby.tipBug = pick; derby.pick = pick; derby.tipBet = bet;
     derby.ticker = 'Sid whispers: "' + ROACHES[pick].name + '. You didn\'t hear it from me." (-$' + fee + ')';
     save(); render();
   }
@@ -1315,7 +1314,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
       if (got) { var wp = Math.floor(bet * derby.multP[derby.pick]); bank += wp; pays = wp - bet; derby.result = photo + ROACHES[derby.pick].name + ' finished ' + ordinal(place) + '! You win $' + pays; derby.resultClass = 'win'; }
       else { derby.result = (derby.pick === derby.stomped ? ROACHES[derby.pick].name + ' got stomped. ' : ROACHES[derby.pick].name + ' missed the top 3. ') + 'You lose $' + bet; derby.resultClass = 'lose'; }
     } else if (derby.pick === W) {
-      var win = Math.floor(bet * derby.multW[W]); bank += win; pays = win - bet;
+      var win = Math.floor(bet * derby.multW[W] * ((derby.tipBug === W && bet === CHIPS[0]) ? TIP_BONUS : 1)); bank += win; pays = win - bet;
       derby.result = photo + name + ' wins! You win $' + pays; derby.resultClass = 'win';
     } else if (derby.pick === derby.stomped) {
       derby.result = name + ' wins, and ' + ROACHES[derby.pick].name + ' got stomped. You lose $' + bet; derby.resultClass = 'lose';
