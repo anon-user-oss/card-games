@@ -14,8 +14,8 @@
 [hidden]{display:none!important}
 :root {
   /* Layout: one-screen felt table. Dealer hand on top, status band in the middle, your hand(s) below, controls pinned to the bottom. */
-  --felt: #09090b;
-  --felt-hi: #1a1a22;
+  --felt: #0a5230;
+  --felt-hi: #1b8a56;
   --spk: rgba(255, 255, 255, 0.7);
   --spk2: rgba(255, 210, 74, 0.75);
   --card: #fffdf5;
@@ -28,7 +28,7 @@
   --line: rgba(255, 255, 255, 0.4);
   --display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --ch-base: clamp(7rem, 17svh, 9.5rem);
+  --ch-base: clamp(8.5rem, 21svh, 12rem);
   --ch: var(--ch-base);
   color-scheme: dark;
 }
@@ -79,7 +79,7 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
 .tot {
   min-width: 2.4rem; padding: 2px 12px; border-radius: 999px; text-align: center;
   background: rgba(0, 0, 0, 0.55); border: 1.5px solid var(--line);
-  font-weight: 800; font-size: 1.05rem; font-variant-numeric: tabular-nums;
+  font-weight: 800; font-size: 1.5rem; font-variant-numeric: tabular-nums;
 }
 .tot:empty { visibility: hidden; }
 .tot.bust { color: var(--lose); border-color: var(--lose); }
@@ -110,8 +110,8 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
 }
 .card + .card { margin-left: calc(-1 * var(--ov, 2.4rem)); }
 .card.red { color: var(--red); }
-.card .tl { position: absolute; top: 7px; left: 8px; font-size: calc(var(--cw) * 0.27); line-height: 1.05; text-align: center; }
-.card .pip { position: absolute; inset: 0; display: grid; place-items: center; font-size: calc(var(--cw) * 0.62); padding-top: calc(var(--cw) * 0.2); }
+.card .tl { position: absolute; top: 7px; left: 8px; font-size: calc(var(--cw) * 0.4); line-height: 1.05; text-align: center; }
+.card .pip { position: absolute; inset: 0; display: grid; place-items: center; font-size: calc(var(--cw) * 0.72); padding-top: calc(var(--cw) * 0.22); }
 .card.back {
   background-color: #1f5fa8;
   background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.28) 0 3px, transparent 3px 9px),
