@@ -234,6 +234,10 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .sharkbtn { background: rgba(255, 210, 74, 0.22); color: #ffe27a; border-color: #ffe27a; }
 .tot { background: rgba(0, 0, 0, 0.7); color: #fff; border-color: #fff; }
 .chip { color: #fff; font-size: 1.15rem; }
+#deal { position: sticky; bottom: max(10px, env(safe-area-inset-bottom, 0px)); z-index: 5; box-shadow: 0 -8px 16px rgba(0, 0, 0, 0.5), 0 0 0 3px rgba(0, 0, 0, 0.35); }
+.sharkrow { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; }
+.sharkrow[hidden] { display: none; }
+.fleebtn { min-height: 46px; border-radius: 12px; border: 2px solid #ff8f7f; background: rgba(255, 90, 70, 0.28); color: #ffd9d1; font-weight: 800; font-size: 0.98rem; }
 </style>
 </head>
 <body>
@@ -285,7 +289,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
         <p><b>Insurance</b> is offered when the dealer shows an Ace. It costs half your bet and pays 2:1.</p>
       </details>
       <button class="paybtn" id="pay" hidden></button>
-      <button class="sharkbtn" id="sharkBtn">Loan sharks</button>
+      <div class="sharkrow"><button class="sharkbtn" id="sharkBtn">Loan sharks</button><button class="fleebtn" id="fleeBtn" hidden>Flee the country</button></div>
       <button class="sharkbtn" id="roomBtn" hidden></button>
       <button class="primary" id="deal">Deal</button>
     </div>
@@ -363,7 +367,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
       visit: 'Sal the Ghost appears out of nowhere and the lights flicker.' }
   ];
   var S = {};
-  SHARKS.forEach(function (s) { S[s.id] = { debt: 0, held: 0, due: 0, hidden: false }; });
+  SHARKS.forEach(function (s) { S[s.id] = { debt: 0, held: 0, due: 0, hidden: false, bounty: 0 }; });
 
   try {
     var saved = parseInt(localStorage.getItem('pocket-bj-bank'), 10);
@@ -372,7 +376,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     var sj = localStorage.getItem('pocket-bj-sharks');
     if (sj) {
       var o = JSON.parse(sj);
-      SHARKS.forEach(function (s) { var x = o[s.id]; if (x) S[s.id] = { debt: x.debt | 0, held: x.held | 0, due: x.due | 0, hidden: !!x.hidden }; });
+      SHARKS.forEach(function (s) { var x = o[s.id]; if (x) S[s.id] = { debt: x.debt | 0, held: x.held | 0, due: x.due | 0, hidden: !!x.hidden, bounty: x.bounty | 0 }; });
     } else {
       var sd = parseInt(localStorage.getItem('pocket-bj-debt'), 10); if (sd > 0) S.sal.debt = sd; // old single-shark save
     }
@@ -399,7 +403,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     deal: $('deal'), hit: $('hit'), stand: $('stand'), dbl: $('dbl'), spl: $('spl'),
     insYes: $('insYes'), insNo: $('insNo'),
     ppBtn: $('ppBtn'), t3Btn: $('t3Btn'), ppAmt: $('ppAmt'), t3Amt: $('t3Amt'),
-    dim: $('dim'), redv: $('redv'), sharkBtn: $('sharkBtn'), roomBtn: $('roomBtn')
+    dim: $('dim'), redv: $('redv'), sharkBtn: $('sharkBtn'), fleeBtn: $('fleeBtn'), roomBtn: $('roomBtn')
   };
   var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
 
@@ -409,7 +413,8 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
   function visibleDebt() { var t = 0; SHARKS.forEach(function (s) { if (shown(s)) t += S[s.id].debt; }); return t; }
   function clearedCount() { return SHARKS.filter(function (s) { return cleared[s.id]; }).length; }
   function bestChip() { return CHIPS.filter(function (v) { return v <= bank; })[0] || MIN; }
-  function canBorrow(s) { return S[s.id].debt + s.loan <= s.limit; }
+  function totalBounty() { var t = 0; SHARKS.forEach(function (s) { t += S[s.id].bounty; }); return t; }
+  function canBorrow(s) { return S[s.id].bounty <= 0 && S[s.id].debt + s.loan <= s.limit; }
 
   /* Shark portraits for the pop-up */
   var LOOKS = {
@@ -467,7 +472,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
   function sharkButtons() {
     return SHARKS.map(function (s) {
       var ok = canBorrow(s);
-      return { label: s.name + ' · $' + s.loan, sub: ok ? s.terms : 'Maxed out. Pay down first.', go: false, disabled: !ok, fn: function () { borrow(s); } };
+      return { label: s.name + ' · $' + s.loan, sub: ok ? s.terms : (S[s.id].bounty > 0 ? 'You skipped town on ' + s.short + '. Pay the $' + S[s.id].bounty + ' bounty first.' : 'Maxed out. Pay down first.'), go: false, disabled: !ok, fn: function () { borrow(s); } };
     });
   }
   function sharkMenu() {
@@ -528,6 +533,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
   /* Paying back */
   function silenceFee(s, d) { return s.id === 'sal' ? Math.max(10, Math.ceil(d * 0.1)) : 0; }
   function payInfo(s) {
+    if (S[s.id].bounty > 0) { var bo = S[s.id].bounty; return { amt: Math.min(bank, bo), fee: 0, clear: bank >= bo, bounty: true }; }
     var d = S[s.id].debt, f = silenceFee(s, d);
     if (bank >= d + f) return { amt: d, fee: f, clear: true };
     var a = Math.max(0, Math.min(bank, s.id === 'sal' ? d - 1 : d));
@@ -535,13 +541,13 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
   }
   function payMenu() {
     if ((phase !== 'bet' && phase !== 'done') || bank <= 0) return;
-    var list = SHARKS.filter(shown);
+    var list = SHARKS.filter(function (s) { return shown(s) || S[s.id].bounty > 0; });
     if (!list.length) return;
     var btns = list.map(function (s) {
       var p = payInfo(s);
       return {
         label: 'Pay ' + s.short + ' $' + p.amt,
-        sub: p.fee ? 'Clears the debt, plus a $' + p.fee + ' silence fee' : (p.clear ? 'Clears the debt' : 'Partial payment, $' + S[s.id].debt + ' owed'),
+        sub: p.bounty ? (p.clear ? 'Pays the bounty. ' + s.short + ' will lend to you again' : 'Partial payment, $' + S[s.id].bounty + ' bounty left') : (p.fee ? 'Clears the debt, plus a $' + p.fee + ' silence fee' : (p.clear ? 'Clears the debt' : 'Partial payment, $' + S[s.id].debt + ' owed')),
         go: false, disabled: p.amt <= 0, fn: function () { payShark(s); }
       };
     });
@@ -551,6 +557,16 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
   function payShark(s) {
     var st = S[s.id], p = payInfo(s);
     if (p.amt <= 0) return;
+    if (p.bounty) {
+      bank -= p.amt; st.bounty -= p.amt; sideMsg = '';
+      if (st.bounty <= 0) { st.bounty = 0; cleared[s.id] = true; say(s.name + ' calls off the hunt.', 'win'); sideMsg = s.short + ' will lend to you again.'; }
+      else { say('Paid ' + s.short + ' $' + p.amt + '.', ''); sideMsg = s.short + ' still wants $' + st.bounty + '.'; }
+      if (bet + pp + t3 > bank) { pp = 0; t3 = 0; }
+      if (bet > bank) bet = bestChip();
+      save(); render();
+      if (!checkUnlock()) checkSal();
+      return;
+    }
     bank -= p.amt + p.fee; st.debt -= p.amt;
     sideMsg = '';
     if (st.debt <= 0) {
@@ -566,6 +582,28 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     if (bet > bank) bet = bestChip();
     save(); render();
     if (!checkUnlock()) checkSal();
+  }
+
+  /* Flee the country: keep every chip, skip every debt, but the sharks put a bounty on you */
+  function fleeMenu() {
+    if ((phase !== 'bet' && phase !== 'done') || room !== 'low' || totalDebt() <= 0) return;
+    var owed = SHARKS.filter(function (s) { return S[s.id].debt > 0; }), sum = totalDebt();
+    showModal('Skip the country?',
+      'You keep your $' + bank + ' and walk away from $' + sum + ' in loans to ' + owed.length + ' shark' + (owed.length > 1 ? 's' : '') + '. But they do not forget. Each one puts a bounty on you (double what you owed), stops lending until it is paid, and you become Wanted x' + (wanted + owed.length) + '. Their guys may find you at the table.',
+      [{ label: 'Run for it', fn: flee }, { label: 'Stay and face them', fn: function () {}, go: false }], true, 'neutral');
+  }
+  function flee() {
+    if ((phase !== 'bet' && phase !== 'done') || room !== 'low') return;
+    var names = [], total = 0;
+    SHARKS.forEach(function (s) {
+      var st = S[s.id]; if (st.debt <= 0) return;
+      st.bounty = st.debt * 2; total += st.debt; names.push(s.short);
+      st.debt = 0; st.held = 0; st.due = 0; st.hidden = false; cleared[s.id] = false; wanted++;
+    });
+    blindNext = false; pp = 0; t3 = 0;
+    say('You vanish with $' + bank + '.', 'win'); sideMsg = 'Skipped out on ' + names.join(', ') + '. They are looking for you.';
+    save(); render();
+    showModal('Gone', 'A one-way ticket, a fake name, and your pockets still full. You owe nobody now, but ' + names.join(', ') + ' will be asking around. Pay the bounty with "Pay sharks" to make peace.', [{ label: 'Keep playing', fn: function () {} }], true, 'neutral');
   }
 
   /* Ghost reveal, usually right after a big win */
@@ -598,7 +636,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     if (room === 'high') { setRoom('low'); checkSal(); } else enterHigh();
   }
   function checkUnlock() {
-    if (unlocked || clearedCount() < SHARKS.length || totalDebt() > 0) return false;
+    if (unlocked || clearedCount() < SHARKS.length || totalDebt() > 0 || totalBounty() > 0) return false;
     unlocked = true; save(); render();
     showModal('The High-Roller Room is open', 'Every shark is paid off. A velvet rope lifts and a door opens upstairs: a new table, $' + ROOMS.high.min + ' minimum, and no loan sharks allowed.',
       [{ label: 'Enter now', fn: enterHigh }, { label: 'Stay here for now', fn: checkSal, go: false }], false, 'neutral');
@@ -612,21 +650,23 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
       var st = S[s.id], r = rateOf(s);
       parts.push('<span class="tag debt">' + s.short + ' $' + st.debt + (r > 0 ? ' +' + Math.round(r * 100) + '%' : '') + (s.id === 'tony' ? ' · due in ' + st.due : '') + '</span>');
     });
+    SHARKS.forEach(function (s) { if (S[s.id].bounty > 0) parts.push('<span class="tag debt">' + s.short + ' bounty $' + S[s.id].bounty + '</span>'); });
     if (wanted > 0) parts.push('<span class="tag wanted">Wanted x' + wanted + '</span>');
     if (unlocked) parts.push('<span class="tag wanted">' + (room === 'high' ? 'High-Roller Room' : 'High-Roller Room open') + '</span>');
     else if (clearedCount() > 0) parts.push('<span class="tag">Sharks paid off ' + clearedCount() + '/' + SHARKS.length + '</span>');
     $('tags').innerHTML = parts.join('');
 
     var betting = phase === 'bet' || phase === 'done';
-    var pay = $('pay'), can = visibleDebt() > 0 && bank > 0 && betting;
+    var pay = $('pay'), owedNow = visibleDebt() + totalBounty(), can = owedNow > 0 && bank > 0 && betting;
     pay.hidden = !can;
-    if (can) pay.textContent = 'Pay sharks ($' + visibleDebt() + ' owed)';
+    if (can) pay.textContent = 'Pay sharks ($' + owedNow + ' owed)';
+    el.fleeBtn.hidden = !(betting && room === 'low' && totalDebt() > 0);
     el.sharkBtn.hidden = !(betting && room === 'low');
     el.roomBtn.hidden = !(betting && unlocked);
     el.roomBtn.textContent = room === 'high' ? 'Back to the basement' : 'Enter the High-Roller Room';
 
     /* The room gets darker and redder as visible debt grows */
-    var heat = room === 'high' ? 0 : Math.min(1, visibleDebt() / 700);
+    var heat = room === 'high' ? 0 : Math.min(1, (visibleDebt() + totalBounty()) / 700);
     el.dim.style.opacity = String(heat * 0.5);
     el.redv.style.opacity = String(heat);
     document.body.classList.toggle('hr', room === 'high');
@@ -924,6 +964,11 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     var notes = [];
     if (visibleDebt() > 0) notes.push('Interest: you now owe $' + visibleDebt());
     if (blindNext) notes.push('Big Tony says this hand is blind');
+    var hunters = SHARKS.filter(function (s) { return S[s.id].bounty > 0; });
+    if (room === 'low' && hunters.length && Math.random() < 0.15) {
+      var hs = hunters[Math.floor(Math.random() * hunters.length)], cut = Math.min(bank, Math.max(10, Math.ceil(bank * 0.15)));
+      if (cut > 0) { bank -= cut; notes.push(hs.short + '\'s guys found you: -$' + cut); }
+    }
     interestMsg = notes.join(' \u00b7 ');
     blind = blindNext; blindNext = false; save();
     hands = [makeHand([], bet, false)]; active = 0;
@@ -1032,6 +1077,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
   $('modal').addEventListener('click', function (e) { if (e.target === this && this._closable) closeModal(); });
   $('pay').addEventListener('click', payMenu);
   el.sharkBtn.addEventListener('click', sharkMenu);
+  el.fleeBtn.addEventListener('click', fleeMenu);
   el.roomBtn.addEventListener('click', toggleRoom);
   $('title').addEventListener('click', function () {
     taps++; clearTimeout(tapTimer); tapTimer = setTimeout(function () { taps = 0; }, 1500);
