@@ -644,7 +644,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     var sway = Math.sin(t * 2.2) * 1.6;
     ctx.save(); ctx.translate(x, y);
     var pulse = 0.5 + 0.5 * Math.sin(t * 14);
-    var glow = ctx.createRadialGradient(0, 6, 6, 0, 6, 34); glow.addColorStop(0, 'rgba(255,40,30,' + (0.28 + 0.2 * pulse) * e + ')'); glow.addColorStop(1, 'rgba(255,40,30,0)');
+    var glow = ctx.createRadialGradient(0, 6, 6, 0, 6, 34); glow.addColorStop(0, 'rgba(255,225,200,' + (0.4 + 0.15 * pulse) * e + ')'); glow.addColorStop(0.55, 'rgba(255,70,50,' + (0.25 + 0.2 * pulse) * e + ')'); glow.addColorStop(1, 'rgba(255,40,30,0)');
     ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 6, 34, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.ellipse(2, 24, 22 * e, 6 * e, 0, 0, Math.PI * 2); ctx.fill();
     ctx.globalAlpha = Math.max(0.05, e);
@@ -662,15 +662,15 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     ctx.strokeStyle = '#6a7084'; ctx.lineWidth = 3; ctx.strokeRect(3, 3, W - 6, 119);
     ctx.fillStyle = '#8c92a8'; [[10, 10], [W - 10, 10], [10, 115], [W - 10, 115]].forEach(function (p) { ctx.beginPath(); ctx.arc(p[0], p[1], 2.4, 0, Math.PI * 2); ctx.fill(); });
     if (LOGO_SNAKE === 'cobra') {
-      var bg2 = ctx.createRadialGradient(52, 66, 8, 52, 66, 56); bg2.addColorStop(0, 'rgba(255,50,35,0.22)'); bg2.addColorStop(1, 'rgba(255,50,35,0)');
-      ctx.fillStyle = bg2; ctx.fillRect(4, 6, 100, 112);
+      var bg2 = ctx.createRadialGradient(52, 64, 6, 52, 64, 58); bg2.addColorStop(0, 'rgba(255,244,222,0.78)'); bg2.addColorStop(0.45, 'rgba(255,196,150,0.42)'); bg2.addColorStop(1, 'rgba(255,120,90,0)');
+      ctx.fillStyle = bg2; ctx.fillRect(4, 4, 116, 116);
       ctx.save(); ctx.beginPath(); ctx.rect(6, 6, 86, 112); ctx.clip(); ctx.translate(51, 63); ctx.scale(1.55, 1.55); ctx.scale(0.86, 0.86); cobraArt(time, 0); ctx.restore();
     } else drawPython(10, 12, 0.92);
     ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
     ctx.font = '34px "Metal Mania", Impact, "Arial Black", sans-serif';
-    ctx.lineWidth = 5; ctx.strokeStyle = '#2a0a08'; ctx.strokeText('STEELICA', 224, 40);
+    ctx.lineWidth = 5; ctx.strokeStyle = '#2a0a08'; ctx.strokeText('STEELICA', 180, 40);
     var tg = ctx.createLinearGradient(0, 14, 0, 42); tg.addColorStop(0, '#f4f6ff'); tg.addColorStop(0.55, '#9aa1b8'); tg.addColorStop(1, '#ff5a4d');
-    ctx.fillStyle = tg; ctx.fillText('STEELICA', 224, 40);
+    ctx.fillStyle = tg; ctx.fillText('STEELICA', 180, 40);
     ctx.textAlign = 'left';
     ctx.fillStyle = '#05060a'; rr(94, 48, 176, 32, 4); ctx.fill();
     ctx.strokeStyle = '#3a3e4e'; ctx.lineWidth = 1.5; ctx.stroke();
