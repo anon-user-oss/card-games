@@ -270,6 +270,8 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .roach[data-mode="out"] svg { transform: scale(1.25, 0.16); transform-origin: 50% 90%; filter: saturate(0.4); }
 .roach[data-win="1"] svg { filter: drop-shadow(0 0 6px #ffd24a); }
 .roach[data-mode="fin"]::after { content: attr(data-place); background: #ffd24a; color: #1a1200; left: 40%; }
+.tipbtn { width: 100%; margin-top: 8px; }
+.lane[data-tip="true"] .lname em::after { content: " TIP"; color: #7dff9a; font-size: 0.7rem; }
 .lane[data-mine="true"] .lname b::after { content: " \2605"; color: #ffe27a; }
 @media (prefers-reduced-motion: no-preference) {
   .roach[data-mode="run"] .legs, .roach[data-mode="turbo"] .legs, .roach[data-mode="lost"] .legs { animation: scurry 0.12s infinite; }
@@ -320,6 +322,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     <div class="betline"><span id="dlabel">Bet</span><button class="stakesbtn" id="stakesBtn2" hidden>Raise stakes</button><b id="dwager">$25</b></div>
     <div class="chips" id="dChips" role="group" aria-label="Bet size"></div>
     <div class="sides"><button class="sidebtn" id="dProp" aria-pressed="false">Boot Stomp 3:1<span id="dPropAmt">$0</span></button><button class="sidebtn" id="dForm" type="button">Bet type<span id="dFormAmt">Win</span></button></div>
+    <button class="sidebtn tipbtn" id="dTip" type="button">Pay the bookie for a tip<span id="dTipAmt"></span></button>
     <button class="primary" id="dGo">Pick a bug</button>
   </section>
 
@@ -1050,11 +1053,26 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     render();
     if (bank < MIN) checkSal();
   }
+  function restartGame(full) {
+    SHARKS.forEach(function (sh) { S[sh.id] = { debt: 0, held: 0, due: 0, hidden: false, bounty: 0 }; });
+    wanted = 0; blindNext = false; blind = false; interestMsg = ''; insBet = 0;
+    if (full) { unlocked = false; cleared = {}; stakesUnlocked = false; }
+    room = 'low'; game = 'bj'; derby.phase = 'bet'; derby.pick = -1; derby.prop = 0;
+    clearInterval(derby.timer); derby.timer = null; rnd = Math.random;
+    resetStack();
+  }
+  function restartMenu() {
+    showModal('Restart the game?', 'Keep your unlocked rooms and loan shark history, or wipe everything and start brand new?',
+      [{ label: 'Fresh stack, keep unlocks', sub: '$' + START + ' chips, all debts and bounties cleared', fn: function () { restartGame(false); } },
+       { label: 'Wipe everything', sub: 'Also resets unlocks and paid-off sharks', go: false, fn: function () { restartGame(true); } },
+       { label: 'Cancel', go: false, fn: function () {} }], true, 'neutral');
+  }
   function tablesMenu() {
     if (phase !== 'bet' && phase !== 'done') return;
     var btns = [
       { label: 'Blackjack' + (game === 'bj' ? ' (here)' : ''), sub: 'Splits, side bets, loan sharks', go: false, disabled: game === 'bj', fn: function () { setGame('bj'); } },
       { label: 'Back Alley Roach Derby' + (game === 'derby' ? ' (here)' : ''), sub: room === 'high' ? 'Back alley only. Head downstairs first.' : 'Bet on bugs. Boots may fall.', go: false, disabled: game === 'derby' || room === 'high', fn: function () { setGame('derby'); } },
+      { label: 'Restart game…', sub: 'Start over with a fresh stack', go: false, fn: restartMenu },
       { label: 'Close', go: false, fn: function () {} }
     ];
     showModal('Pick a table', 'Same chips and same loan sharks at every table.', btns, true, 'neutral');
@@ -1076,7 +1094,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     { name: 'Brenda', color: '#b0592d' }, { name: 'Greasy Gary', color: '#4a3319' }, { name: 'Lil\' Spaghetti', color: '#c79a45' }
   ];
   var EVENTS = [['crumb', 0.28], ['nap', 0.12], ['lost', 0.2], ['flip', 0.12], ['turbo', 0.28]];
-  var derby = { phase: 'bet', pick: -1, betType: 'win', prop: 0, form: [], multW: [], multP: [], R: null, stompAt: null, stomped: -1, timer: null, ticker: '', result: '', resultClass: '', built: false, lanes: [], sig: '', prevPhase: 'bet', raceNo: 0, win: -1, nextEv: '' };
+  var derby = { phase: 'bet', pick: -1, betType: 'win', prop: 0, form: [], multW: [], multP: [], R: null, stompAt: null, stomped: -1, timer: null, ticker: '', result: '', resultClass: '', built: false, lanes: [], sig: '', prevPhase: 'bet', raceNo: 0, win: -1, nextEv: '', seed: 0, truth: null, run: null, tipBug: -1, tipStreak: 0 };
 
   function roachSvg(c) {
     return '<svg viewBox="0 0 52 30" aria-hidden="true"><g class="legs" stroke="#150c05" stroke-width="1.7" stroke-linecap="round"><path d="M14 12 L7 4 M24 11 L21 2 M33 12 L39 4 M14 18 L7 26 M24 19 L21 28 M33 18 L39 26"/></g>' +
@@ -1084,7 +1102,9 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
       '<ellipse cx="24" cy="15" rx="17" ry="9" fill="' + c + '" stroke="#150c05" stroke-width="1.6"/><path d="M10 15 H38" stroke="rgba(0,0,0,.35)" stroke-width="1.2"/>' +
       '<circle cx="42" cy="15" r="5.5" fill="#2a170a" stroke="#150c05" stroke-width="1.4"/><ellipse cx="22" cy="11" rx="8" ry="2.6" fill="rgba(255,255,255,.25)"/></svg>';
   }
-  function pickEvent() { var r = Math.random(), a = 0, i; for (i = 0; i < EVENTS.length; i++) { a += EVENTS[i][1]; if (r < a) return EVENTS[i][0]; } return 'crumb'; }
+  var rnd = Math.random;
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function pickEvent() { var r = rnd(), a = 0, i; for (i = 0; i < EVENTS.length; i++) { a += EVENTS[i][1]; if (r < a) return EVENTS[i][0]; } return 'crumb'; }
   function mkRace(form) {
     return { f: form, pos: form.map(function () { return 0; }), mood: form.map(function () { return 1; }), mode: form.map(function () { return 'run'; }), left: form.map(function () { return 0; }), t: 0, done: false, fin: [], margin: 99 };
   }
@@ -1095,13 +1115,13 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
       if (R.mode[i] === 'out') continue;
       alive++;
       if (R.mode[i] === 'fin') continue;
-      R.mood[i] = Math.max(0.75, Math.min(1.25, R.mood[i] + (Math.random() - 0.5) * 0.05));
-      var v = 0, base = 10 * R.f[i] * R.mood[i] * (0.9 + Math.random() * 0.2);
+      R.mood[i] = Math.max(0.75, Math.min(1.25, R.mood[i] + (rnd() - 0.5) * 0.05));
+      var v = 0, base = 10 * R.f[i] * R.mood[i] * (0.9 + rnd() * 0.2);
       if (R.mode[i] === 'run') {
         v = base;
-        if (Math.random() < EVENT_P) {
+        if (rnd() < EVENT_P) {
           var ev = pickEvent(); R.mode[i] = ev;
-          R.left[i] = ev === 'crumb' ? 0.8 + Math.random() * 0.8 : ev === 'nap' ? 1.2 + Math.random() * 0.8 : ev === 'lost' ? 0.7 + Math.random() * 0.5 : ev === 'flip' ? 1.2 + Math.random() * 0.6 : 1 + Math.random() * 0.6;
+          R.left[i] = ev === 'crumb' ? 0.8 + rnd() * 0.8 : ev === 'nap' ? 1.2 + rnd() * 0.8 : ev === 'lost' ? 0.7 + rnd() * 0.5 : ev === 'flip' ? 1.2 + rnd() * 0.6 : 1 + rnd() * 0.6;
           if (onEv) onEv(i, ev);
         }
       } else {
@@ -1124,6 +1144,24 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     }
     if (R.fin.length >= Math.min(PLACES, alive)) R.done = true;
   }
+  function beginRun(seed) {
+    rnd = mulberry32(seed);
+    var st = { at: rnd() < STOMP_P ? 2 + rnd() * 4 : null, stomped: -1 };
+    return { R: mkRace(derby.form), st: st };
+  }
+  function stompPick(R, st) {
+    if (st.at === null || R.t < st.at || st.stomped >= 0 || R.done) return -1;
+    var alive = [], i;
+    for (i = 0; i < R.pos.length; i++) if (R.mode[i] !== 'out' && R.mode[i] !== 'fin' && R.pos[i] < 88) alive.push(i);
+    if (alive.length < 2) return -1;
+    i = alive[Math.floor(rnd() * alive.length)]; st.stomped = i; st.at = null; return i;
+  }
+  function presim(seed) {
+    var run = beginRun(seed), g = 0, R = run.R;
+    while (!R.done && g++ < 3000) { stepRace(R, DT); var k = stompPick(R, run.st); if (k >= 0) R.mode[k] = 'out'; }
+    rnd = Math.random;
+    return { winner: R.fin[0], stomped: run.st.stomped };
+  }
   function newRace() {
     derby.form = ROACHES.map(function () { return 0.94 + Math.random() * 0.12; });
     var n = 400, w = ROACHES.map(function () { return 0; }), p = ROACHES.map(function () { return 0; }), k, g, R;
@@ -1133,6 +1171,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     }
     derby.multW = w.map(function (c) { return Math.max(1.5, Math.min(30, Math.round(RTP / (Math.max(c, 6) / n) * 2) / 2)); });
     derby.multP = p.map(function (c) { return Math.max(1.2, Math.min(8, Math.round(RTP / (Math.max(c, 20) / n) * 10) / 10)); });
+    derby.seed = Math.floor(Math.random() * 4294967296); derby.truth = presim(derby.seed); derby.tipBug = -1;
     derby.R = mkRace(derby.form); derby.stomped = -1; derby.win = -1; derby.phase = 'bet';
     derby.ticker = 'Odds are posted. Pick your bug.'; derby.result = ''; derby.resultClass = '';
   }
@@ -1177,14 +1216,16 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
       var place = R.fin.indexOf(i); l.roach.dataset.place = place >= 0 ? String(place + 1) : '';
       l.roach.dataset.win = (done && derby.win === i) ? '1' : '0';
       l.row.setAttribute('data-mine', String(derby.pick === i));
+      l.row.setAttribute('data-tip', String(derby.tipBug === i && !done));
     });
     $('ticker').textContent = derby.ticker;
     var dm = $('dmsg'); dm.textContent = derby.result; dm.className = 'msg dmsg' + (derby.resultClass ? ' ' + derby.resultClass : '');
     $('dsub').textContent = running ? 'They are off!' : (done ? 'Tap Next race, or tap a bug to post new odds.' : (derby.pick < 0 ? 'Tap a bug to bet on it.' : 'You picked ' + ROACHES[derby.pick].name + ': ' + oddsText(derby.pick) + '.'));
     $('dwager').textContent = '$' + bet + (derby.prop > 0 ? ' + $' + derby.prop : '');
     $('dlabel').textContent = derby.prop > 0 ? 'Bet + stomp' : 'Bet';
+    $('dTipAmt').textContent = derby.tipBug >= 0 ? 'Bought' : '$' + tipFee();
     $('dFormAmt').textContent = derby.betType === 'place' ? 'Top 3' : 'Win';
-    $('dForm').disabled = running;
+    $('dForm').disabled = running; $('dTip').disabled = running;
     var sig = CHIPS.join(','), box = $('dChips');
     if (derby.sig !== sig) {
       derby.sig = sig; box.textContent = '';
@@ -1206,6 +1247,25 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     else if (bank < bet + derby.prop || bank < MIN) { go.disabled = true; go.textContent = 'Not enough chips'; }
     else { go.disabled = false; go.textContent = 'Start race: $' + bet + ' on ' + ROACHES[derby.pick].name + kind; }
   }
+  var TIP_ACC = 0.35;
+  function tipFee() { return Math.max(MIN, Math.round(bet * 0.6 * Math.pow(1.5, derby.tipStreak) / MIN) * MIN); }
+  function tipMenu() {
+    if (derby.phase === 'run') return;
+    if (derby.phase === 'done') { derby.pick = -1; newRace(); render(); }
+    if (derby.tipBug >= 0) { showModal('Slippery Sid', 'You already bought a tip for this race: ' + ROACHES[derby.tipBug].name + '. Sid does not give refunds.', [{ label: 'OK', fn: function () {} }], true, 'neutral'); return; }
+    var fee = tipFee();
+    showModal('Slippery Sid, the bookie', 'Psst. For $' + fee + ' I whisper which bug wins this race. Honest: my tips come in about 1 time in 3, and I never refund. Tips cost more the more you buy in a row.',
+      [{ label: 'Buy the tip: $' + fee, sub: bank >= fee + bet ? '' : 'You need $' + (fee + bet) + ' to buy it and still bet.', disabled: bank < fee + bet, fn: function () { buyTip(fee); } },
+       { label: 'No thanks', go: false, fn: function () {} }], true, 'neutral');
+  }
+  function buyTip(fee) {
+    if (derby.phase !== 'bet' || bank < fee + bet) return;
+    bank -= fee; var w = derby.truth.winner, pick = w;
+    if (Math.random() >= TIP_ACC) { var o = []; ROACHES.forEach(function (r, i) { if (i !== w) o.push(i); }); pick = o[Math.floor(Math.random() * o.length)]; }
+    derby.tipBug = pick; derby.pick = pick;
+    derby.ticker = 'Sid whispers: "' + ROACHES[pick].name + '. You didn\'t hear it from me." (-$' + fee + ')';
+    save(); render();
+  }
   function goPressed() {
     if (derby.phase === 'done') { derby.pick = -1; newRace(); render(); return; }
     startRace();
@@ -1216,7 +1276,8 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     derby.prevPhase = phase; phase = 'busy'; derby.phase = 'run';
     bank -= bet + derby.prop; save();
     var notes = tickDebts(); blindNext = false; save();
-    derby.R = mkRace(derby.form); derby.stompAt = Math.random() < STOMP_P ? 2 + Math.random() * 4 : null; derby.stomped = -1; derby.win = -1;
+    derby.tipStreak = derby.tipBug >= 0 ? derby.tipStreak + 1 : 0;
+    derby.run = beginRun(derby.seed); derby.R = derby.run.R; derby.stomped = -1; derby.win = -1;
     derby.result = ''; derby.resultClass = ''; derby.raceNo++;
     derby.ticker = (notes.length ? notes.join(' \u00b7 ') + ' \u00b7 ' : '') + 'And they\'re off!';
     render();
@@ -1230,25 +1291,21 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
   function raceTick() {
     var R = derby.R;
     stepRace(R, DT, function (i, ev) { derby.ticker = evText(i, ev); });
-    if (derby.stompAt !== null && R.t >= derby.stompAt && derby.stomped < 0 && !R.done) {
-      var alive = [], i;
-      for (i = 0; i < R.pos.length; i++) if (R.mode[i] !== 'out' && R.mode[i] !== 'fin' && R.pos[i] < 88) alive.push(i);
-      if (alive.length > 1) {
-        i = alive[Math.floor(Math.random() * alive.length)]; derby.stomped = i; R.mode[i] = 'out';
-        derby.ticker = 'A BOOT! ' + ROACHES[i].name + ' has been stomped.';
-        var trk = derby.lanes[i].trk, boot = document.createElement('span');
-        boot.className = 'boot'; boot.style.left = (R.pos[i] * 0.76) + '%';
-        boot.innerHTML = '<svg viewBox="0 0 26 40" aria-hidden="true"><path d="M5 0 H17 V24 Q26 26 26 34 V40 H0 V6 Z" fill="#3b2a1a" stroke="#000" stroke-width="1.6"/><rect x="0" y="34" width="26" height="6" fill="#111"/></svg>';
-        trk.appendChild(boot); setTimeout(function () { if (boot.parentNode) boot.parentNode.removeChild(boot); }, 1100);
-        derby.stompAt = null;
-      }
+    var i = stompPick(R, derby.run.st);
+    if (i >= 0) {
+      derby.stomped = i; R.mode[i] = 'out';
+      derby.ticker = 'A BOOT! ' + ROACHES[i].name + ' has been stomped.';
+      var trk = derby.lanes[i].trk, boot = document.createElement('span');
+      boot.className = 'boot'; boot.style.left = (R.pos[i] * 0.76) + '%';
+      boot.innerHTML = '<svg viewBox="0 0 26 40" aria-hidden="true"><path d="M5 0 H17 V24 Q26 26 26 34 V40 H0 V6 Z" fill="#3b2a1a" stroke="#000" stroke-width="1.6"/><rect x="0" y="34" width="26" height="6" fill="#111"/></svg>';
+      trk.appendChild(boot); setTimeout(function () { if (boot.parentNode) boot.parentNode.removeChild(boot); }, 1100);
     }
     if (R.done) { finishRace(); return; }
     renderDerby();
   }
   function ordinal(n) { return ['1st', '2nd', '3rd', '4th', '5th', '6th'][n] || (n + 1) + 'th'; }
   function finishRace() {
-    clearInterval(derby.timer); derby.timer = null;
+    clearInterval(derby.timer); derby.timer = null; rnd = Math.random;
     var R = derby.R, W = R.fin[0], name = ROACHES[W].name, parts = [], place = R.fin.indexOf(derby.pick), got = false, pays = 0;
     derby.win = W; derby.phase = 'done'; phase = derby.prevPhase;
     var photo = R.margin < 1.5 ? 'PHOTO FINISH! ' : '';
@@ -1407,6 +1464,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
   $('dGo').addEventListener('click', goPressed);
   $('dProp').addEventListener('click', cycleProp);
   $('dForm').addEventListener('click', toggleBetType);
+  $('dTip').addEventListener('click', tipMenu);
   $('title').addEventListener('click', function () {
     taps++; clearTimeout(tapTimer); tapTimer = setTimeout(function () { taps = 0; }, 1500);
     if (taps >= 5) { taps = 0; sharkMenu(); }
