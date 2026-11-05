@@ -155,7 +155,11 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
   var popups = [], banner = null, shake = 0, time = 0, nudgeCd = 0, lostTimer = 0, laneStill = 0;
   var cobra = { active: false, x: 0, y: 0, life: 0, hits: 0, cd: 0, next: 12 };
   try { var hs = parseInt(localStorage.getItem('steelica-hi'), 10); if (hs > 0) hiScore = hs; } catch (e) {}
-  function saveHi() { try { localStorage.setItem('steelica-hi', String(hiScore)); } catch (e) {} }
+  function saveHi() { try { if (score > hiScore) hiScore = score; localStorage.setItem('steelica-hi', String(hiScore)); } catch (e) {} }
+  /* keep the record safe even if the page is closed mid-ball */
+  setInterval(function () { if (newHigh || score > hiScore) saveHi(); }, 1500);
+  window.addEventListener('pagehide', saveHi);
+  document.addEventListener('visibilitychange', function () { if (document.hidden) saveHi(); });
 
   /* ---------- Sound: loud retro beeps and bells ---------- */
   var AC = null, muted = false;
