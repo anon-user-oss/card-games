@@ -14,8 +14,10 @@
 [hidden]{display:none!important}
 :root {
   /* Layout: one-screen felt table. Dealer hand on top, status band in the middle, your hand(s) below, controls pinned to the bottom. */
-  --felt: #082a20;
-  --felt-hi: #0f4a38;
+  --felt: #09090b;
+  --felt-hi: #1a1a22;
+  --spk: rgba(255, 255, 255, 0.7);
+  --spk2: rgba(255, 210, 74, 0.75);
   --card: #fffdf5;
   --ink: #14120f;
   --red: #c4122f;
@@ -34,7 +36,15 @@ html, body { height: 100%; }
 body {
   margin: 0;
   background-color: var(--felt);
-  background-image: radial-gradient(120% 80% at 50% 28%, var(--felt-hi), var(--felt) 72%);
+  background-image:
+    radial-gradient(circle at 21px 33px, var(--spk) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 88px 141px, var(--spk) 0 1.2px, transparent 2px),
+    radial-gradient(circle at 143px 62px, var(--spk2) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 57px 137px, var(--spk) 0 0.8px, transparent 1.5px),
+    radial-gradient(circle at 201px 119px, var(--spk2) 0 1.1px, transparent 1.9px),
+    radial-gradient(120% 80% at 50% 28%, var(--felt-hi), var(--felt) 72%);
+  background-size: 131px 97px, 173px 151px, 197px 113px, 109px 167px, 241px 139px, 100% 100%;
+  transition: background-color 0.8s;
   color: var(--fg);
   font-family: var(--body);
   font-size: 16px;
@@ -133,9 +143,6 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
   background: #b3202a; color: #fff; font-weight: 800; font-size: 1.05rem; font-variant-numeric: tabular-nums;
   box-shadow: inset 0 0 0 4px rgba(0, 0, 0, 0.3);
 }
-.chip[data-v="25"] { background: #17803f; }
-.chip[data-v="50"] { background: #1f5fa8; }
-.chip[data-v="100"] { background: #1a1a1a; }
 .chip[aria-pressed="true"] { transform: translateY(-4px); box-shadow: 0 0 0 4px var(--brass), inset 0 0 0 4px rgba(0, 0, 0, 0.3); }
 .chip:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -176,7 +183,7 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
 .modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(0, 0, 0, 0.78);
   padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
 .sheet { box-sizing: border-box; width: 100%; max-width: 380px; background: var(--card); color: var(--ink); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6); }
-.sheet svg { width: 96px; height: 96px; }
+.sheet svg { width: 72px; height: 72px; }
 .sheet h2 { margin: 0; font-family: var(--display); font-size: 1.4rem; text-wrap: balance; }
 .sheet p { margin: 0; line-height: 1.45; font-size: 0.98rem; text-wrap: pretty; }
 .sheet .fine { font-size: 0.78rem; color: #5b564c; }
@@ -184,9 +191,37 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
 .mbtns button { min-height: 50px; border-radius: 12px; border: 2px solid var(--ink); background: #fff; color: var(--ink); font-weight: 800; font-size: 1rem; }
 .mbtns button.go { background: var(--ink); color: #fff; }
 .ver { margin: 0; text-align: center; font-size: 0.7rem; color: var(--muted); opacity: 0.6; }
+
+/* ---- Black speckled felt, dim room, sharks, high-roller room ---- */
+body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); --spk2: rgba(255, 240, 190, 0.9); }
+.app { position: relative; z-index: 1; }
+.table { padding: 10px 8px; border-radius: 22px; border: 2px solid rgba(255, 210, 74, 0.45); box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.65), 0 0 18px rgba(255, 210, 74, 0.12); }
+.chip { box-shadow: 0 0 10px rgba(255, 210, 74, 0.3), inset 0 0 0 4px rgba(0, 0, 0, 0.3); }
+.chip:nth-child(1) { background: #b3202a; }
+.chip:nth-child(2) { background: #17803f; }
+.chip:nth-child(3) { background: #1f5fa8; }
+.chip:nth-child(4) { background: #1a1a1a; }
+.chip[aria-pressed="true"] { transform: translateY(-4px); box-shadow: 0 0 0 4px var(--brass), 0 0 18px rgba(255, 210, 74, 0.8), inset 0 0 0 4px rgba(0, 0, 0, 0.3); }
+.dim, .redv { position: fixed; inset: 0; pointer-events: none; z-index: 40; opacity: 0; transition: opacity 1.4s ease; }
+.dim { background: #000; }
+.redv { background: radial-gradient(ellipse at 50% 45%, rgba(120, 0, 0, 0) 25%, rgba(160, 8, 8, 0.75) 125%); }
+.sharkbtn { min-height: 46px; border-radius: 12px; border: 2px solid var(--brass); background: rgba(0, 0, 0, 0.45); color: var(--brass); font-weight: 800; font-size: 0.98rem; }
+.sidebtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.sheet { max-height: calc(100dvh - 32px); overflow-y: auto; }
+.av { display: grid; place-items: center; }
+.mbtns button:disabled { opacity: 0.45; cursor: not-allowed; }
+.mbtns small { display: block; margin-top: 2px; font-weight: 500; font-size: 0.78rem; opacity: 0.75; text-wrap: balance; }
+@media (prefers-reduced-motion: no-preference) {
+  body::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: radial-gradient(circle at 40px 70px, var(--spk) 0 1.4px, transparent 2.4px), radial-gradient(circle at 150px 20px, var(--spk2) 0 1.2px, transparent 2.2px);
+    background-size: 227px 193px, 181px 239px; animation: twinkle 4.5s ease-in-out infinite alternate; }
+}
+@keyframes twinkle { from { opacity: 0.15; } to { opacity: 1; } }
 </style>
 </head>
 <body>
+<div class="dim" id="dim" aria-hidden="true"></div>
+<div class="redv" id="redv" aria-hidden="true"></div>
 
 <main class="app">
   <header class="top">
@@ -233,6 +268,8 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
         <p><b>Insurance</b> is offered when the dealer shows an Ace. It costs half your bet and pays 2:1.</p>
       </details>
       <button class="paybtn" id="pay" hidden></button>
+      <button class="sharkbtn" id="sharkBtn">Loan sharks</button>
+      <button class="sharkbtn" id="roomBtn" hidden></button>
       <button class="primary" id="deal">Deal</button>
     </div>
 
@@ -252,17 +289,7 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
 
 <div class="modal" id="modal" hidden style="display:none">
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="mt">
-    <svg viewBox="0 0 100 100" aria-hidden="true">
-      <path d="M12 100 Q50 66 88 100Z" fill="#2a2a3a"/>
-      <path d="M42 80 L50 94 L58 80 L50 74Z" fill="#fff"/>
-      <circle cx="50" cy="50" r="27" fill="#f1c9a5"/>
-      <path d="M20 42 Q50 4 80 42Z" fill="#3a3a48"/>
-      <rect x="17" y="40" width="66" height="7" rx="3.5" fill="#22222c"/>
-      <rect x="27" y="49" width="19" height="11" rx="4" fill="#111"/>
-      <rect x="54" y="49" width="19" height="11" rx="4" fill="#111"/>
-      <path d="M46 53 H54" stroke="#111" stroke-width="3"/>
-      <path d="M33 68 Q50 58 67 68 Q58 77 50 70 Q42 77 33 68Z" fill="#2b1b12"/>
-    </svg>
+    <div class="av" id="av"></div>
     <h2 id="mt"></h2>
     <p id="mb"></p>
     <p class="fine">Play money only. Nobody is actually coming.</p>
@@ -275,11 +302,15 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
   var SUITS = ['♠', '♥', '♦', '♣'];
   var NAMES = { '♠': 'spades', '♥': 'hearts', '♦': 'diamonds', '♣': 'clubs' };
   var RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-  var START = 500, MIN = 10, MAX_HANDS = 4;
-  var LOAN = 200, RATE = 0.1, LIMIT = 600, STAKE = 100; // Sal's terms
-  var debt = 0, wanted = 0, taps = 0, tapTimer = null, interestMsg = '';
-  var SIDE_STEPS = [0, 5, 10, 25];
-  var CHIPS = [100, 50, 25, 10];
+  var START = 500, MAX_HANDS = 4, STAKE = 100;
+  var ROOMS = {
+    low:  { min: 10,  chips: [10, 25, 50, 100],     sides: [0, 5, 10, 25],    bet: 25 },
+    high: { min: 100, chips: [100, 250, 500, 1000], sides: [0, 25, 50, 100], bet: 100 }
+  };
+  var MIN = 10, CHIPS = [100, 50, 25, 10], SIDE_STEPS = [0, 5, 10, 25];
+  var room = 'low', unlocked = false, cleared = {};
+  var wanted = 0, taps = 0, tapTimer = null, interestMsg = '', blindNext = false, blind = false;
+  function applyRoom() { var r = ROOMS[room]; MIN = r.min; CHIPS = r.chips.slice().reverse(); SIDE_STEPS = r.sides; }
 
   var deck = [], dealer = [], hands = [], active = -1;
   var bank = START, bet = 25, pp = 0, t3 = 0, insBet = 0;
@@ -287,13 +318,61 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
   var hole = true;
   var msg = 'Pick a chip and deal.', msgClass = '', sideMsg = '';
 
+  /* ---------- The loan sharks ---------- */
+  var SHARKS = [
+    { id: 'eddie', name: 'Fast Eddie', short: 'Eddie', loan: 150, rate: 0.25, limit: 500,
+      terms: '$150 fast. 25% interest every hand.',
+      hello: '"Cash now, kid. No paperwork, no patience."',
+      visit: 'Fast Eddie snaps his fingers and two big guys empty your chips.' },
+    { id: 'viper', name: 'Madame Viper', short: 'Viper', loan: 300, rate: 0.05, limit: 700,
+      terms: '$300 at 5% a hand. She holds your side bets as collateral.',
+      hello: '"Lovely rate, darling. I only keep one little thing as collateral: your side bets."',
+      visit: 'Madame Viper glides in and collects, smiling the whole time.' },
+    { id: 'tony', name: 'Big Tony', short: 'Tony', loan: 250, rate: 0.04, limit: 650,
+      terms: '$250 at 4% a hand. Go 5 hands without paying and your next hand is blind.',
+      hello: '"Cheap money, pal. Just do not make me come find you."',
+      visit: 'Big Tony fills the doorway and holds out one huge hand.' },
+    { id: 'acct', name: 'The Accountant', short: 'Accountant', loan: 200, rate: 0.02, limit: 600,
+      terms: '$200. Starts at 2% a hand, and the rate climbs 1% every hand you hold it.',
+      hello: '"Everything is in writing. Please initial here, and here, and here."',
+      visit: 'The Accountant clicks his pen and slides over an itemized invoice.' },
+    { id: 'lou', name: 'Lucky Lou', short: 'Lou', loan: 200, rate: 0, limit: 800,
+      terms: '$200 on a coin flip. Heads you owe nothing. Tails you owe $400.',
+      hello: '"Heads, it is a gift. Tails, you owe double. Feeling lucky?"',
+      visit: 'Lucky Lou flips a coin, catches it, and somehow it always lands his way.' },
+    { id: 'sal', name: 'Sal the Ghost', short: 'Sal', loan: 200, rate: 0.03, limit: 600,
+      terms: '$200 at 3% a hand. His slip stays hidden until he decides to show it. Paying off costs a silence fee.',
+      hello: '"No slip. No record. We will talk later."',
+      visit: 'Sal the Ghost appears out of nowhere and the lights flicker.' }
+  ];
+  var S = {};
+  SHARKS.forEach(function (s) { S[s.id] = { debt: 0, held: 0, due: 0, hidden: false }; });
+
   try {
     var saved = parseInt(localStorage.getItem('pocket-bj-bank'), 10);
     if (saved >= 0) bank = saved;
-    var sd = parseInt(localStorage.getItem('pocket-bj-debt'), 10); if (sd > 0) debt = sd;
     var sw = parseInt(localStorage.getItem('pocket-bj-wanted'), 10); if (sw > 0) wanted = sw;
+    var sj = localStorage.getItem('pocket-bj-sharks');
+    if (sj) {
+      var o = JSON.parse(sj);
+      SHARKS.forEach(function (s) { var x = o[s.id]; if (x) S[s.id] = { debt: x.debt | 0, held: x.held | 0, due: x.due | 0, hidden: !!x.hidden }; });
+    } else {
+      var sd = parseInt(localStorage.getItem('pocket-bj-debt'), 10); if (sd > 0) S.sal.debt = sd; // old single-shark save
+    }
+    var mj = localStorage.getItem('pocket-bj-meta');
+    if (mj) { var m = JSON.parse(mj); unlocked = !!m.unlocked; cleared = m.cleared || {}; if (m.room === 'high' && unlocked) room = 'high'; }
   } catch (e) {}
-  function save() { try { localStorage.setItem('pocket-bj-bank', String(bank)); localStorage.setItem('pocket-bj-debt', String(debt)); localStorage.setItem('pocket-bj-wanted', String(wanted)); } catch (e) {} }
+  applyRoom();
+  if (room === 'high') bet = ROOMS.high.bet;
+
+  function save() {
+    try {
+      localStorage.setItem('pocket-bj-bank', String(bank));
+      localStorage.setItem('pocket-bj-wanted', String(wanted));
+      localStorage.setItem('pocket-bj-sharks', JSON.stringify(S));
+      localStorage.setItem('pocket-bj-meta', JSON.stringify({ room: room, unlocked: unlocked, cleared: cleared }));
+    } catch (e) {}
+  }
 
   var $ = function (id) { return document.getElementById(id); };
   var el = {
@@ -302,69 +381,239 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
     betRow: $('betRow'), insRow: $('insRow'), playRow: $('playRow'),
     deal: $('deal'), hit: $('hit'), stand: $('stand'), dbl: $('dbl'), spl: $('spl'),
     insYes: $('insYes'), insNo: $('insNo'),
-    ppBtn: $('ppBtn'), t3Btn: $('t3Btn'), ppAmt: $('ppAmt'), t3Amt: $('t3Amt')
+    ppBtn: $('ppBtn'), t3Btn: $('t3Btn'), ppAmt: $('ppAmt'), t3Amt: $('t3Amt'),
+    dim: $('dim'), redv: $('redv'), sharkBtn: $('sharkBtn'), roomBtn: $('roomBtn')
   };
   var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
 
-  /* ---------- Sal the loan shark ---------- */
+  function rateOf(s) { return s.id === 'acct' ? 0.02 + 0.01 * S[s.id].held : s.rate; }
+  function shown(s) { return S[s.id].debt > 0 && !S[s.id].hidden; }
+  function totalDebt() { var t = 0; SHARKS.forEach(function (s) { t += S[s.id].debt; }); return t; }
+  function visibleDebt() { var t = 0; SHARKS.forEach(function (s) { if (shown(s)) t += S[s.id].debt; }); return t; }
+  function clearedCount() { return SHARKS.filter(function (s) { return cleared[s.id]; }).length; }
+  function bestChip() { return CHIPS.filter(function (v) { return v <= bank; })[0] || MIN; }
+  function canBorrow(s) { return S[s.id].debt + s.loan <= s.limit; }
+
+  /* Shark portraits for the pop-up */
+  var LOOKS = {
+    neutral: { skin: '#f1c9a5', hat: '#3a3a48', band: '#22222c', suit: '#2a2a3a', tie: '#fff', stache: '#2b1b12' },
+    eddie: { skin: '#f1c9a5', hat: '#7a1f1f', band: '#ffd24a', suit: '#5b2a86', tie: '#ffd24a', stache: '#2b1b12',
+      extra: '<rect x="48" y="67" width="4" height="5" rx="1" fill="#ffd24a"/>' },
+    viper: { skin: '#f6dccb', hat: '#4a0f2e', band: '#c4122f', suit: '#2d0a1f', tie: '#c4122f',
+      extra: '<path d="M40 68 Q50 77 60 68 Q50 71 40 68Z" fill="#c4122f"/>' },
+    tony: { skin: '#d9a47a', hat: '#222', band: '#111', suit: '#15151d', tie: '#c4122f', stache: '#1a110b',
+      extra: '<path d="M64 40 L72 60" stroke="#b05a5a" stroke-width="2.5"/>' },
+    acct: { skin: '#f1c9a5', hat: '#2f6f4f', band: '#1f4a35', suit: '#556', tie: '#2a7', glasses: 'round' },
+    lou: { skin: '#f1c9a5', hat: '#17803f', band: '#0d5a2a', suit: '#17803f', tie: '#ffd24a', stache: '#5a3b1e',
+      extra: '<circle cx="82" cy="84" r="11" fill="#ffd24a" stroke="#a37c00" stroke-width="2"/><text x="82" y="89" text-anchor="middle" font-size="14" font-weight="800" fill="#7a5a00">$</text>' },
+    sal: { skin: '#dfe6ee', hat: '#555', band: '#222', suit: '#2a2a3a', tie: '#aab', stache: '#2b1b12', ghost: true }
+  };
+  function avatar(id) {
+    var L = LOOKS[id] || LOOKS.neutral;
+    var eyes = L.glasses === 'round'
+      ? '<circle cx="37" cy="54" r="9" fill="none" stroke="#111" stroke-width="3"/><circle cx="63" cy="54" r="9" fill="none" stroke="#111" stroke-width="3"/><path d="M46 54 H54" stroke="#111" stroke-width="3"/>'
+      : '<rect x="27" y="49" width="19" height="11" rx="4" fill="#111"/><rect x="54" y="49" width="19" height="11" rx="4" fill="#111"/><path d="M46 53 H54" stroke="#111" stroke-width="3"/>';
+    var mouth = L.stache ? '<path d="M33 68 Q50 58 67 68 Q58 77 50 70 Q42 77 33 68Z" fill="' + L.stache + '"/>' : '';
+    return '<svg viewBox="0 0 100 100" aria-hidden="true"' + (L.ghost ? ' style="opacity:0.7"' : '') + '>' +
+      '<path d="M12 100 Q50 66 88 100Z" fill="' + L.suit + '"/>' +
+      '<path d="M42 80 L50 94 L58 80 L50 74Z" fill="' + L.tie + '"/>' +
+      '<circle cx="50" cy="50" r="27" fill="' + L.skin + '"/>' +
+      '<path d="M20 42 Q50 4 80 42Z" fill="' + L.hat + '"/>' +
+      '<rect x="17" y="40" width="66" height="7" rx="3.5" fill="' + L.band + '"/>' +
+      eyes + mouth + (L.extra || '') + '</svg>';
+  }
+
   function closeModal() { $('modal').style.display = 'none'; $('modal').hidden = true; }
-  function showModal(title, body, buttons, closable) {
+  function showModal(title, body, buttons, closable, who) {
     $('mt').textContent = title; $('mb').textContent = body;
+    $('av').innerHTML = avatar(who || 'neutral');
     var box = $('mbtns'); box.textContent = '';
     buttons.forEach(function (b, i) {
       var btn = document.createElement('button');
-      btn.type = 'button'; btn.textContent = b.label; if (i === 0) btn.className = 'go';
+      btn.type = 'button'; btn.textContent = b.label;
+      if (b.sub) { var sm = document.createElement('small'); sm.textContent = b.sub; btn.appendChild(sm); }
+      if (b.go !== false && i === 0) btn.className = 'go';
+      if (b.disabled) btn.disabled = true;
       btn.addEventListener('click', function () { closeModal(); b.fn(); });
       box.appendChild(btn);
     });
     $('modal')._closable = !!closable;
     $('modal').hidden = false; $('modal').style.display = 'grid';
-    if (box.firstChild) box.firstChild.focus();
+    var first = box.querySelector('button:not(:disabled)'); if (first) first.focus();
+    $('modal').querySelector('.sheet').scrollTop = 0;
   }
   function resetStack() {
     bank = START; bet = 25; pp = 0; t3 = 0; hands = []; dealer = []; sideMsg = '';
     say('Fresh stack of $' + START + '. Pick a chip and deal.', ''); phase = 'bet'; save(); render();
   }
-  function takeLoan() {
-    bank += LOAN; debt += LOAN; sideMsg = '';
-    if (bet > bank) bet = CHIPS.filter(function (v) { return v <= bank; })[0] || MIN;
-    say('Sal slides you $' + LOAN + '.', '', 'You owe $' + debt + '. Interest adds 10% every hand.');
-    save(); render();
+
+  function sharkButtons() {
+    return SHARKS.map(function (s) {
+      var ok = canBorrow(s);
+      return { label: s.name + ' · $' + s.loan, sub: ok ? s.terms : 'Maxed out. Pay down first.', go: false, disabled: !ok, fn: function () { borrow(s); } };
+    });
   }
-  function showVisit() {
-    var owed = debt; wanted++; debt = 0; bank = STAKE; bet = 25; pp = 0; t3 = 0; sideMsg = '';
-    save(); say('Sal came by.', 'lose', 'Fresh start with $' + STAKE + '. You are Wanted x' + wanted + '.'); render();
-    showModal('Sal paid a visit',
-      'Sal strolls in, adjusts his cap, and counts the room. "You owe me $' + owed + ', kid. Nice little game you got here. Shame if somebody kept borrowing." He takes your chips, tears up the slip, and leaves you $' + STAKE + ' to start over. You are now Wanted x' + wanted + '.',
-      [{ label: 'Phew. Thanks, Sal', fn: function () {} }], true);
+  function sharkMenu() {
+    if ((phase !== 'bet' && phase !== 'done') || room !== 'low') return;
+    var btns = sharkButtons(); btns.push({ label: 'Not today', fn: function () {}, go: false });
+    showModal('Loan sharks', 'Paid off ' + clearedCount() + ' of ' + SHARKS.length + '. ' + (unlocked ? 'The High-Roller Room is open.' : 'Pay off every shark to open the High-Roller Room.'), btns, true, 'neutral');
+  }
+  function borrow(s) {
+    if (!canBorrow(s)) return;
+    var st = S[s.id], note = s.terms;
+    bank += s.loan;
+    if (s.id === 'lou') {
+      if (Math.random() < 0.5) note = 'Heads. Lou waves it off. You owe nothing.';
+      else { st.debt += s.loan * 2; note = 'Tails. You owe $' + (s.loan * 2) + '.'; }
+    } else st.debt += s.loan;
+    if (s.id === 'tony' && st.due <= 0) st.due = 5;
+    if (s.id === 'viper') { pp = 0; t3 = 0; }
+    if (s.id === 'sal') { st.hidden = true; note = 'No slip. No record. Keep your eyes open.'; }
+    if (st.debt === 0) cleared[s.id] = true;
+    if (bet + pp + t3 > bank) { pp = 0; t3 = 0; }
+    if (bet > bank) bet = bestChip();
+    say(s.name + ' slides you $' + s.loan + '.', '');
+    sideMsg = (s.id === 'lou' || s.id === 'sal') ? note : s.hello + ' ' + note;
+    save(); render(); checkUnlock();
+  }
+  function visit(s) {
+    var st = S[s.id], owed = st.debt; wanted++;
+    st.debt = 0; st.held = 0; st.due = 0; st.hidden = false;
+    bank = STAKE; bet = 25; pp = 0; t3 = 0;
+    if (s.id === 'tony') blindNext = true;
+    save();
+    say(s.short + ' came by.', 'lose');
+    sideMsg = 'Fresh start with $' + STAKE + '. You are Wanted x' + wanted + '.';
+    render();
+    showModal(s.name + ' paid a visit',
+      s.visit + ' "You owe me $' + owed + ', kid." They take your chips, tear up the slip, and leave you $' + STAKE + ' to start over. You are now Wanted x' + wanted + '.',
+      [{ label: 'Phew. Thanks', fn: function () {} }], true, s.id);
   }
   function showBroke() {
-    if (debt === 0) {
-      showModal('Out of chips?', 'A man in a flat cap leans on the table. "Name\'s Sal. I can fix that. $' + LOAN + ' now, and I only charge 10% interest every hand. Easy."',
-        [{ label: 'Borrow $' + LOAN, fn: takeLoan }, { label: 'No thanks, new game', fn: resetStack }]);
-    } else if (debt + LOAN <= LIMIT) {
-      showModal('Back again?', 'Sal sighs. "You still owe me $' + debt + '. Fine. Another $' + LOAN + '. But I am watching you."',
-        [{ label: 'Borrow $' + LOAN + ' more', fn: takeLoan }]);
-    } else showVisit();
+    if (room === 'high') {
+      showModal('Tapped out', 'Security walks you back down to the basement.', [{ label: 'Back downstairs', fn: function () { setRoom('low'); checkSal(); } }], false, 'neutral');
+      return;
+    }
+    if (!SHARKS.some(canBorrow)) {
+      var worst = SHARKS.filter(function (s) { return S[s.id].debt > 0; }).sort(function (a, b) { return S[b.id].debt - S[a.id].debt; })[0];
+      if (worst) visit(worst); else resetStack();
+      return;
+    }
+    var btns = sharkButtons();
+    if (totalDebt() === 0) btns.push({ label: 'No thanks, new game', fn: resetStack, go: false });
+    showModal('Out of chips?', totalDebt() > 0 ? 'The sharks smell blood. Who is it going to be?' : 'A line of sharks leans on the table. Pick one, or walk away.', btns, false, 'neutral');
   }
   function checkSal() {
-    if (debt > LIMIT) showVisit(); else if (bank < MIN) showBroke();
+    var over = SHARKS.filter(function (s) { return S[s.id].debt > s.limit; })[0];
+    if (over) visit(over); else if (bank < MIN) showBroke();
   }
+
+  /* Paying back */
+  function silenceFee(s, d) { return s.id === 'sal' ? Math.max(10, Math.ceil(d * 0.1)) : 0; }
+  function payInfo(s) {
+    var d = S[s.id].debt, f = silenceFee(s, d);
+    if (bank >= d + f) return { amt: d, fee: f, clear: true };
+    var a = Math.max(0, Math.min(bank, s.id === 'sal' ? d - 1 : d));
+    return { amt: a, fee: 0, clear: false };
+  }
+  function payMenu() {
+    if ((phase !== 'bet' && phase !== 'done') || bank <= 0) return;
+    var list = SHARKS.filter(shown);
+    if (!list.length) return;
+    var btns = list.map(function (s) {
+      var p = payInfo(s);
+      return {
+        label: 'Pay ' + s.short + ' $' + p.amt,
+        sub: p.fee ? 'Clears the debt, plus a $' + p.fee + ' silence fee' : (p.clear ? 'Clears the debt' : 'Partial payment, $' + S[s.id].debt + ' owed'),
+        go: false, disabled: p.amt <= 0, fn: function () { payShark(s); }
+      };
+    });
+    btns.push({ label: 'Close', fn: function () {}, go: false });
+    showModal('Pay a shark', 'You have $' + bank + '.', btns, true, 'neutral');
+  }
+  function payShark(s) {
+    var st = S[s.id], p = payInfo(s);
+    if (p.amt <= 0) return;
+    bank -= p.amt + p.fee; st.debt -= p.amt;
+    sideMsg = '';
+    if (st.debt <= 0) {
+      st.debt = 0; st.held = 0; st.due = 0; st.hidden = false; cleared[s.id] = true;
+      say(s.name + ' is paid off.', 'win');
+      if (p.fee) sideMsg = 'Silence fee: $' + p.fee + '.';
+    } else {
+      if (s.id === 'tony') st.due = 5;
+      say('Paid ' + s.short + ' $' + p.amt + '.', '');
+      sideMsg = 'You still owe ' + s.short + ' $' + st.debt + '.';
+    }
+    if (bet + pp + t3 > bank) { pp = 0; t3 = 0; }
+    if (bet > bank) bet = bestChip();
+    save(); render();
+    if (!checkUnlock()) checkSal();
+  }
+
+  /* Ghost reveal, usually right after a big win */
+  function maybeReveal(net) {
+    var st = S.sal;
+    if (!(st.debt > 0 && st.hidden)) return false;
+    var p = net >= bet * 2 ? 0.55 : 0.06;
+    if (Math.random() >= p) return false;
+    st.hidden = false; save(); render();
+    showModal('Sal the Ghost', 'A chill runs up your neck. "Nice win," says a voice behind you. "Funny thing. You owe me $' + st.debt + '." The slip was never hidden. You just never looked.',
+      [{ label: 'Oh no', fn: checkSal }], false, 'sal');
+    return true;
+  }
+
+  /* High-Roller Room */
+  function setRoom(r, text) {
+    room = r; applyRoom();
+    bet = ROOMS[r].bet; if (bet > bank) bet = bestChip();
+    pp = 0; t3 = 0; sideMsg = ''; hands = []; dealer = []; phase = 'bet'; hole = true; blind = false;
+    say(text || (r === 'high' ? 'Welcome upstairs. $' + ROOMS.high.min + ' minimum.' : 'Back in the basement.'), '');
+    save(); render();
+  }
+  function enterHigh() {
+    if (!unlocked || (phase !== 'bet' && phase !== 'done')) return;
+    if (bank < ROOMS.high.min) { say('You need $' + ROOMS.high.min + ' to sit at the high-roller table.', 'lose'); render(); checkSal(); return; }
+    setRoom('high');
+  }
+  function toggleRoom() {
+    if (phase !== 'bet' && phase !== 'done') return;
+    if (room === 'high') { setRoom('low'); checkSal(); } else enterHigh();
+  }
+  function checkUnlock() {
+    if (unlocked || clearedCount() < SHARKS.length || totalDebt() > 0) return false;
+    unlocked = true; save(); render();
+    showModal('The High-Roller Room is open', 'Every shark is paid off. A velvet rope lifts and a door opens upstairs: a new table, $' + ROOMS.high.min + ' minimum, and no loan sharks allowed.',
+      [{ label: 'Enter now', fn: enterHigh }, { label: 'Stay here for now', fn: checkSal, go: false }], false, 'neutral');
+    return true;
+  }
+
   function renderDebt() {
     var parts = [];
-    if (debt > 0) parts.push('<span class="tag debt">Debt $' + debt + ' (+10% per hand)</span>');
+    SHARKS.forEach(function (s) {
+      if (!shown(s)) return;
+      var st = S[s.id], r = rateOf(s);
+      parts.push('<span class="tag debt">' + s.short + ' $' + st.debt + (r > 0 ? ' +' + Math.round(r * 100) + '%' : '') + (s.id === 'tony' ? ' · due in ' + st.due : '') + '</span>');
+    });
     if (wanted > 0) parts.push('<span class="tag wanted">Wanted x' + wanted + '</span>');
+    if (unlocked) parts.push('<span class="tag wanted">' + (room === 'high' ? 'High-Roller Room' : 'High-Roller Room open') + '</span>');
+    else if (clearedCount() > 0) parts.push('<span class="tag">Sharks paid off ' + clearedCount() + '/' + SHARKS.length + '</span>');
     $('tags').innerHTML = parts.join('');
-    var pay = $('pay'), can = debt > 0 && bank > 0 && (phase === 'bet' || phase === 'done');
+
+    var betting = phase === 'bet' || phase === 'done';
+    var pay = $('pay'), can = visibleDebt() > 0 && bank > 0 && betting;
     pay.hidden = !can;
-    if (can) pay.textContent = 'Pay Sal $' + Math.min(bank, debt);
-  }
-  function paySal() {
-    if (!(debt > 0 && bank > 0) || (phase !== 'bet' && phase !== 'done')) return;
-    var amt = Math.min(bank, debt); bank -= amt; debt -= amt;
-    if (bet > bank) bet = CHIPS.filter(function (v) { return v <= bank; })[0] || MIN;
-    sideMsg = ''; say(debt ? 'Paid Sal $' + amt + '.' : 'Debt cleared. Sal tips his cap.', debt ? '' : 'win', debt ? 'You still owe $' + debt + '.' : '');
-    save(); render(); checkSal();
+    if (can) pay.textContent = 'Pay sharks ($' + visibleDebt() + ' owed)';
+    el.sharkBtn.hidden = !(betting && room === 'low');
+    el.roomBtn.hidden = !(betting && unlocked);
+    el.roomBtn.textContent = room === 'high' ? 'Back to the basement' : 'Enter the High-Roller Room';
+
+    /* The room gets darker and redder as visible debt grows */
+    var heat = room === 'high' ? 0 : Math.min(1, visibleDebt() / 700);
+    el.dim.style.opacity = String(heat * 0.5);
+    el.redv.style.opacity = String(heat);
+    document.body.classList.toggle('hr', room === 'high');
+    $('title').textContent = room === 'high' ? 'High-Roller Blackjack' : 'Pocket Blackjack';
   }
 
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
@@ -452,15 +701,15 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
     var need = cw - (avail - cw) / (n - 1);
     node.style.setProperty('--ov', Math.max(cw * 0.35, need) + 'px');
   }
-  function syncHand(node, cards, hideSecond) {
-    if (cards.length === 0) { node.textContent = ''; node._n = 0; node._h = false; return; }
-    if (node._h !== hideSecond || node._n > cards.length) {
+  function syncHand(node, cards, hideIdx) {
+    if (cards.length === 0) { node.textContent = ''; node._n = 0; node._h = -1; return; }
+    if (node._h !== hideIdx || node._n > cards.length) {
       node.textContent = '';
-      cards.forEach(function (c, i) { node.appendChild(cardEl(c, hideSecond && i === 1, true)); });
+      cards.forEach(function (c, i) { node.appendChild(cardEl(c, i === hideIdx, true)); });
     } else {
-      for (var i = node._n || 0; i < cards.length; i++) node.appendChild(cardEl(cards[i], hideSecond && i === 1, false));
+      for (var i = node._n || 0; i < cards.length; i++) node.appendChild(cardEl(cards[i], i === hideIdx, false));
     }
-    node._n = cards.length; node._h = hideSecond;
+    node._n = cards.length; node._h = hideIdx;
     setOverlap(node);
   }
   function ensureHands(n) {
@@ -503,12 +752,13 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
     for (var i = 0; i < n; i++) {
       var h = hands[i] || null, node = el.pHands.children[i];
       var cards = h ? h.cards : [];
-      syncHand(node.firstChild, cards, false);
+      var hideP = (blind && hole) ? 0 : -1;
+      syncHand(node.firstChild, cards, hideP);
       var kids = node.lastChild.children;
       var s = score(cards);
       kids[0].textContent = n > 1 ? 'Hand ' + (i + 1) : 'You';
-      kids[1].textContent = cards.length ? label(s) : '';
-      kids[1].className = 'tot' + (s.total > 21 ? ' bust' : '');
+      kids[1].textContent = cards.length ? (hideP === 0 ? '?' : label(s)) : '';
+      kids[1].className = 'tot' + (s.total > 21 && hideP !== 0 ? ' bust' : '');
       kids[2].textContent = h && (n > 1 || h.bet !== bet || !betting) ? '$' + h.bet : '';
       var tag = h ? (h.result ? TAGS[h.result] : (h.bust ? 'Bust' : (h.charlie ? 'Charlie' : ''))) : '';
       kids[3].textContent = tag;
@@ -517,7 +767,7 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
     }
     for (var j = 0; j < n; j++) setOverlap(el.pHands.children[j].firstChild);
 
-    syncHand(el.dHand, dealer, hole && dealer.length > 1);
+    syncHand(el.dHand, dealer, hole && dealer.length > 1 ? 1 : -1);
     if (!dealer.length) { el.dTot.textContent = ''; el.dTot.className = 'tot'; }
     else if (hole && dealer.length > 1) { el.dTot.textContent = String(cardVal(dealer[0])); el.dTot.className = 'tot'; }
     else { var ds = score(dealer); el.dTot.textContent = label(ds); el.dTot.className = 'tot' + (ds.total > 21 ? ' bust' : ''); }
@@ -526,13 +776,19 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
     el.insRow.hidden = phase !== 'insure';
     el.playRow.hidden = !(phase === 'play' || phase === 'busy');
 
-    chips.forEach(function (c) {
-      var v = parseInt(c.dataset.v, 10);
+    var asc = CHIPS.slice().reverse();
+    chips.forEach(function (c, i) {
+      var v = asc[i];
+      c.dataset.v = String(v); c.textContent = v >= 1000 ? (v / 1000) + 'K' : String(v);
+      c.setAttribute('aria-label', '$' + v + ' chip');
       c.disabled = v + pp + t3 > bank;
       c.setAttribute('aria-pressed', String(v === bet));
     });
     el.ppAmt.textContent = '$' + pp; el.ppBtn.setAttribute('aria-pressed', String(pp > 0));
     el.t3Amt.textContent = '$' + t3; el.t3Btn.setAttribute('aria-pressed', String(t3 > 0));
+    var locked = S.viper.debt > 0;
+    el.ppBtn.disabled = locked; el.t3Btn.disabled = locked;
+    if (locked) { el.ppAmt.textContent = 'Held'; el.t3Amt.textContent = 'Held'; }
     el.deal.textContent = bank < MIN ? 'New game' : (phase === 'done' ? 'Deal next hand' : 'Deal');
 
     var ins = hands[0] ? Math.floor(hands[0].bet / 2) : 0;
@@ -596,7 +852,7 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
     if (bet > bank && bank >= MIN) bet = CHIPS.filter(function (v) { return v <= bank; })[0];
     phase = 'done';
     render();
-    checkSal();
+    if (!maybeReveal(net)) checkSal();
   }
 
   function startPlay() {
@@ -642,7 +898,17 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
     phase = 'busy'; bank -= bet + pp + t3; save();
     insBet = 0; sideMsg = ''; dealer = []; hole = true;
     interestMsg = '';
-    if (debt > 0) { debt = Math.ceil(Math.round(debt * (1 + RATE) * 100) / 100); interestMsg = 'Sal\'s interest: you now owe $' + debt; save(); }
+    SHARKS.forEach(function (s) {
+      var st = S[s.id]; if (st.debt <= 0) return;
+      var r = rateOf(s); st.held++;
+      st.debt += Math.ceil(st.debt * r);
+      if (s.id === 'tony') { st.due--; if (st.due <= 0) { blindNext = true; st.due = 5; } }
+    });
+    var notes = [];
+    if (visibleDebt() > 0) notes.push('Interest: you now owe $' + visibleDebt());
+    if (blindNext) notes.push('Big Tony says this hand is blind');
+    interestMsg = notes.join(' \u00b7 ');
+    blind = blindNext; blindNext = false; save();
     hands = [makeHand([], bet, false)]; active = 0;
     say('Dealing…', ''); render();
     var order = [hands[0].cards, dealer, hands[0].cards, dealer];
@@ -715,6 +981,7 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
 
   function cycleSide(which) {
     if (phase !== 'bet' && phase !== 'done') return;
+    if (S.viper.debt > 0) { sideMsg = 'Madame Viper is holding your side bets as collateral.'; render(); return; }
     var cur = which === 'pp' ? pp : t3, other = which === 'pp' ? t3 : pp;
     var i = SIDE_STEPS.indexOf(cur), next = 0;
     for (var k = 1; k <= SIDE_STEPS.length; k++) {
@@ -746,16 +1013,12 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
   });
 
   $('modal').addEventListener('click', function (e) { if (e.target === this && this._closable) closeModal(); });
-  $('pay').addEventListener('click', paySal);
+  $('pay').addEventListener('click', payMenu);
+  el.sharkBtn.addEventListener('click', sharkMenu);
+  el.roomBtn.addEventListener('click', toggleRoom);
   $('title').addEventListener('click', function () {
     taps++; clearTimeout(tapTimer); tapTimer = setTimeout(function () { taps = 0; }, 1500);
-    if (taps >= 5) {
-      taps = 0;
-      if (phase !== 'bet' && phase !== 'done') return;
-      if (debt + LOAN <= LIMIT) showModal('Psst, kid.', 'Sal steps out of the shadows. "Heard you found my secret. Need a little help? $' + LOAN + ', 10% interest every hand."',
-        [{ label: 'Borrow $' + LOAN, fn: takeLoan }, { label: 'Maybe later', fn: function () {} }]);
-      else showModal('Sal is busy', '"You owe me enough already. Come back when you are square."', [{ label: 'Okay', fn: function () {} }], true);
-    }
+    if (taps >= 5) { taps = 0; sharkMenu(); }
   });
 
   if (bank >= MIN && bet > bank) bet = CHIPS.filter(function (v) { return v <= bank; })[0];
