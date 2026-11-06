@@ -216,6 +216,14 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     background-image: radial-gradient(circle at 40px 70px, var(--spk) 0 1.4px, transparent 2.4px), radial-gradient(circle at 150px 20px, var(--spk2) 0 1.2px, transparent 2.2px);
     background-size: 227px 193px, 181px 239px; animation: twinkle 4.5s ease-in-out infinite alternate; }
 }
+/* Easter egg: the felt follows the Hi-Lo true count (gold when the shoe is rich in tens and aces) */
+.hotv { position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0; transition: opacity 2.5s ease; }
+@media (prefers-reduced-motion: no-preference) {
+  .hotv::before { content: ''; position: absolute; inset: 0;
+    background-image: radial-gradient(circle at 30px 50px, rgba(255, 215, 90, 1) 0 1.6px, transparent 2.8px), radial-gradient(circle at 110px 130px, rgba(255, 240, 170, 1) 0 1.4px, transparent 2.6px), radial-gradient(circle at 170px 20px, rgba(255, 215, 90, 1) 0 1.5px, transparent 2.7px), radial-gradient(circle at 70px 190px, rgba(255, 240, 170, 1) 0 1.3px, transparent 2.5px);
+    background-size: 139px 163px, 187px 149px, 211px 177px, 157px 223px; animation: twinkle var(--twk, 2.4s) ease-in-out infinite alternate; }
+}
+body::before { filter: brightness(var(--cold, 1)); }
 @keyframes twinkle { from { opacity: 0.15; } to { opacity: 1; } }
 
 /* ---- Brighter buttons and text ---- */
@@ -288,6 +296,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 <body>
 <div class="dim" id="dim" aria-hidden="true"></div>
 <div class="redv" id="redv" aria-hidden="true"></div>
+<div class="hotv" id="hotv" aria-hidden="true"></div>
 
 <main class="app">
   <header class="top">
@@ -393,6 +402,8 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
   function applyRoom() { var r = curCfg(); MIN = r.min; CHIPS = r.chips.slice().reverse(); SIDE_STEPS = r.sides; }
 
   var deck = [], dealer = [], hands = [], active = -1;
+  var DECKS = 6, CUT = 78;                 /* six-deck shoe, reshuffled once about 75% is dealt */
+  var rc = 0, holeCounted = true, susp = 0, backoff = 0, dealTC = 0, dealBet = 0;
   var bank = START, bet = 25, pp = 0, t3 = 0, insBet = 0;
   var phase = 'bet'; // bet | busy | insure | play | done
   var hole = true;
@@ -711,6 +722,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     });
     SHARKS.forEach(function (s) { if (S[s.id].bounty > 0) parts.push('<span class="tag debt">' + s.short + ' bounty $' + S[s.id].bounty + '</span>'); });
     if (stakes && room === 'low') parts.push('<span class="tag wanted">High stakes</span>');
+    if (backoff > 0) parts.push('<span class="tag debt">Bets capped: ' + backoff + ' hands</span>');
     if (wanted > 0) parts.push('<span class="tag wanted">Wanted x' + wanted + '</span>');
     if (unlocked) parts.push('<span class="tag wanted">' + (room === 'high' ? 'High-Roller Room' : 'High-Roller Room open') + '</span>');
     else if (clearedCount() > 0) parts.push('<span class="tag">Sharks paid off ' + clearedCount() + '/' + SHARKS.length + '</span>');
@@ -738,14 +750,23 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 
   function shuffled() {
     var d = [];
-    for (var i = 0; i < 4; i++) SUITS.forEach(function (s) { RANKS.forEach(function (r) { d.push({ r: r, s: s }); }); });
+    for (var i = 0; i < DECKS; i++) SUITS.forEach(function (s) { RANKS.forEach(function (r) { d.push({ r: r, s: s }); }); });
     for (var j = d.length - 1; j > 0; j--) {
       var k = Math.floor(Math.random() * (j + 1));
       var t = d[j]; d[j] = d[k]; d[k] = t;
     }
+    rc = 0; holeCounted = true;
     return d;
   }
-  function draw() { if (deck.length < 16) deck = shuffled(); return deck.pop(); }
+  function hiLo(c) { var v = cardVal(c); return v >= 10 ? -1 : (v <= 6 ? 1 : 0); }   /* aces and tens -1, 2-6 +1 */
+  function trueCount() { return rc / Math.max(0.5, deck.length / 52); }
+  function draw() { if (deck.length < 16) { deck = shuffled(); } var c = deck.pop(); rc += hiLo(c); return c; }
+  function updateGlow() {
+    var tc = trueCount(), hot = Math.max(0, Math.min(1, (tc - 1) / 4)), cold = tc < -1 ? Math.max(0.3, 1 + (tc + 1) * 0.12) : 1;
+    $('hotv').style.opacity = String(hot);
+    document.body.style.setProperty('--twk', (2.6 - hot * 1.4).toFixed(2) + 's');
+    document.body.style.setProperty('--cold', cold.toFixed(2));
+  }
 
   function cardVal(c) { return c.r === 'A' ? 11 : (['J', 'Q', 'K'].indexOf(c.r) >= 0 ? 10 : parseInt(c.r, 10)); }
   function score(cards) {
@@ -883,7 +904,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
       var v = asc[i];
       c.dataset.v = String(v); c.textContent = v >= 1000 ? (v / 1000) + 'K' : String(v);
       c.setAttribute('aria-label', '$' + v + ' chip');
-      c.disabled = v + pp + t3 > bank;
+      c.disabled = v + pp + t3 > bank || (backoff > 0 && v > CHIPS[1]);
       c.setAttribute('aria-pressed', String(v === bet));
     });
     el.ppAmt.textContent = '$' + pp; el.ppBtn.setAttribute('aria-pressed', String(pp > 0));
@@ -908,8 +929,23 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
   function say(text, cls) { msg = text; msgClass = cls || ''; }
 
   /* Settling */
+  function pitBoss() {
+    var note = '';
+    if (backoff > 0) backoff--;
+    if (dealBet >= MIN * 4 && dealTC >= 2) susp++;
+    else if (dealBet >= MIN * 4 && dealTC <= 0) susp = Math.max(0, susp - 1);
+    else if (dealBet <= MIN * 2 && dealTC <= 1) susp = Math.max(0, susp - 0.25);
+    if (susp >= 7) {
+      susp = 0; backoff = 6; deck = []; updateGlow();
+      note = 'A heavy hand lands on your shoulder. "Flat bets only, friend." The shoe is shuffled and your max bet is capped for a while.';
+    } else if (susp >= 5 && !pitBoss.s2) { pitBoss.s2 = true; note = 'The floor manager has stopped pretending not to watch you.'; }
+    else if (susp >= 3 && !pitBoss.s1) { pitBoss.s1 = true; note = 'A man in a dark suit leans on the pillar by your table.'; }
+    if (susp < 3) { pitBoss.s1 = false; pitBoss.s2 = false; } else if (susp < 5) pitBoss.s2 = false;
+    if (note) sideMsg = sideMsg ? sideMsg + ' \u00b7 ' + note : note;
+  }
   function settleAll() {
     hole = false; active = -1;
+    if (!holeCounted && dealer[1]) { rc += hiLo(dealer[1]); holeCounted = true; }
     var d = score(dealer).total, dbj = isBJ(dealer);
     var staked = 0, back = 0, w = 0, l = 0, p = 0;
     hands.forEach(function (h) {
@@ -955,6 +991,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
       else say(tally + 'Even.', '');
     }
     if (bank < MIN) say('Out of chips.', 'lose');
+    pitBoss(); updateGlow();
     save();
 
     if (bet + pp + t3 > bank) { pp = 0; t3 = 0; }
@@ -1044,7 +1081,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
   }
   function restartGame(full) {
     SHARKS.forEach(function (sh) { S[sh.id] = { debt: 0, held: 0, due: 0, hidden: false, bounty: 0 }; });
-    wanted = 0; blindNext = false; blind = false; interestMsg = ''; insBet = 0;
+    wanted = 0; blindNext = false; blind = false; interestMsg = ''; insBet = 0; susp = 0; backoff = 0; deck = []; updateGlow();
     if (full) { unlocked = false; cleared = {}; stakesUnlocked = false; }
     room = 'low'; game = 'bj'; derby.phase = 'bet'; derby.pick = -1; derby.prop = 0;
     clearInterval(derby.timer); derby.timer = null; rnd = Math.random;
@@ -1332,8 +1369,12 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     }
     if (bet + pp + t3 > bank) { pp = 0; t3 = 0; }
     if (bet > bank) bet = CHIPS.filter(function (v) { return v <= bank; })[0];
+    if (backoff > 0 && bet > CHIPS[1]) bet = CHIPS[1];
+    var reshuffle = deck.length < CUT;
+    if (reshuffle) { deck = shuffled(); updateGlow(); }
+    dealTC = trueCount(); dealBet = bet;
     phase = 'busy'; bank -= bet + pp + t3; save();
-    insBet = 0; sideMsg = ''; dealer = []; hole = true;
+    insBet = 0; sideMsg = reshuffle ? 'Cut card. The dealer shuffles up a fresh shoe.' : ''; dealer = []; hole = true;
     interestMsg = '';
     var notes = tickDebts();
     interestMsg = notes.join(' \u00b7 ');
@@ -1342,6 +1383,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     say('Dealing…', ''); render();
     var order = [hands[0].cards, dealer, hands[0].cards, dealer];
     for (var i = 0; i < order.length; i++) { order[i].push(draw()); render(); await sleep(260); }
+    rc -= hiLo(dealer[1]); holeCounted = false;
     resolveSides();
     render();
     var ins = Math.floor(hands[0].bet / 2);
