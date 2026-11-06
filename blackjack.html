@@ -1291,7 +1291,12 @@ body::before { filter: brightness(var(--dimf, 1)); }
     if (streakNote) sideMsg = sideMsg ? sideMsg + ' \u00b7 ' + streakNote : streakNote;
     showHole = false; saveStats();
     if (bank < MIN) say('Out of chips.', 'lose');
-    pitBoss(); updateGlow();
+    pitBoss();
+    if (deck.length < CUT) {   /* cut card reached: shuffle now so the count, dust and tray are fresh before the next bet */
+      deck = shuffled(); ST.shoes++;
+      sideMsg = (sideMsg ? sideMsg + ' \u00b7 ' : '') + 'Cut card. The dealer shuffles up a fresh shoe.';
+    }
+    updateGlow(); saveStats();
     save();
 
     if (bet + pp + t3 > bank) { pp = 0; t3 = 0; }
