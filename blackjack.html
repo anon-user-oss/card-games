@@ -222,6 +222,10 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 #coachTip { font-weight: 700; color: #ffe27a; font-size: 0.95rem; }
 .act.rec { box-shadow: 0 0 0 3px #7dff9a, 0 0 14px rgba(125, 255, 154, 0.7); }
 /* ---- Jacks or Better ---- */
+.vhelp { font-size: 0.88rem; color: #fff; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 210, 74, 0.45); border-radius: 12px; padding: 6px 12px; }
+.vhelp summary { font-size: 1rem; color: #ffe27a; }
+.vhelp ul { margin: 6px 0 0; padding-left: 20px; line-height: 1.45; }
+.vhelp li { margin-top: 3px; }
 .vp { flex: 1; display: flex; flex-direction: column; gap: 8px; }
 .vpay { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(5, auto); grid-auto-flow: column; gap: 2px 14px; padding: 8px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 210, 74, 0.45); font-size: 0.8rem; }
 .vpay div { display: flex; justify-content: space-between; gap: 6px; color: #fff; padding: 1px 4px; border-radius: 6px; }
@@ -376,6 +380,24 @@ body::before { filter: brightness(var(--dimf, 1)); }
 
   <section class="vp" id="vp" hidden>
     <div class="dhead"><h2>Jacks or Better</h2><p class="dsub" id="vSub">Bet, deal, hold, draw.</p></div>
+    <details class="pay vhelp">
+      <summary>How to play</summary>
+      <p><b>Goal:</b> end with a poker hand of a pair of Jacks or better. There is no dealer to beat, only the paytable.</p>
+      <p><b>1. Bet.</b> Pick a chip, then tap Deal. You get five cards. Betting the top chip makes a royal flush pay 800 instead of 250.</p>
+      <p><b>2. Hold.</b> Tap the cards you want to keep. Tapped cards lift up and say HELD. Tap again to let one go.</p>
+      <p><b>3. Draw.</b> Tap Draw. Every card you did not hold is replaced once. Your final hand is paid from the paytable below, and the winning row lights up. You only get one draw.</p>
+      <p><b>What to hold, best first:</b></p>
+      <ul>
+        <li>Any made hand of a straight or better: hold all five.</li>
+        <li>Four to a royal flush: hold the four, even over a small pair.</li>
+        <li>Three of a kind, four to a straight flush, two pair: keep them.</li>
+        <li>A pair of any size: hold the pair. High pairs (J, Q, K, A) pay back your bet.</li>
+        <li>Four to a flush or an open straight: keep them over a low pair or no pair, but not over a high pair.</li>
+        <li>Nothing: hold one or two high cards (J, Q, K, A), or draw five new cards.</li>
+      </ul>
+      <p><b>Mistakes to avoid:</b> do not break a pair to chase a flush or straight with only three cards, and do not hold a kicker next to a pair. Four to an inside straight (a missing middle card) is rarely worth it unless it has several high cards.</p>
+      <p><b>Good to know:</b> a pair of 10s or lower, or a hand with no pair, loses your bet. Jacks or better is a push, so your bet comes back. Over time this is one of the best-paying games in the room when you play it well.</p>
+    </details>
     <div class="vpay" id="vPay"></div>
     <div class="vpcards" id="vCards"></div>
     <p class="vhand" id="vHand"></p>
@@ -1706,6 +1728,8 @@ body::before { filter: brightness(var(--dimf, 1)); }
   $('dForm').addEventListener('click', toggleBetType);
   $('dTip').addEventListener('click', tipMenu);
   $('vGo').addEventListener('click', vpGo);
+  try { if (!localStorage.getItem('pocket-bj-vphelp')) document.querySelector('.vhelp').open = true; } catch (e) {}
+  document.querySelector('.vhelp').addEventListener('toggle', function () { if (!this.open) { try { localStorage.setItem('pocket-bj-vphelp', '1'); } catch (e) {} } });
   $('coachBtn').addEventListener('click', function () { coachOn = !coachOn; saveStats(); render(); });
   $('bank').addEventListener('click', function () {
     statTaps++; clearTimeout(statTimer); statTimer = setTimeout(function () { statTaps = 0; }, 1500);
