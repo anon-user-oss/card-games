@@ -222,22 +222,49 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 #coachTip { font-weight: 700; color: #ffe27a; font-size: 0.95rem; }
 .act.rec { box-shadow: 0 0 0 3px #7dff9a, 0 0 14px rgba(125, 255, 154, 0.7); }
 /* ---- Jacks or Better ---- */
-.vhelp { font-size: 0.88rem; color: #fff; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 210, 74, 0.45); border-radius: 12px; padding: 6px 12px; }
-.vhelp summary { font-size: 1rem; color: #ffe27a; }
-.vhelp ul { margin: 6px 0 0; padding-left: 20px; line-height: 1.45; }
-.vhelp li { margin-top: 3px; }
 .vp { flex: 1; display: flex; flex-direction: column; gap: 8px; }
-.vpay { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(5, auto); grid-auto-flow: column; gap: 2px 14px; padding: 8px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 210, 74, 0.45); font-size: 0.8rem; }
-.vpay div { display: flex; justify-content: space-between; gap: 6px; color: #fff; padding: 1px 4px; border-radius: 6px; }
-.vpay b { color: #ffe27a; font-variant-numeric: tabular-nums; }
-.vpay div.hit { background: #ffe27a; color: #1a1a1a; } .vpay div.hit b { color: #1a1a1a; }
-.vpcards { --ch: 88px; display: flex; justify-content: center; gap: 5px; margin: 8px 0 2px; padding: 0 4px; }
+.vsteps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.vsteps li { padding: 6px 4px; border-radius: 10px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.25); color: rgba(255, 255, 255, 0.7); font-size: 0.78rem; font-weight: 700; text-align: center; }
+.vsteps li b { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: 4px; border-radius: 50%; background: rgba(255, 255, 255, 0.25); color: #fff; }
+.vsteps.s1 li:nth-child(1), .vsteps.s2 li:nth-child(2), .vsteps.s3 li:nth-child(3) { background: #ffe27a; color: #1a1a1a; border-color: #ffe27a; }
+.vsteps.s1 li:nth-child(1) b, .vsteps.s2 li:nth-child(2) b, .vsteps.s3 li:nth-child(3) b { background: #1a1a1a; color: #ffe27a; }
+.vstage { position: relative; }
+.vpcards { --ch: 88px; display: flex; justify-content: center; gap: 5px; margin: 8px 0 2px; padding: 0 4px 18px; }
 .vpc { position: relative; padding: 0; background: none; border: 0; cursor: pointer; border-radius: 10px; }
 .vpc:disabled { cursor: default; }
 .vpc .card { margin: 0; }
-.vpc.held .card { transform: translateY(-8px); box-shadow: 0 0 0 3px #7dff9a, 0 8px 16px rgba(0, 0, 0, 0.5); }
-.vpc .heldtag { position: absolute; left: 0; right: 0; bottom: -18px; text-align: center; font-size: 0.72rem; font-weight: 800; color: #7dff9a; letter-spacing: 0.06em; }
-.vhand { margin: 14px 0 0; text-align: center; font-weight: 800; color: #fff; min-height: 1.3em; }
+.vpc.held .card { transform: translateY(-10px); box-shadow: 0 0 0 3px #7dff9a, 0 8px 16px rgba(0, 0, 0, 0.5); }
+.vpc.hint .card { box-shadow: 0 0 0 3px #ffe27a, 0 0 16px rgba(255, 226, 122, 0.9), 0 8px 16px rgba(0, 0, 0, 0.5); }
+.vtag { position: absolute; left: 0; right: 0; bottom: -17px; text-align: center; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.04em; white-space: nowrap; }
+.vtag.on { color: #7dff9a; font-size: 0.74rem; } .vtag.off { color: rgba(255, 255, 255, 0.6); } .vtag.hintc { color: #ffe27a; }
+.vhand { margin: 6px 0 0; text-align: center; font-weight: 800; color: #fff; min-height: 1.3em; }
+.vhint { margin: 0; text-align: center; color: #ffe27a; font-weight: 700; font-size: 0.9rem; min-height: 0; }
+.vbanner { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); width: max-content; max-width: 96%; padding: 8px 16px; border-radius: 14px; background: rgba(0, 0, 0, 0.82); border: 2px solid #ffe27a; text-align: center; pointer-events: none; opacity: 0; font-family: var(--display); font-weight: 900; font-size: 1.3rem; letter-spacing: 0.03em; color: #ffe27a; text-shadow: 0 0 14px rgba(255, 210, 74, 0.8); }
+.vbanner.show { opacity: 1; animation: vpop 0.5s cubic-bezier(.2, 1.6, .4, 1); }
+.vbanner.big { font-size: 1.7rem; }
+@keyframes vpop { from { transform: translateX(-50%) scale(0.3); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
+.vburst { position: absolute; left: 50%; top: 40%; width: 0; height: 0; pointer-events: none; }
+.vburst span { position: absolute; width: 11px; height: 11px; margin: -5px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff6c2, #ffd24a 55%, #b8860b); box-shadow: 0 0 8px rgba(255, 210, 74, 0.9); opacity: 0; animation: vfly 1.1s ease-out forwards; }
+@keyframes vfly { 0% { transform: translate(0, 0) scale(0.4); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(1); opacity: 0; } }
+.vdbl { padding: 8px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 210, 74, 0.5); }
+.vdtxt { margin: 0 0 8px; color: #fff; font-weight: 700; font-size: 0.9rem; text-align: center; }
+.vdrow { --ch: 78px; display: flex; gap: 10px; align-items: flex-start; justify-content: center; }
+.vdealer, .vpicks { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #fff; }
+.vpicks > div { display: flex; gap: 4px; }
+.vdealer small, .vpicks small { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; color: #ffe27a; text-transform: uppercase; }
+.vpay { display: grid; gap: 1px; padding: 6px 8px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 210, 74, 0.45); }
+.vpay div { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: #fff; padding: 3px 6px; border-radius: 6px; }
+.vpay span { display: flex; flex-direction: column; line-height: 1.15; }
+.vpay i { font-style: normal; font-weight: 800; font-size: 0.85rem; }
+.vpay em { font-style: normal; font-size: 0.7rem; opacity: 0.7; }
+.vpay b { color: #ffe27a; font-variant-numeric: tabular-nums; font-size: 0.95rem; }
+.vpay div.hit { background: #ffe27a; color: #1a1a1a; } .vpay div.hit b { color: #1a1a1a; }
+.vhelp { font-size: 0.88rem; color: #fff; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 210, 74, 0.45); border-radius: 12px; padding: 6px 12px; }
+.vhelp summary { font-size: 0.95rem; color: #ffe27a; }
+.vhelp ul { margin: 6px 0 0; padding-left: 20px; line-height: 1.45; }
+.vhelp li { margin-top: 3px; }
+@media (prefers-reduced-motion: no-preference) { .card.flipin { animation: flipin 0.26s ease-out; } }
+@keyframes flipin { from { transform: rotateY(90deg) scale(0.9); } to { transform: none; } }
 /* Easter egg: the room follows the Hi-Lo true count. Rich shoe: gold glitter drifts over everything. Poor shoe: a cold blue chill and falling frost. */
 .hotv, .coldv { position: fixed; inset: 0; pointer-events: none; z-index: 5; opacity: 0; transition: opacity 2s ease; overflow: hidden; }
 .hotv::before, .hotv::after { content: ''; position: absolute; inset: 0; }
@@ -379,32 +406,37 @@ body::before { filter: brightness(var(--dimf, 1)); }
   </section>
 
   <section class="vp" id="vp" hidden>
-    <div class="dhead"><h2>Jacks or Better</h2><p class="dsub" id="vSub">Bet, deal, hold, draw.</p></div>
-    <details class="pay vhelp">
-      <summary>How to play</summary>
-      <p><b>Goal:</b> end with a poker hand of a pair of Jacks or better. There is no dealer to beat, only the paytable.</p>
-      <p><b>1. Bet.</b> Pick a chip, then tap Deal. You get five cards. Betting the top chip makes a royal flush pay 800 instead of 250.</p>
-      <p><b>2. Hold.</b> Tap the cards you want to keep. Tapped cards lift up and say HELD. Tap again to let one go.</p>
-      <p><b>3. Draw.</b> Tap Draw. Every card you did not hold is replaced once. Your final hand is paid from the paytable below, and the winning row lights up. You only get one draw.</p>
-      <p><b>What to hold, best first:</b></p>
-      <ul>
-        <li>Any made hand of a straight or better: hold all five.</li>
-        <li>Four to a royal flush: hold the four, even over a small pair.</li>
-        <li>Three of a kind, four to a straight flush, two pair: keep them.</li>
-        <li>A pair of any size: hold the pair. High pairs (J, Q, K, A) pay back your bet.</li>
-        <li>Four to a flush or an open straight: keep them over a low pair or no pair, but not over a high pair.</li>
-        <li>Nothing: hold one or two high cards (J, Q, K, A), or draw five new cards.</li>
-      </ul>
-      <p><b>Mistakes to avoid:</b> do not break a pair to chase a flush or straight with only three cards, and do not hold a kicker next to a pair. Four to an inside straight (a missing middle card) is rarely worth it unless it has several high cards.</p>
-      <p><b>Good to know:</b> a pair of 10s or lower, or a hand with no pair, loses your bet. Jacks or better is a push, so your bet comes back. Over time this is one of the best-paying games in the room when you play it well.</p>
-    </details>
-    <div class="vpay" id="vPay"></div>
-    <div class="vpcards" id="vCards"></div>
+    <div class="dhead"><h2>Jacks or Better</h2><p class="dsub" id="vSub">Step 1: pick your bet, then press Deal.</p></div>
+    <ol class="vsteps s1" id="vSteps"><li><b>1</b> Bet and deal</li><li><b>2</b> Hold cards</li><li><b>3</b> Draw and win</li></ol>
+    <div class="vstage" id="vStage">
+      <div class="vpcards" id="vCards"></div>
+      <div class="vbanner" id="vBanner" aria-live="polite"></div>
+      <div class="vburst" id="vBurst" aria-hidden="true"></div>
+    </div>
     <p class="vhand" id="vHand"></p>
+    <p class="vhint" id="vHintTxt" role="status"></p>
+    <div class="vdbl" id="vDbl" hidden>
+      <p class="vdtxt" id="vDblTxt"></p>
+      <div class="vdrow"><div class="vdealer"><small>Dealer</small><div id="vDealer"></div></div><div class="vpicks"><small>You</small><div id="vPicks"></div></div></div>
+    </div>
     <p class="msg dmsg" id="vMsg"></p>
     <div class="betline"><span>Bet</span><b id="vWager">$25</b></div>
     <div class="chips" id="vChips" role="group" aria-label="Bet size"></div>
+    <div class="sides" id="vSides"><button class="sidebtn" id="vHint" type="button" hidden>Hint: what to keep</button><button class="sidebtn" id="vAlt" type="button" hidden></button></div>
     <button class="primary" id="vGo">Deal</button>
+    <div class="vpay" id="vPay"></div>
+    <details class="pay vhelp">
+      <summary>Quick strategy tips</summary>
+      <p>You are not playing against the dealer. You win when your five cards make a hand on the paytable. A pair of 10s or lower pays nothing.</p>
+      <ul>
+        <li>Straight or better dealt: keep all five.</li>
+        <li>Four to a royal flush: keep the four, even over a small pair.</li>
+        <li>Three of a kind, two pair, or any pair: keep them.</li>
+        <li>Four to a flush or open straight: keep them over a low pair or nothing.</li>
+        <li>Nothing: keep one or two high cards (J, Q, K, A), or draw five new cards.</li>
+      </ul>
+      <p>Stuck? Press <b>Hint</b> any time during step 2 and the game shows the best cards to keep.</p>
+    </details>
   </section>
 
   <section class="controls" id="bjControls">
@@ -1218,7 +1250,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     SHARKS.forEach(function (sh) { S[sh.id] = { debt: 0, held: 0, due: 0, hidden: false, bounty: 0 }; });
     wanted = 0; blindNext = false; blind = false; interestMsg = ''; insBet = 0; susp = 0; backoff = 0; deck = []; updateGlow();
     if (full) { unlocked = false; cleared = {}; stakesUnlocked = false; }
-    room = 'low'; game = 'bj'; derby.phase = 'bet'; derby.pick = -1; derby.prop = 0; vp.phase = 'bet'; vp.cards = []; vp.result = '';
+    room = 'low'; game = 'bj'; derby.phase = 'bet'; derby.pick = -1; derby.prop = 0; vp.phase = 'bet'; vp.cards = []; vp.hidden = [1, 1, 1, 1, 1]; vp.win = 0; vp.dbl = null; vp.result = '';
     clearInterval(derby.timer); derby.timer = null; rnd = Math.random;
     resetStack();
   }
@@ -1497,11 +1529,13 @@ body::before { filter: brightness(var(--dimf, 1)); }
   }
 
   /* ---------- Jacks or Better (video poker) ---------- */
-  var VP_PAY = [['Royal flush', 250], ['Straight flush', 50], ['Four of a kind', 25], ['Full house', 9], ['Flush', 6], ['Straight', 4], ['Three of a kind', 3], ['Two pair', 2], ['Jacks or better', 1]];
-  var vp = { phase: 'bet', cards: [], held: [0, 0, 0, 0, 0], deck: [], prevPhase: 'bet', result: '', resultClass: '', hit: -1, built: false, boxes: [] };
+  var VP_PAY = [['Royal flush', 250, '10-J-Q-K-A, one suit'], ['Straight flush', 50, '5 in a row, one suit'], ['Four of a kind', 25, '4 cards, same rank'], ['Full house', 9, '3 of a kind + a pair'], ['Flush', 6, '5 cards, one suit'], ['Straight', 4, '5 in a row'], ['Three of a kind', 3, '3 cards, same rank'], ['Two pair', 2, 'two different pairs'], ['Jacks or better', 1, 'pair of J, Q, K or A']];
+  var vp = { phase: 'bet', cards: [], held: [0, 0, 0, 0, 0], hidden: [1, 1, 1, 1, 1], fresh: [0, 0, 0, 0, 0], deck: [], prevPhase: 'bet', result: '', resultClass: '', win: 0, banner: '', bannerCls: '', hintHold: null, hintText: '', dbl: null, built: false, boxes: [], sig: '', timer: null };
+  var VP_FAST = false;
+  function vsleep(ms) { return sleep(VP_FAST ? 0 : ms); }
   function vpRank(c) { return c.r === 'A' ? 14 : RANKS.indexOf(c.r) + 1; }
   function vpEval(cs) {
-    var r = cs.map(vpRank).sort(function (a, b) { return a - b; }), cnt = {}, i;
+    var r = cs.map(vpRank).sort(function (a, b) { return a - b; }), cnt = {};
     r.forEach(function (v) { cnt[v] = (cnt[v] || 0) + 1; });
     var groups = Object.keys(cnt).map(function (k) { return [cnt[k], +k]; }).sort(function (a, b) { return b[0] - a[0] || b[1] - a[1]; });
     var flush = cs.every(function (c) { return c.s === cs[0].s; });
@@ -1517,10 +1551,65 @@ body::before { filter: brightness(var(--dimf, 1)); }
     return -1;
   }
   function vpMult(idx) { return idx === 0 && bet === CHIPS[0] ? 800 : VP_PAY[idx][1]; }
+  function vpNewDeck() {
+    var d = [], j; SUITS.forEach(function (st) { RANKS.forEach(function (r) { d.push({ r: r, s: st }); }); });
+    for (j = d.length - 1; j > 0; j--) { var k = Math.floor(Math.random() * (j + 1)), t = d[j]; d[j] = d[k]; d[k] = t; }
+    return d;
+  }
+  /* The best cards to keep, by average return over every possible draw (sampled when there are many). */
+  function vpBest(cards, rest) {
+    var best = null, bestEv = -1, mask, i, j, n = rest.length;
+    for (mask = 0; mask < 32; mask++) {
+      var kept = [], idxs = [];
+      for (i = 0; i < 5; i++) { if (mask & (1 << i)) kept.push(cards[i]); else idxs.push(i); }
+      var k = idxs.length, tot = 0, cnt = 0, hand;
+      function val(extra) { var h = kept.concat(extra), ix = vpEval(h); return ix >= 0 ? vpMult(ix) : 0; }
+      if (k === 0) { tot = val([]); cnt = 1; }
+      else if (k === 1) { for (i = 0; i < n; i++) { tot += val([rest[i]]); cnt++; } }
+      else if (k === 2) { for (i = 0; i < n; i++) for (j = i + 1; j < n; j++) { tot += val([rest[i], rest[j]]); cnt++; } }
+      else {
+        var pool = rest.slice(), S = 3000, s;
+        for (s = 0; s < S; s++) {
+          var ex = [];
+          for (i = 0; i < k; i++) { var p = i + Math.floor(Math.random() * (n - i)), t = pool[i]; pool[i] = pool[p]; pool[p] = t; ex.push(pool[i]); }
+          tot += val(ex); cnt++;
+        }
+      }
+      var ev = tot / cnt;
+      if (ev > bestEv + 1e-9) { bestEv = ev; best = { mask: mask, ev: ev }; }
+    }
+    return best;
+  }
+  function vpDescribe(kept) {
+    var n = kept.length, cnt = {}, suits = {}, ranks, mx = 0, pairs, ix;
+    if (!n) return 'nothing. Draw five new cards';
+    if (n === 5) { ix = vpEval(kept); return ix >= 0 ? 'everything: you have a ' + VP_PAY[ix][0].toLowerCase() : 'everything'; }
+    kept.forEach(function (c) { cnt[c.r] = (cnt[c.r] || 0) + 1; suits[c.s] = 1; });
+    ranks = Object.keys(cnt); ranks.forEach(function (r) { mx = Math.max(mx, cnt[r]); });
+    pairs = ranks.filter(function (r) { return cnt[r] === 2; });
+    if (mx === 4) return 'the four of a kind';
+    if (mx === 3) return 'the three of a kind';
+    if (pairs.length === 2) return 'the two pair';
+    if (pairs.length === 1) return 'the pair of ' + pairs[0] + 's';
+    var suited = Object.keys(suits).length === 1, high = kept.every(function (c) { return vpRank(c) >= 10; });
+    if (suited && high && n >= 3) return n + ' to a royal flush';
+    if (suited && n === 4) return '4 to a flush';
+    var v = kept.map(vpRank).sort(function (a, b) { return a - b; });
+    if (n >= 3 && (v[n - 1] - v[0] <= 4)) return n + ' to a straight';
+    return 'the ' + kept.map(function (c) { return c.r; }).join(' and ');
+  }
+  function vpHint() {
+    if (vp.phase !== 'hold') return;
+    var b = vpBest(vp.cards, vp.deck), i, kept = [];
+    vp.hintHold = [];
+    for (i = 0; i < 5; i++) { var on = !!(b.mask & (1 << i)); vp.hintHold.push(on ? 1 : 0); if (on) kept.push(vp.cards[i]); }
+    vp.hintText = 'Hint: keep ' + vpDescribe(kept) + '. On average that pays ' + b.ev.toFixed(2) + 'x your bet.';
+    render();
+  }
   function vpBuild() {
     var pay = $('vPay'), box = $('vCards'), i;
     pay.textContent = '';
-    VP_PAY.forEach(function (p, k) { var d = document.createElement('div'); d.innerHTML = '<span></span><b></b>'; d.firstChild.textContent = p[0]; d.lastChild.textContent = p[1]; pay.appendChild(d); });
+    VP_PAY.forEach(function (p) { var d = document.createElement('div'); d.innerHTML = '<span><i></i><em></em></span><b></b>'; d.querySelector('i').textContent = p[0]; d.querySelector('em').textContent = p[2]; d.lastChild.textContent = p[1]; pay.appendChild(d); });
     box.textContent = ''; vp.boxes = [];
     for (i = 0; i < 5; i++) (function (k) {
       var b = document.createElement('button'); b.type = 'button'; b.className = 'vpc';
@@ -1529,21 +1618,31 @@ body::before { filter: brightness(var(--dimf, 1)); }
     })(i);
     vp.built = true;
   }
+  function vpCard(node, c, down, fresh) { var e = cardEl(c, down, true); if (fresh) e.classList.add('flipin'); node.appendChild(e); }
   function renderVp() {
     if (!vp.built) vpBuild();
-    var hold = vp.phase === 'hold', done = vp.phase === 'done', cur = vp.cards.length === 5 ? vpEval(vp.cards) : -2;
+    var ph = vp.phase, hold = ph === 'hold', done = ph === 'done', dbl = ph === 'dbl', anim = ph === 'anim';
+    var cur = (vp.cards.length === 5 && !vp.hidden.some(function (h) { return h; })) ? vpEval(vp.cards) : -2;
     vp.boxes.forEach(function (b, i) {
       b.textContent = '';
-      b.appendChild(cardEl(vp.cards[i], !vp.cards[i], true));
-      if (hold && vp.held[i]) { var t = document.createElement('span'); t.className = 'heldtag'; t.textContent = 'HELD'; b.appendChild(t); }
-      b.className = 'vpc' + (hold && vp.held[i] ? ' held' : ''); b.disabled = !hold;
-      b.setAttribute('aria-label', vp.cards[i] ? vp.cards[i].r + ' of ' + NAMES[vp.cards[i].s] + (vp.held[i] ? ', held' : '') : 'Empty card');
+      vpCard(b, vp.cards[i], !vp.cards[i] || !!vp.hidden[i], !!vp.fresh[i]); vp.fresh[i] = 0;
+      var tag = document.createElement('span'); tag.className = 'vtag';
+      if (hold) { tag.textContent = vp.held[i] ? 'HELD' : 'tap to hold'; tag.className += vp.held[i] ? ' on' : ' off'; if (vp.hintHold && vp.hintHold[i]) tag.className += ' hintc'; }
+      b.appendChild(tag);
+      b.className = 'vpc' + (hold && vp.held[i] ? ' held' : '') + (hold && vp.hintHold && vp.hintHold[i] ? ' hint' : '');
+      b.disabled = !hold;
+      b.setAttribute('aria-label', vp.cards[i] && !vp.hidden[i] ? vp.cards[i].r + ' of ' + NAMES[vp.cards[i].s] + (vp.held[i] ? ', held' : '') : 'Face-down card');
     });
+    $('vSteps').className = 'vsteps s' + (hold ? 2 : (anim && vp.draw ? 3 : (anim ? 1 : (dbl ? 4 : (done ? 3 : 1)))));
     var rows = $('vPay').children, k;
     for (k = 0; k < rows.length; k++) { rows[k].className = (cur === k && (hold || done)) ? 'hit' : ''; }
     rows[0].lastChild.textContent = bet === CHIPS[0] ? '800' : '250';
-    $('vHand').textContent = (hold || done) ? (cur >= 0 ? VP_PAY[cur][0] : 'No win') : '';
-    $('vSub').textContent = hold ? 'Tap the cards you want to keep, then Draw.' : (done ? 'Change your bet or deal again.' : 'Max chip pays 800 for a royal flush.');
+    var hl = '';
+    if (hold) hl = cur >= 0 ? 'You have: ' + VP_PAY[cur][0] + ' (pays ' + vpMult(cur) + 'x)' : 'No winning hand yet. Keep your best cards.';
+    $('vHand').textContent = hl;
+    $('vSub').textContent = anim ? (vp.draw ? 'Drawing…' : 'Dealing…') : hold ? 'Step 2: tap the cards you want to KEEP, then press Draw.' : dbl ? 'Double up: pick a card.' : done ? (vp.win > 0 ? 'Double up for more, or deal again.' : 'Change your bet or deal again.') : 'Step 1: pick your bet, then press Deal.';
+    $('vHintTxt').textContent = hold && vp.hintText ? vp.hintText : '';
+    var bn = $('vBanner'); bn.textContent = vp.banner; bn.className = 'vbanner' + (vp.banner ? ' show ' + vp.bannerCls : '');
     var dm = $('vMsg'); dm.textContent = vp.result; dm.className = 'msg dmsg' + (vp.resultClass ? ' ' + vp.resultClass : '');
     $('vWager').textContent = '$' + bet;
     var box = $('vChips'), sig = CHIPS.join(',');
@@ -1551,38 +1650,108 @@ body::before { filter: brightness(var(--dimf, 1)); }
       vp.sig = sig; box.textContent = '';
       CHIPS.slice().reverse().forEach(function (v) {
         var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.dataset.v = String(v); b.textContent = v >= 1000 ? (v / 1000) + 'K' : String(v);
-        b.addEventListener('click', function () { if (vp.phase === 'hold') return; bet = v; render(); });
+        b.addEventListener('click', function () { if (vp.phase !== 'bet' && vp.phase !== 'done') return; bet = v; render(); });
         box.appendChild(b);
       });
     }
-    Array.prototype.forEach.call(box.children, function (b) { var v = parseInt(b.dataset.v, 10); b.disabled = hold || v > bank; b.setAttribute('aria-pressed', String(v === bet)); });
-    var go = $('vGo');
-    if (hold) { go.disabled = false; go.textContent = 'Draw'; }
-    else if (bank < Math.max(bet, MIN)) { go.disabled = true; go.textContent = 'Not enough chips'; }
-    else { go.disabled = false; go.textContent = (done ? 'Deal again: $' : 'Deal: $') + bet; }
+    Array.prototype.forEach.call(box.children, function (b) { var v = parseInt(b.dataset.v, 10); b.disabled = !(ph === 'bet' || done) || v > bank; b.setAttribute('aria-pressed', String(v === bet)); });
+    /* double-up area */
+    var dd = $('vDbl'); dd.hidden = !dbl;
+    if (dbl && vp.dbl) {
+      var D = vp.dbl, dn = $('vDealer'), pk = $('vPicks'), q;
+      dn.textContent = ''; dn.appendChild(cardEl(D.dealer, false, true));
+      pk.textContent = '';
+      D.picks.forEach(function (c, q) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'vpc' + (D.chosen === q ? ' held' : '');
+        b.disabled = D.state !== 'pick'; b.appendChild(cardEl(c, !(D.state === 'result'), true));
+        b.addEventListener('click', function () { vpPick(q); }); pk.appendChild(b);
+      });
+      $('vDblTxt').textContent = D.state === 'pick' ? 'The dealer shows this card. Pick a card on the right. Higher than the dealer doubles your $' + vp.win + '. Lower loses it. A tie keeps it.' : D.msg;
+    }
+    var go = $('vGo'), alt = $('vAlt'), hint = $('vHint');
+    hint.hidden = !hold; alt.hidden = true;
+    if (hold) { go.disabled = false; go.textContent = 'Step 3: Draw'; }
+    else if (anim) { go.disabled = true; go.textContent = vp.draw ? 'Drawing…' : 'Dealing…'; }
+    else if (dbl) {
+      var D2 = vp.dbl;
+      if (D2.state === 'pick') { go.disabled = true; go.textContent = 'Pick a card above'; alt.hidden = false; alt.textContent = 'Collect $' + vp.win; }
+      else if (vp.win > 0 && D2.times < 3) { go.disabled = false; go.textContent = 'Double again: risk $' + vp.win; alt.hidden = false; alt.textContent = 'Collect $' + vp.win; }
+      else { go.disabled = false; go.textContent = 'Deal again: $' + bet; }
+    }
+    else if (bank < Math.max(bet, MIN)) { go.disabled = true; go.textContent = 'Not enough chips'; if (done && vp.win > 0) { alt.hidden = false; alt.textContent = 'Double up: risk $' + vp.win; } }
+    else { go.disabled = false; go.textContent = (done ? 'Deal again: $' : 'Deal: $') + bet; if (done && vp.win > 0) { alt.hidden = false; alt.textContent = 'Double up: risk $' + vp.win; } }
+    $('vSides').hidden = hint.hidden && alt.hidden;
   }
-  function vpGo() {
+  function vpBurst(big) {
+    var box = $('vBurst'), n = big ? 26 : 14, i; box.textContent = '';
+    for (i = 0; i < n; i++) {
+      var d = document.createElement('span'), a = Math.random() * Math.PI * 2, r = 70 + Math.random() * (big ? 150 : 100);
+      d.style.setProperty('--dx', Math.round(Math.cos(a) * r) + 'px'); d.style.setProperty('--dy', Math.round(Math.sin(a) * r - 30) + 'px'); d.style.animationDelay = (Math.random() * 0.15) + 's';
+      box.appendChild(d);
+    }
+    setTimeout(function () { box.textContent = ''; }, 1500);
+  }
+  function vpShowBanner(text, cls, big) {
+    vp.banner = text; vp.bannerCls = cls; vpBurst(big);
+    clearTimeout(vp.timer); vp.timer = setTimeout(function () { vp.banner = ''; if (game === 'vp') renderVp(); }, 2600);
+  }
+  function vpFinish() { if (!checkStakes()) checkSal(); }
+  async function vpGo() {
     if (vp.phase === 'hold') { vpDraw(); return; }
-    if ((phase !== 'bet' && phase !== 'done') || bank < bet || bank < MIN) return;
+    if (vp.phase === 'dbl') {
+      if (vp.dbl && vp.dbl.state === 'result' && vp.win > 0 && vp.dbl.times < 3) { vpDblStart(); return; }
+      vp.phase = 'done'; vp.win = 0; vp.dbl = null; render(); vpFinish(); return;
+    }
+    if (vp.phase === 'anim' || (phase !== 'bet' && phase !== 'done') || bank < bet || bank < MIN) return;
+    if (checkStakes()) return;
     vp.prevPhase = phase; phase = 'busy';
     bank -= bet; save();
     var notes = tickDebts(); blindNext = false; save();
-    vp.deck = (function () { var d = [], j; SUITS.forEach(function (st) { RANKS.forEach(function (r) { d.push({ r: r, s: st }); }); }); for (j = d.length - 1; j > 0; j--) { var k = Math.floor(Math.random() * (j + 1)), t = d[j]; d[j] = d[k]; d[k] = t; } return d; })();
-    vp.cards = vp.deck.splice(0, 5); vp.held = [0, 0, 0, 0, 0]; vp.phase = 'hold';
-    vp.result = notes.length ? notes.join(' \u00b7 ') : ''; vp.resultClass = '';
+    vp.deck = vpNewDeck(); vp.cards = vp.deck.splice(0, 5); vp.held = [0, 0, 0, 0, 0]; vp.hidden = [1, 1, 1, 1, 1]; vp.win = 0; vp.dbl = null;
+    vp.hintHold = null; vp.hintText = ''; vp.banner = ''; vp.draw = false; vp.phase = 'anim';
+    vp.result = notes.length ? notes.join(' · ') : ''; vp.resultClass = '';
     render();
+    for (var i = 0; i < 5; i++) { await vsleep(170); vp.hidden[i] = 0; vp.fresh[i] = 1; render(); }
+    vp.phase = 'hold'; render();
   }
-  function vpDraw() {
-    var i; for (i = 0; i < 5; i++) if (!vp.held[i]) vp.cards[i] = vp.deck.shift();
+  async function vpDraw() {
+    var i, rep = [];
+    for (i = 0; i < 5; i++) if (!vp.held[i]) rep.push(i);
+    vp.draw = true; vp.hintHold = null; vp.hintText = ''; vp.phase = 'anim';
+    rep.forEach(function (k) { vp.cards[k] = vp.deck.shift(); vp.hidden[k] = 1; });
+    render(); await vsleep(300);
+    for (i = 0; i < rep.length; i++) { vp.hidden[rep[i]] = 0; vp.fresh[rep[i]] = 1; render(); await vsleep(230); }
     var idx = vpEval(vp.cards);
-    vp.phase = 'done'; phase = vp.prevPhase;
+    vp.draw = false; vp.phase = 'done'; phase = vp.prevPhase; vp.win = 0;
     if (idx >= 0) {
       var m = vpMult(idx), got = bet * m; bank += got;
-      vp.result = VP_PAY[idx][0] + '! ' + (m === 1 ? 'Bet returned.' : 'You win $' + (got - bet)); vp.resultClass = m === 1 ? '' : 'win';
-    } else { vp.result = 'No win. You lose $' + bet; vp.resultClass = 'lose'; }
+      if (m === 1) { vp.result = VP_PAY[idx][0] + '. Your bet comes back.'; vp.resultClass = ''; }
+      else {
+        vp.win = got; vp.result = VP_PAY[idx][0] + '! You win $' + (got - bet) + '.'; vp.resultClass = 'win';
+        vpShowBanner(VP_PAY[idx][0].toUpperCase() + '  +$' + (got - bet), idx <= 3 ? 'big' : 'mid', idx <= 3);
+      }
+    } else { vp.result = 'No win. You lose $' + bet + '.'; vp.resultClass = 'lose'; }
     if (bet > bank && bank >= MIN) bet = bestChip();
     save(); render();
-    if (!checkStakes()) checkSal();
+    if (vp.win === 0) vpFinish();
+  }
+  function vpDblStart() {
+    if (vp.win <= 0) return;
+    var times = vp.dbl ? vp.dbl.times : 0;
+    vp.banner = '';
+    vp.dbl = { dealer: vp.deck.shift(), picks: vp.deck.splice(0, 4), chosen: -1, state: 'pick', times: times, msg: '' };
+    vp.phase = 'dbl'; vp.result = ''; render();
+  }
+  function vpPick(q) {
+    var D = vp.dbl; if (!D || D.state !== 'pick') return;
+    D.chosen = q; D.state = 'result';
+    var a = vpRank(D.picks[q]), b = vpRank(D.dealer);
+    if (a > b) { bank += vp.win; vp.win *= 2; D.times++; D.msg = 'Higher! Your win doubles to $' + vp.win + '.'; vp.resultClass = 'win'; if (D.times >= 3) D.msg += ' That is the limit.'; vpShowBanner('DOUBLE!  $' + vp.win, 'big', true); }
+    else if (a === b) { D.msg = 'Tie. Your $' + vp.win + ' is safe.'; vp.resultClass = ''; }
+    else { bank -= vp.win; D.msg = 'Lower. The $' + vp.win + ' is gone.'; vp.resultClass = 'lose'; vp.win = 0; vp.phase = 'done'; vp.result = D.msg; }
+    if (bank < 0) bank = 0;
+    save(); render();
+    if (vp.win === 0) vpFinish();
   }
 
   /* Actions */
@@ -1728,8 +1897,11 @@ body::before { filter: brightness(var(--dimf, 1)); }
   $('dForm').addEventListener('click', toggleBetType);
   $('dTip').addEventListener('click', tipMenu);
   $('vGo').addEventListener('click', vpGo);
-  try { if (!localStorage.getItem('pocket-bj-vphelp')) document.querySelector('.vhelp').open = true; } catch (e) {}
-  document.querySelector('.vhelp').addEventListener('toggle', function () { if (!this.open) { try { localStorage.setItem('pocket-bj-vphelp', '1'); } catch (e) {} } });
+  $('vHint').addEventListener('click', vpHint);
+  $('vAlt').addEventListener('click', function () {
+    if (vp.phase === 'done' && vp.win > 0) vpDblStart();
+    else if (vp.phase === 'dbl') { vp.phase = 'done'; vp.win = 0; vp.dbl = null; vp.result = 'Collected.'; vp.resultClass = ''; render(); vpFinish(); }
+  });
   $('coachBtn').addEventListener('click', function () { coachOn = !coachOn; saveStats(); render(); });
   $('bank').addEventListener('click', function () {
     statTaps++; clearTimeout(statTimer); statTimer = setTimeout(function () { statTaps = 0; }, 1500);
