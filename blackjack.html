@@ -228,6 +228,20 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .coachrow .sharkbtn { flex: 0 0 auto; padding: 0 14px; }
 #coachTip { font-weight: 700; color: #ffe27a; font-size: 0.95rem; }
 .act.rec { box-shadow: 0 0 0 3px #7dff9a, 0 0 14px rgba(125, 255, 154, 0.7); }
+/* ---- Shoe and discard tray ---- */
+.tray { margin: 8px 0 0; padding: 8px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 210, 74, 0.35); cursor: pointer; color: #fff; }
+.trayrow { display: flex; align-items: center; gap: 12px; }
+.pile { position: relative; flex: 0 0 34px; height: 46px; }
+.pile i { position: absolute; left: 2px; right: 2px; bottom: 0; height: 4px; border-radius: 4px; background: repeating-linear-gradient(135deg, #7a1f2b 0 4px, #9b2c3a 4px 8px); border: 1px solid #f4efe0; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.6); transition: height 0.5s ease; }
+.trayinfo { flex: 1; min-width: 0; }
+.traytxt { display: flex; justify-content: space-between; gap: 8px; font-size: 0.8rem; font-weight: 700; margin-bottom: 5px; }
+.shoebar { position: relative; height: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.15); overflow: visible; }
+.shoefill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #7a1f2b, #e2b04a); transition: width 0.5s ease; }
+.cutmark { position: absolute; top: -3px; bottom: -3px; left: 75%; width: 3px; border-radius: 2px; background: #ffe27a; box-shadow: 0 0 6px rgba(255, 226, 122, 0.9); }
+.tally { display: grid; grid-template-columns: repeat(13, 1fr); gap: 2px; margin-top: 8px; text-align: center; }
+.tally div { display: flex; flex-direction: column; gap: 1px; padding: 3px 0; border-radius: 5px; background: rgba(255, 255, 255, 0.1); font-size: 0.62rem; line-height: 1.1; }
+.tally b { font-size: 0.8rem; color: #ffe27a; }
+.tally div.lo { background: rgba(125, 255, 154, 0.12); } .tally div.hi { background: rgba(255, 120, 120, 0.12); }
 /* ---- Jacks or Better ---- */
 .vp { flex: 1; display: flex; flex-direction: column; gap: 8px; }
 .vsteps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
@@ -400,6 +414,17 @@ body::before { filter: brightness(var(--dimf, 1)); }
     </div>
   </section>
 
+  <div class="tray" id="tray" role="button" tabindex="0" aria-expanded="false" aria-label="Shoe and discard tray. Tap to show the cards seen.">
+    <div class="trayrow">
+      <div class="pile" id="pile" aria-hidden="true"><i></i></div>
+      <div class="trayinfo">
+        <div class="traytxt"><span id="trayDisc">Discards: 0</span><span id="trayShoe">Shoe: 6 decks</span></div>
+        <div class="shoebar" aria-hidden="true"><div class="shoefill" id="shoeFill"></div><div class="cutmark"></div></div>
+      </div>
+    </div>
+    <div class="tally" id="tally" hidden></div>
+  </div>
+
   <section class="derby" id="derby" hidden>
     <div class="dhead"><h2>Back Alley Roach Derby</h2><p class="dsub" id="dsub">Tap a bug to bet on it.</p></div>
     <div class="lanes" id="lanes"></div>
@@ -516,6 +541,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
   var deck = [], dealer = [], hands = [], active = -1;
   var DECKS = 6, CUT = 78;                 /* six-deck shoe, reshuffled once about 75% is dealt */
   var STORY = { mid: {}, paid: {} }, DAILY = { last: '', streak: 0 }, storyQ = [];
+  var disc = { n: 0, ranks: {} }, trayOpen = false;
   var coachOn = false, showHole = false, flashHole = false, statTaps = 0, statTimer = null;
   var ST = { hands: 0, won: 0, lost: 0, pushed: 0, bj: 0, busts: 0, bigWin: 0, bigLoss: 0, bestStreak: 0, curW: 0, curL: 0, shoes: 0, spotted: 0, dec: 0, decOk: 0, rounds: 0 };
   try { var sst = JSON.parse(localStorage.getItem('pocket-bj-stats')); if (sst) for (var kk in sst) if (kk in ST) ST[kk] = sst[kk]; coachOn = localStorage.getItem('pocket-bj-coach') === '1'; var sty = JSON.parse(localStorage.getItem('pocket-bj-story')); if (sty) STORY = sty; var dly = JSON.parse(localStorage.getItem('pocket-bj-daily')); if (dly) DAILY = dly; } catch (e) {}
@@ -898,6 +924,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     /* The room gets darker and redder as visible debt grows */
     var heat = room === 'high' ? 0 : Math.min(1, (visibleDebt() + totalBounty()) / 700);
     el.dim.style.opacity = String(heat * 0.3);
+    renderTray();
     el.redv.style.opacity = String(heat * 0.6);
     document.body.classList.toggle('hr', room === 'high');
     $('title').textContent = game === 'derby' ? 'Roach Derby' : game === 'vp' ? 'Jacks or Better' : (room === 'high' ? 'High-Roller Blackjack' : 'Pocket Blackjack');
@@ -912,7 +939,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
       var k = Math.floor(Math.random() * (j + 1));
       var t = d[j]; d[j] = d[k]; d[k] = t;
     }
-    rc = 0; holeCounted = true;
+    rc = 0; holeCounted = true; disc = { n: 0, ranks: {} };
     return d;
   }
   function hiLo(c) { var v = cardVal(c); return v >= 10 ? -1 : (v <= 6 ? 1 : 0); }   /* aces and tens -1, 2-6 +1 */
@@ -956,6 +983,19 @@ body::before { filter: brightness(var(--dimf, 1)); }
     ST.dec++; if (rec === choice) ST.decOk++;
     if (coachOn && rec !== choice) sideMsg = 'Coach: basic strategy says ' + rec + '.';
     saveStats();
+  }
+  function renderTray() {
+    var total = DECKS * 52, fresh = !deck.length, used = fresh ? 0 : total - deck.length;
+    $('trayDisc').textContent = 'Discards: ' + disc.n;
+    $('trayShoe').textContent = fresh ? 'Fresh shoe: ' + DECKS + ' decks' : 'Shoe: ' + deck.length + ' cards (' + (Math.round(deck.length / 52 * 10) / 10) + ' decks)';
+    $('shoeFill').style.width = Math.min(100, Math.round(used * 100 / total)) + '%';
+    document.querySelector('#pile i').style.height = Math.min(44, 4 + Math.round(disc.n / 6)) + 'px';
+    var t = $('tally'); t.hidden = !trayOpen; $('tray').setAttribute('aria-expanded', String(trayOpen));
+    if (trayOpen) {
+      var html = '';
+      RANKS.forEach(function (r) { var n = disc.ranks[r] || 0, v = cardVal({ r: r }); html += '<div class="' + (v >= 10 ? 'hi' : (v <= 6 ? 'lo' : '')) + '"><span>' + r + '</span><b>' + n + '</b></div>'; });
+      t.innerHTML = html;
+    }
   }
   function updateGlow() {
     var tc = trueCount(), hot = Math.max(0, Math.min(1, (tc - 0.5) / 2.5)), cold = Math.max(0, Math.min(1, (-tc - 0.5) / 2.5));
@@ -1147,6 +1187,8 @@ body::before { filter: brightness(var(--dimf, 1)); }
   function settleAll() {
     hole = false; active = -1;
     if (!holeCounted && dealer[1]) { rc += hiLo(dealer[1]); holeCounted = true; }
+    hands.forEach(function (h) { h.cards.forEach(function (c) { disc.n++; disc.ranks[c.r] = (disc.ranks[c.r] || 0) + 1; }); });
+    dealer.forEach(function (c) { disc.n++; disc.ranks[c.r] = (disc.ranks[c.r] || 0) + 1; });
     var d = score(dealer).total, dbj = isBJ(dealer);
     var staked = 0, back = 0, w = 0, l = 0, p = 0;
     hands.forEach(function (h) {
@@ -1322,7 +1364,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
   }
   function renderTables() {
     var d = game === 'derby', betting = phase === 'bet' || phase === 'done';
-    $('bjTable').hidden = game !== 'bj'; $('bjControls').hidden = game !== 'bj'; $('derby').hidden = !d; $('vp').hidden = game !== 'vp';
+    $('bjTable').hidden = game !== 'bj'; $('tray').hidden = game !== 'bj'; $('bjControls').hidden = game !== 'bj'; $('derby').hidden = !d; $('vp').hidden = game !== 'vp';
     el.stakesBtn.hidden = !(stakesUnlocked && room === 'low' && !d && betting);
     el.stakesBtn.textContent = stakes ? 'Lower stakes' : 'Raise stakes';
     el.stakesBtn2.hidden = !(stakesUnlocked && room === 'low' && d && derby.phase !== 'run');
@@ -1946,6 +1988,10 @@ body::before { filter: brightness(var(--dimf, 1)); }
   $('dForm').addEventListener('click', toggleBetType);
   $('dTip').addEventListener('click', tipMenu);
   $('vGo').addEventListener('click', vpGo);
+  function toggleTray() { trayOpen = !trayOpen; try { localStorage.setItem('pocket-bj-tray', trayOpen ? '1' : '0'); } catch (e) {} renderTray(); }
+  $('tray').addEventListener('click', toggleTray);
+  $('tray').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTray(); } });
+  try { trayOpen = localStorage.getItem('pocket-bj-tray') === '1'; } catch (e) {}
   $('vHint').addEventListener('click', vpHint);
   $('vAlt').addEventListener('click', function () {
     if (vp.phase === 'done' && vp.win > 0) vpDblStart();
