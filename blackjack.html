@@ -216,6 +216,11 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     background-image: radial-gradient(circle at 40px 70px, var(--spk) 0 1.4px, transparent 2.4px), radial-gradient(circle at 150px 20px, var(--spk2) 0 1.2px, transparent 2.2px);
     background-size: 227px 193px, 181px 239px; animation: twinkle 4.5s ease-in-out infinite alternate; }
 }
+#mb { white-space: pre-line; }
+.coachrow { display: flex; align-items: center; gap: 10px; margin-top: 10px; min-height: 40px; }
+.coachrow .sharkbtn { flex: 0 0 auto; padding: 0 14px; }
+#coachTip { font-weight: 700; color: #ffe27a; font-size: 0.95rem; }
+.act.rec { box-shadow: 0 0 0 3px #7dff9a, 0 0 14px rgba(125, 255, 154, 0.7); }
 /* Easter egg: the room follows the Hi-Lo true count. Rich shoe: gold glitter drifts over everything. Poor shoe: a cold blue chill and falling frost. */
 .hotv, .coldv { position: fixed; inset: 0; pointer-events: none; z-index: 5; opacity: 0; transition: opacity 2s ease; overflow: hidden; }
 .hotv::before, .hotv::after { content: ''; position: absolute; inset: 0; }
@@ -391,6 +396,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
       <button class="act dbl" id="dbl">Double</button>
       <button class="act spl" id="spl">Split</button>
     </div>
+    <div class="coachrow"><button class="sharkbtn" id="coachBtn" type="button" aria-pressed="false">Coach: off</button><span id="coachTip" role="status"></span></div>
   </section>
 </main>
 
@@ -424,6 +430,10 @@ body::before { filter: brightness(var(--dimf, 1)); }
 
   var deck = [], dealer = [], hands = [], active = -1;
   var DECKS = 6, CUT = 78;                 /* six-deck shoe, reshuffled once about 75% is dealt */
+  var coachOn = false, showHole = false, flashHole = false, statTaps = 0, statTimer = null;
+  var ST = { hands: 0, won: 0, lost: 0, pushed: 0, bj: 0, busts: 0, bigWin: 0, bigLoss: 0, bestStreak: 0, curW: 0, curL: 0, shoes: 0, spotted: 0, dec: 0, decOk: 0, rounds: 0 };
+  try { var sst = JSON.parse(localStorage.getItem('pocket-bj-stats')); if (sst) for (var kk in sst) if (kk in ST) ST[kk] = sst[kk]; coachOn = localStorage.getItem('pocket-bj-coach') === '1'; } catch (e) {}
+  function saveStats() { try { localStorage.setItem('pocket-bj-stats', JSON.stringify(ST)); localStorage.setItem('pocket-bj-coach', coachOn ? '1' : '0'); } catch (e) {} }
   var rc = 0, holeCounted = true, susp = 0, backoff = 0, dealTC = 0, dealBet = 0;
   var bank = START, bet = 25, pp = 0, t3 = 0, insBet = 0;
   var phase = 'bet'; // bet | busy | insure | play | done
@@ -782,6 +792,45 @@ body::before { filter: brightness(var(--dimf, 1)); }
   function hiLo(c) { var v = cardVal(c); return v >= 10 ? -1 : (v <= 6 ? 1 : 0); }   /* aces and tens -1, 2-6 +1 */
   function trueCount() { return rc / Math.max(0.5, deck.length / 52); }
   function draw() { if (deck.length < 16) { deck = shuffled(); } var c = deck.pop(); rc += hiLo(c); return c; }
+  /* Basic strategy: six decks, dealer stands on all 17s, double after split. Returns split, double, hit or stand. */
+  function advise(cards, up, canSp, canDb) {
+    var sc = score(cards), t = sc.total, soft = sc.soft, a, d = up;
+    var DBL = canDb ? 'double' : null;
+    if (canSp && cardVal(cards[0]) === cardVal(cards[1])) {
+      var p = cardVal(cards[0]);
+      if (p === 11 || p === 8) return 'split';
+      if (p === 9) return (d === 7 || d >= 10) ? 'stand' : 'split';
+      if (p === 7) { if (d <= 7) return 'split'; }
+      else if (p === 6) { if (d <= 6) return 'split'; }
+      else if (p === 4) { if (d === 5 || d === 6) return 'split'; }
+      else if (p === 3 || p === 2) { if (d <= 7) return 'split'; }
+    }
+    if (soft) {
+      if (t >= 20) return 'stand';
+      if (t === 19) return (d === 6 && DBL) ? 'double' : 'stand';
+      if (t === 18) { if (d >= 3 && d <= 6) return DBL || 'stand'; return d >= 9 ? 'hit' : 'stand'; }
+      if (t === 17) return (d >= 3 && d <= 6 && DBL) ? 'double' : 'hit';
+      if (t === 15 || t === 16) return (d >= 4 && d <= 6 && DBL) ? 'double' : 'hit';
+      return (d >= 5 && d <= 6 && DBL) ? 'double' : 'hit';
+    }
+    if (t >= 17) return 'stand';
+    if (t >= 13) return d <= 6 ? 'stand' : 'hit';
+    if (t === 12) return (d >= 4 && d <= 6) ? 'stand' : 'hit';
+    if (t === 11) return (d <= 10 && DBL) ? 'double' : 'hit';
+    if (t === 10) return (d <= 9 && DBL) ? 'double' : 'hit';
+    if (t === 9) return (d >= 3 && d <= 6 && DBL) ? 'double' : 'hit';
+    return 'hit';
+  }
+  function coachSays() {
+    var h = hands[active]; if (phase !== 'play' || !h || !dealer.length) return null;
+    return advise(h.cards, cardVal(dealer[0]), canSplit(), canDouble());
+  }
+  function noteChoice(choice) {
+    var rec = coachSays(); if (!rec) return;
+    ST.dec++; if (rec === choice) ST.decOk++;
+    if (coachOn && rec !== choice) sideMsg = 'Coach: basic strategy says ' + rec + '.';
+    saveStats();
+  }
   function updateGlow() {
     var tc = trueCount(), hot = Math.max(0, Math.min(1, (tc - 0.5) / 2.5)), cold = Math.max(0, Math.min(1, (-tc - 0.5) / 2.5));
     $('hotv').style.opacity = String(hot);
@@ -911,9 +960,9 @@ body::before { filter: brightness(var(--dimf, 1)); }
     }
     for (var j = 0; j < n; j++) setOverlap(el.pHands.children[j].firstChild);
 
-    syncHand(el.dHand, dealer, hole && dealer.length > 1 ? 1 : -1);
+    syncHand(el.dHand, dealer, hole && !showHole && dealer.length > 1 ? 1 : -1);
     if (!dealer.length) { el.dTot.textContent = ''; el.dTot.className = 'tot'; }
-    else if (hole && dealer.length > 1) { el.dTot.textContent = String(cardVal(dealer[0])); el.dTot.className = 'tot'; }
+    else if (hole && !showHole && dealer.length > 1) { el.dTot.textContent = String(cardVal(dealer[0])); el.dTot.className = 'tot'; }
     else { var ds = score(dealer); el.dTot.textContent = label(ds); el.dTot.className = 'tot' + (ds.total > 21 ? ' bust' : ''); }
 
     el.betRow.hidden = !betting;
@@ -940,6 +989,10 @@ body::before { filter: brightness(var(--dimf, 1)); }
     el.insYes.disabled = bank < ins;
 
     var canAct = phase === 'play';
+    var recA = (coachOn && canAct) ? coachSays() : null;
+    $('coachBtn').textContent = coachOn ? 'Coach: on' : 'Coach: off'; $('coachBtn').setAttribute('aria-pressed', String(coachOn));
+    $('coachTip').textContent = recA ? 'Basic strategy: ' + recA : '';
+    ['hit', 'stand', 'dbl', 'spl'].forEach(function (id) { el[id].classList.toggle('rec', recA === ({ hit: 'hit', stand: 'stand', dbl: 'double', spl: 'split' })[id]); });
     el.hit.disabled = !canAct;
     el.stand.disabled = !canAct;
     el.dbl.disabled = !canDouble();
@@ -957,6 +1010,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     else if (dealBet >= MIN * 4 && dealTC <= 0) susp = Math.max(0, susp - 1);
     else if (dealBet <= MIN * 2 && dealTC <= 1) susp = Math.max(0, susp - 0.25);
     if (susp >= 7) {
+      ST.spotted++; saveStats();
       susp = 0; backoff = 6; deck = []; updateGlow();
       note = 'A heavy hand lands on your shoulder. "Flat bets only, friend." The shoe is shuffled and your max bet is capped for a while.';
     } else if (susp >= 5 && !pitBoss.s2) { pitBoss.s2 = true; note = 'The floor manager has stopped pretending not to watch you.'; }
@@ -1011,6 +1065,19 @@ body::before { filter: brightness(var(--dimf, 1)); }
       else if (net < 0) say(tally + 'Net -$' + (-net), 'lose');
       else say(tally + 'Even.', '');
     }
+    hands.forEach(function (h) {
+      ST.hands++;
+      if (h.result === 'win' || h.result === 'bj') ST.won++; else if (h.result === 'lose') ST.lost++; else ST.pushed++;
+      if (h.result === 'bj') ST.bj++; if (h.bust) ST.busts++;
+    });
+    ST.rounds++; ST.bigWin = Math.max(ST.bigWin, net); ST.bigLoss = Math.max(ST.bigLoss, -net);
+    var streakNote = '';
+    if (net > 0) { ST.curW++; ST.curL = 0; ST.bestStreak = Math.max(ST.bestStreak, ST.curW); }
+    else if (net < 0) { ST.curL++; ST.curW = 0; }
+    if (ST.curW >= 5) { ST.curW = 0; flashHole = true; streakNote = 'Five wins in a row. The dealer wipes his brow and loosens his collar.'; }
+    if (ST.curL >= 5) { ST.curL = 0; var gift = MIN * 3; bank += gift; streakNote = 'A stranger at the rail slides you $' + gift + '. "Looked like you needed it."'; }
+    if (streakNote) sideMsg = sideMsg ? sideMsg + ' \u00b7 ' + streakNote : streakNote;
+    showHole = false; saveStats();
     if (bank < MIN) say('Out of chips.', 'lose');
     pitBoss(); updateGlow();
     save();
@@ -1392,19 +1459,21 @@ body::before { filter: brightness(var(--dimf, 1)); }
     if (bet > bank) bet = CHIPS.filter(function (v) { return v <= bank; })[0];
     if (backoff > 0 && bet > CHIPS[1]) bet = CHIPS[1];
     var reshuffle = deck.length < CUT;
-    if (reshuffle) { deck = shuffled(); updateGlow(); }
+    if (reshuffle) { deck = shuffled(); updateGlow(); ST.shoes++; }
     dealTC = trueCount(); dealBet = bet;
     phase = 'busy'; bank -= bet + pp + t3; save();
     insBet = 0; sideMsg = reshuffle ? 'Cut card. The dealer shuffles up a fresh shoe.' : ''; dealer = []; hole = true;
     interestMsg = '';
     var notes = tickDebts();
     interestMsg = notes.join(' \u00b7 ');
+    showHole = flashHole; flashHole = false;
+    if (showHole) interestMsg = (interestMsg ? interestMsg + ' \u00b7 ' : '') + 'The dealer fumbles and flashes his hole card.';
     blind = blindNext; blindNext = false; save();
     hands = [makeHand([], bet, false)]; active = 0;
     say('Dealing…', ''); render();
     var order = [hands[0].cards, dealer, hands[0].cards, dealer];
     for (var i = 0; i < order.length; i++) { order[i].push(draw()); render(); await sleep(260); }
-    rc -= hiLo(dealer[1]); holeCounted = false;
+    if (!showHole) { rc -= hiLo(dealer[1]); holeCounted = false; }
     resolveSides();
     render();
     var ins = Math.floor(hands[0].bet / 2);
@@ -1432,6 +1501,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
 
   async function hit() {
     if (phase !== 'play') return;
+    noteChoice('hit');
     var h = hands[active];
     h.cards.push(draw());
     var t = score(h.cards).total;
@@ -1442,11 +1512,13 @@ body::before { filter: brightness(var(--dimf, 1)); }
   }
   function stand() {
     if (phase !== 'play') return;
+    noteChoice('stand');
     hands[active].done = true;
     advance();
   }
   async function dbl() {
     if (!canDouble()) return;
+    noteChoice('double');
     var h = hands[active];
     phase = 'busy'; bank -= h.bet; h.bet *= 2; save();
     h.cards.push(draw());
@@ -1459,6 +1531,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
   }
   async function split() {
     if (!canSplit()) return;
+    noteChoice('split');
     var h = hands[active];
     phase = 'busy'; bank -= h.bet; save();
     var n = makeHand([h.cards.pop()], h.bet, true);
@@ -1516,6 +1589,17 @@ body::before { filter: brightness(var(--dimf, 1)); }
   $('dProp').addEventListener('click', cycleProp);
   $('dForm').addEventListener('click', toggleBetType);
   $('dTip').addEventListener('click', tipMenu);
+  $('coachBtn').addEventListener('click', function () { coachOn = !coachOn; saveStats(); render(); });
+  $('bank').addEventListener('click', function () {
+    statTaps++; clearTimeout(statTimer); statTimer = setTimeout(function () { statTaps = 0; }, 1500);
+    if (statTaps >= 3) { statTaps = 0; statsMenu(); }
+  });
+  function statsMenu() {
+    if (phase !== 'bet' && phase !== 'done') return;
+    var pct = function (a, b) { return b ? Math.round(a * 100 / b) + '%' : '-'; };
+    showModal('The Ledger', 'Hands played: ' + ST.hands + '\nWon ' + ST.won + ' \u00b7 Lost ' + ST.lost + ' \u00b7 Pushed ' + ST.pushed + '  (' + pct(ST.won, ST.hands) + ' wins)\nBlackjacks: ' + ST.bj + ' \u00b7 Busts: ' + ST.busts + '\nBiggest win: $' + ST.bigWin + ' \u00b7 Biggest loss: $' + ST.bigLoss + '\nBest win streak: ' + ST.bestStreak + '\nShoes shuffled: ' + ST.shoes + ' \u00b7 Times the pit boss backed you off: ' + ST.spotted + '\nPlayed by basic strategy: ' + pct(ST.decOk, ST.dec) + ' of ' + ST.dec + ' decisions',
+      [{ label: 'Close', fn: function () {} }], true, 'neutral');
+  }
   $('title').addEventListener('click', function () {
     taps++; clearTimeout(tapTimer); tapTimer = setTimeout(function () { taps = 0; }, 1500);
     if (taps >= 5) { taps = 0; sharkMenu(); }
