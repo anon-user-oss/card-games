@@ -1992,7 +1992,11 @@ body::before { filter: brightness(var(--dimf, 1)); }
     render(); await sleep(300);
     h.cards.push(draw()); render(); await sleep(350);
     n.cards.push(draw()); render(); await sleep(350);
-    if (h.cards[0].r === 'A') { h.done = true; n.done = true; }
+    if (h.cards[0].r === 'A') {
+      h.done = true; n.done = true;
+      say('Split aces get one card each, so both hands stand: ' + score(h.cards).total + ' and ' + score(n.cards).total + '.', '');
+      render(); await sleep(1500);
+    }
     advance();
   }
 
