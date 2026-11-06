@@ -337,13 +337,13 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
         <button class="chip" data-v="100" aria-pressed="false">100</button>
       </div>
       <div class="sides">
-        <button class="sidebtn" id="ppBtn" aria-pressed="false">Perfect Pairs<span id="ppAmt">$0</span></button>
-        <button class="sidebtn" id="t3Btn" aria-pressed="false">21+3<span id="t3Amt">$0</span></button>
+        <button class="sidebtn" id="ppBtn" aria-pressed="false">Lucky Lucky<span id="ppAmt">$0</span></button>
+        <button class="sidebtn" id="t3Btn" aria-pressed="false">Bust-It<span id="t3Amt">$0</span></button>
       </div>
       <details class="pay">
         <summary>Side bet payouts</summary>
-        <p><b>Perfect Pairs</b> (your first two cards): mixed pair 6:1, colored pair 12:1, perfect pair 25:1. Tap to cycle $0, $5, $10, $25.</p>
-        <p><b>21+3</b> (your two cards plus the dealer's up card): flush 5:1, straight 10:1, three of a kind 30:1, straight flush 40:1, suited trips 100:1.</p>
+        <p><b>Lucky Lucky</b> (your first two cards plus the dealer's up card): total 19 or 20 pays 2:1, 21 pays 3:1, suited 21 pays 15:1, 6-7-8 pays 30:1 (suited 100:1), 7-7-7 pays 50:1 (suited 200:1). Tap to cycle $0, $5, $10, $25.</p>
+        <p><b>Bust-It</b> (the dealer's final hand): the dealer busts on 3 cards pays 1:1, 4 cards 2:1, 5 cards 9:1, 6 cards 50:1, 7 cards 100:1, 8 or more 250:1. If the dealer does not bust, you lose it.</p>
         <p><b>Insurance</b> is offered when the dealer shows an Ace. It costs half your bet and pays 2:1.</p>
       </details>
       <button class="sharkbtn" id="roomBtn" hidden></button>
@@ -760,39 +760,22 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 
   /* Side bets */
   function isRed(c) { return c.s === '♥' || c.s === '♦'; }
-  function evalPP(a, b) {
-    if (a.r !== b.r) return null;
-    if (a.s === b.s) return ['Perfect pair', 25];
-    if (isRed(a) === isRed(b)) return ['Colored pair', 12];
-    return ['Mixed pair', 6];
-  }
-  function isStraight(cards) {
-    var v = cards.map(function (c) { return RANKS.indexOf(c.r) + 1; }).sort(function (a, b) { return a - b; });
-    if (v[1] === v[0] + 1 && v[2] === v[1] + 1) return true;
-    return v[0] === 1 && v[1] === 12 && v[2] === 13;
-  }
-  function eval213(cards) {
-    var same = cards.every(function (c) { return c.r === cards[0].r; });
-    var suited = cards.every(function (c) { return c.s === cards[0].s; });
-    var st = isStraight(cards);
-    if (same && suited) return ['Suited trips', 100];
-    if (st && suited) return ['Straight flush', 40];
-    if (same) return ['Three of a kind', 30];
-    if (st) return ['Straight', 10];
-    if (suited) return ['Flush', 5];
+  /* ppBtn = Lucky Lucky (pp), t3Btn = Bust-It (t3) */
+  function evalLucky(cards) {
+    var t = score(cards).total, suited = cards.every(function (c) { return c.s === cards[0].s; });
+    if (cards.every(function (c) { return c.r === '7'; })) return suited ? ['Suited 7-7-7', 200] : ['7-7-7', 50];
+    if (['6', '7', '8'].every(function (x) { return cards.some(function (c) { return c.r === x; }); })) return suited ? ['Suited 6-7-8', 100] : ['6-7-8', 30];
+    if (t === 21) return suited ? ['Suited 21', 15] : ['21', 3];
+    if (t === 19 || t === 20) return [String(t), 2];
     return null;
   }
+  function bustItPay(n) { return n <= 3 ? 1 : n === 4 ? 2 : n === 5 ? 9 : n === 6 ? 50 : n === 7 ? 100 : 250; }
   function resolveSides() {
     var parts = [], h = hands[0].cards;
     if (pp > 0) {
-      var r = evalPP(h[0], h[1]);
-      if (r) { bank += pp * (r[1] + 1); parts.push('Perfect Pairs: ' + r[0] + ' wins $' + (pp * r[1])); }
-      else parts.push('Perfect Pairs lost $' + pp);
-    }
-    if (t3 > 0) {
-      var r2 = eval213([h[0], h[1], dealer[0]]);
-      if (r2) { bank += t3 * (r2[1] + 1); parts.push('21+3: ' + r2[0] + ' wins $' + (t3 * r2[1])); }
-      else parts.push('21+3 lost $' + t3);
+      var r = evalLucky([h[0], h[1], dealer[0]]);
+      if (r) { bank += pp * (r[1] + 1); parts.push('Lucky Lucky: ' + r[0] + ' wins $' + (pp * r[1])); }
+      else parts.push('Lucky Lucky lost $' + pp);
     }
     sideMsg = (interestMsg ? [interestMsg].concat(parts) : parts).join(' · ');
     save();
@@ -949,6 +932,12 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     });
     bank += back;
     var net = back - staked;
+    if (t3 > 0) {
+      var bnote;
+      if (d > 21) { var bp = bustItPay(dealer.length); bank += t3 * (bp + 1); bnote = 'Bust-It: dealer busts on ' + dealer.length + ' cards, wins $' + (t3 * bp); }
+      else bnote = 'Bust-It lost $' + t3;
+      sideMsg = sideMsg ? sideMsg + ' \u00b7 ' + bnote : bnote;
+    }
 
     if (hands.length === 1) {
       var h0 = hands[0], r0 = h0.result;
