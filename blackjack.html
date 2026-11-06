@@ -228,6 +228,11 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .coachrow .sharkbtn { flex: 0 0 auto; padding: 0 14px; }
 #coachTip { font-weight: 700; color: #ffe27a; font-size: 0.95rem; }
 .act.rec { box-shadow: 0 0 0 3px #7dff9a, 0 0 14px rgba(125, 255, 154, 0.7); }
+.betx { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+.betx button { min-height: 40px; border-radius: 10px; border: 1.5px solid rgba(255, 210, 74, 0.6); background: rgba(0, 0, 0, 0.4); color: #ffe27a; font-weight: 800; font-size: 0.9rem; }
+.betx button:disabled { opacity: 0.4; }
+.coachrow { flex-wrap: wrap; }
+#coachBet { color: #7dff9a; border-color: #7dff9a; }
 /* ---- Shoe and discard tray ---- */
 .tray { margin: 8px 0 0; padding: 8px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 210, 74, 0.35); cursor: pointer; color: #fff; }
 .trayrow { display: flex; align-items: center; gap: 12px; }
@@ -474,12 +479,17 @@ body::before { filter: brightness(var(--dimf, 1)); }
   <section class="controls" id="bjControls">
     <div class="betline"><span id="wlabel">Bet</span><button class="stakesbtn" id="stakesBtn" hidden>Raise stakes</button><b id="wager">$25</b></div>
 
+    <div class="coachrow"><button class="sharkbtn" id="coachBtn" type="button" aria-pressed="false">Coach: off</button><span id="coachTip" role="status"></span><button class="sharkbtn" id="coachBet" type="button" hidden></button></div>
+
     <div id="betRow" class="stack">
       <div class="chips" role="group" aria-label="Bet size">
         <button class="chip" data-v="10" aria-pressed="false">10</button>
         <button class="chip" data-v="25" aria-pressed="true">25</button>
         <button class="chip" data-v="50" aria-pressed="false">50</button>
         <button class="chip" data-v="100" aria-pressed="false">100</button>
+      </div>
+      <div class="betx" role="group" aria-label="Adjust bet">
+        <button type="button" id="betHalf">Half</button><button type="button" id="betDbl">Double</button><button type="button" id="betMax">Max bet</button>
       </div>
       <div class="sides">
         <button class="sidebtn" id="ppBtn" aria-pressed="false">Lucky Lucky<span id="ppAmt">$0</span></button>
@@ -506,7 +516,6 @@ body::before { filter: brightness(var(--dimf, 1)); }
       <button class="act dbl" id="dbl">Double</button>
       <button class="act spl" id="spl">Split</button>
     </div>
-    <div class="coachrow"><button class="sharkbtn" id="coachBtn" type="button" aria-pressed="false">Coach: off</button><span id="coachTip" role="status"></span></div>
   </section>
 </main>
 
@@ -977,6 +986,26 @@ body::before { filter: brightness(var(--dimf, 1)); }
     if (t === 9) return (d >= 3 && d <= 6 && DBL) ? 'double' : 'hit';
     return 'hit';
   }
+  function maxBet() {
+    var cap = Math.min(bank - pp - t3, CHIPS[0] * 10);
+    if (backoff > 0) cap = Math.min(cap, CHIPS[1]);
+    return Math.floor(cap / MIN) * MIN;
+  }
+  function setBet(v) {
+    if (phase !== 'bet' && phase !== 'done') return;
+    var mx = maxBet(); if (mx < MIN) return;
+    bet = Math.max(MIN, Math.min(mx, Math.round(v / MIN) * MIN)); render();
+  }
+  function fmtTC(x) { var r = Math.round(x * 10) / 10; return (r > 0 ? '+' : '') + r.toFixed(1); }
+  /* Bet heavy when the shoe is rich in tens and aces, light when it is not. */
+  function coachBetAdvice() {
+    var tc = deck.length ? trueCount() : 0, r = Math.round(tc), mult = r <= 0 ? 1 : r === 1 ? 2 : r === 2 ? 4 : r === 3 ? 8 : 12;
+    var unit = Math.max(MIN, Math.round(bank / 60 / MIN) * MIN), amt = mult === 1 ? MIN : unit * mult;
+    amt = Math.min(amt, Math.floor(bank * 0.4 / MIN) * MIN, maxBet()); amt = Math.max(MIN, amt);
+    var heavy = mult > 1, txt = 'True count ' + fmtTC(tc) + '. ' + (heavy ? 'Bet heavy: $' + amt + '.' : (r < 0 ? 'Cold shoe, bet light: $' + amt + '.' : 'Neutral, bet light: $' + amt + '.'));
+    if (susp >= 3) txt += ' The pit boss is watching, so mix in a few mid-size bets.';
+    return { amt: amt, text: txt };
+  }
   function coachSays() {
     var h = hands[active]; if (phase !== 'play' || !h || !dealer.length) return null;
     return advise(h.cards, cardVal(dealer[0]), canSplit(), canDouble());
@@ -1147,6 +1176,8 @@ body::before { filter: brightness(var(--dimf, 1)); }
       c.disabled = v + pp + t3 > bank || (backoff > 0 && v > CHIPS[1]);
       c.setAttribute('aria-pressed', String(v === bet));
     });
+    var bx = phase === 'bet' || phase === 'done', mxb = maxBet();
+    $('betHalf').disabled = !bx || bet <= MIN; $('betDbl').disabled = !bx || bet * 2 > mxb; $('betMax').disabled = !bx || mxb < MIN || bet >= mxb;
     el.ppAmt.textContent = '$' + pp; el.ppBtn.setAttribute('aria-pressed', String(pp > 0));
     el.t3Amt.textContent = '$' + t3; el.t3Btn.setAttribute('aria-pressed', String(t3 > 0));
     var locked = S.viper.debt > 0;
@@ -1161,7 +1192,11 @@ body::before { filter: brightness(var(--dimf, 1)); }
     var canAct = phase === 'play';
     var recA = (coachOn && canAct) ? coachSays() : null;
     $('coachBtn').textContent = coachOn ? 'Coach: on' : 'Coach: off'; $('coachBtn').setAttribute('aria-pressed', String(coachOn));
-    $('coachTip').textContent = recA ? 'Basic strategy: ' + recA : '';
+    var cbet = (coachOn && (phase === 'bet' || phase === 'done') && bank >= MIN) ? coachBetAdvice() : null;
+    var tcI = deck.length ? trueCount() : 0, insTip = (coachOn && phase === 'insure') ? (tcI >= 3 ? 'True count ' + fmtTC(tcI) + ': take insurance.' : 'True count ' + fmtTC(tcI) + ': skip insurance.') : '';
+    $('coachTip').textContent = recA ? 'Basic strategy: ' + recA : (cbet ? cbet.text : insTip);
+    $('coachBet').hidden = !(cbet && cbet.amt !== bet); if (cbet) $('coachBet').textContent = 'Bet $' + cbet.amt;
+    el.insYes.classList.toggle('rec', !!insTip && tcI >= 3); el.insNo.classList.toggle('rec', !!insTip && tcI < 3);
     ['hit', 'stand', 'dbl', 'spl'].forEach(function (id) { el[id].classList.toggle('rec', recA === ({ hit: 'hit', stand: 'stand', dbl: 'double', spl: 'split' })[id]); });
     el.hit.disabled = !canAct;
     el.stand.disabled = !canAct;
@@ -1963,6 +1998,10 @@ body::before { filter: brightness(var(--dimf, 1)); }
     render();
   }
 
+  $('betHalf').addEventListener('click', function () { setBet(bet / 2); });
+  $('betDbl').addEventListener('click', function () { setBet(bet * 2); });
+  $('betMax').addEventListener('click', function () { setBet(maxBet()); });
+  $('coachBet').addEventListener('click', function () { setBet(coachBetAdvice().amt); });
   chips.forEach(function (c) {
     c.addEventListener('click', function () {
       if (phase !== 'bet' && phase !== 'done') return;
