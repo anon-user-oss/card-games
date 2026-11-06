@@ -935,9 +935,9 @@ body::before { filter: brightness(var(--dimf, 1)); }
 
     /* The room gets darker and redder as visible debt grows */
     var heat = room === 'high' ? 0 : Math.min(1, (visibleDebt() + totalBounty()) / 700);
-    el.dim.style.opacity = String(heat * 0.3);
+    el.dim.style.opacity = String(heat * 0.12);
     renderTray();
-    el.redv.style.opacity = String(heat * 0.6);
+    el.redv.style.opacity = String(heat * 0.3);
     document.body.classList.toggle('hr', room === 'high');
     $('title').textContent = game === 'derby' ? 'Roach Derby' : game === 'vp' ? 'Jacks or Better' : (room === 'high' ? 'High-Roller Blackjack' : 'Pocket Blackjack');
   }
