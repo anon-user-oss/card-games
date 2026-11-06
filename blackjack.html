@@ -204,7 +204,14 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .chip[aria-pressed="true"] { transform: translateY(-4px); box-shadow: 0 0 0 4px var(--brass), 0 0 18px rgba(255, 210, 74, 0.8), inset 0 0 0 4px rgba(0, 0, 0, 0.3); }
 .dim, .redv { position: fixed; inset: 0; pointer-events: none; z-index: 40; opacity: 0; transition: opacity 1.4s ease; }
 .dim { background: #000; }
-.redv { background: radial-gradient(ellipse at 50% 45%, rgba(120, 0, 0, 0) 25%, rgba(160, 8, 8, 0.75) 125%); }
+.redv { background:
+    radial-gradient(ellipse 70% 38% at 20% 22%, rgba(210, 205, 195, 0.30), transparent 70%),
+    radial-gradient(ellipse 80% 40% at 82% 40%, rgba(200, 196, 188, 0.26), transparent 70%),
+    radial-gradient(ellipse 90% 45% at 40% 78%, rgba(205, 200, 190, 0.28), transparent 70%),
+    radial-gradient(ellipse at 50% 50%, rgba(150, 145, 138, 0.10), rgba(90, 86, 80, 0.30) 130%);
+  background-size: 140% 140%, 150% 150%, 160% 160%, 100% 100%; filter: blur(14px); }
+@media (prefers-reduced-motion: no-preference) { .redv { animation: smoke 26s ease-in-out infinite alternate; } }
+@keyframes smoke { from { background-position: 0% 0%, 100% 20%, 30% 100%, 0 0; } to { background-position: 100% 60%, 0% 80%, 90% 0%, 0 0; } }
 .sharkbtn { min-height: 40px; border-radius: 12px; border: 2px solid var(--brass); background: rgba(0, 0, 0, 0.45); color: var(--brass); font-weight: 800; font-size: 0.85rem; }
 .sidebtn:disabled { opacity: 0.5; cursor: not-allowed; }
 .sheet { max-height: calc(100dvh - 32px); overflow-y: auto; }
@@ -890,8 +897,8 @@ body::before { filter: brightness(var(--dimf, 1)); }
 
     /* The room gets darker and redder as visible debt grows */
     var heat = room === 'high' ? 0 : Math.min(1, (visibleDebt() + totalBounty()) / 700);
-    el.dim.style.opacity = String(heat * 0.5);
-    el.redv.style.opacity = String(heat);
+    el.dim.style.opacity = String(heat * 0.3);
+    el.redv.style.opacity = String(heat * 0.6);
     document.body.classList.toggle('hr', room === 'high');
     $('title').textContent = game === 'derby' ? 'Roach Derby' : game === 'vp' ? 'Jacks or Better' : (room === 'high' ? 'High-Roller Blackjack' : 'Pocket Blackjack');
   }
