@@ -479,7 +479,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
   <section class="controls" id="bjControls">
     <div class="betline"><span id="wlabel">Bet</span><button class="stakesbtn" id="stakesBtn" hidden>Raise stakes</button><b id="wager">$25</b></div>
 
-    <div class="coachrow"><button class="sharkbtn" id="coachBtn" type="button" aria-pressed="false">Coach: off</button><button class="sharkbtn" id="toolsBtn" type="button" aria-pressed="false">Bet tools: off</button><span id="coachTip" role="status"></span><button class="sharkbtn" id="coachBet" type="button" hidden></button></div>
+    <div class="coachrow"><button class="sharkbtn" id="coachBtn" type="button" aria-pressed="false">Coach: off</button><button class="sharkbtn" id="toolsBtn" type="button" aria-pressed="false">Bet tools: off</button><button class="sharkbtn" id="dustBtn" type="button" aria-pressed="true">Dust: on</button><span id="coachTip" role="status"></span><button class="sharkbtn" id="coachBet" type="button" hidden></button></div>
 
     <div id="betRow" class="stack">
       <div class="chips" role="group" aria-label="Bet size">
@@ -551,11 +551,11 @@ body::before { filter: brightness(var(--dimf, 1)); }
   var DECKS = 6, CUT = 78;                 /* six-deck shoe, reshuffled once about 75% is dealt */
   var STORY = { mid: {}, paid: {} }, DAILY = { last: '', streak: 0 }, storyQ = [];
   var disc = { n: 0, ranks: {} }, trayOpen = false;
-  var betTools = false;
+  var betTools = false, dustOn = true;
   var coachOn = false, showHole = false, flashHole = false, statTaps = 0, statTimer = null;
   var ST = { hands: 0, won: 0, lost: 0, pushed: 0, bj: 0, busts: 0, bigWin: 0, bigLoss: 0, bestStreak: 0, curW: 0, curL: 0, shoes: 0, spotted: 0, dec: 0, decOk: 0, rounds: 0 };
-  try { var sst = JSON.parse(localStorage.getItem('pocket-bj-stats')); if (sst) for (var kk in sst) if (kk in ST) ST[kk] = sst[kk]; coachOn = localStorage.getItem('pocket-bj-coach') === '1'; betTools = localStorage.getItem('pocket-bj-bettools') === '1'; var sty = JSON.parse(localStorage.getItem('pocket-bj-story')); if (sty) STORY = sty; var dly = JSON.parse(localStorage.getItem('pocket-bj-daily')); if (dly) DAILY = dly; } catch (e) {}
-  function saveStats() { try { localStorage.setItem('pocket-bj-stats', JSON.stringify(ST)); localStorage.setItem('pocket-bj-coach', coachOn ? '1' : '0'); localStorage.setItem('pocket-bj-bettools', betTools ? '1' : '0'); localStorage.setItem('pocket-bj-story', JSON.stringify(STORY)); localStorage.setItem('pocket-bj-daily', JSON.stringify(DAILY)); } catch (e) {} }
+  try { var sst = JSON.parse(localStorage.getItem('pocket-bj-stats')); if (sst) for (var kk in sst) if (kk in ST) ST[kk] = sst[kk]; coachOn = localStorage.getItem('pocket-bj-coach') === '1'; betTools = localStorage.getItem('pocket-bj-bettools') === '1'; dustOn = localStorage.getItem('pocket-bj-dust') !== '0'; var sty = JSON.parse(localStorage.getItem('pocket-bj-story')); if (sty) STORY = sty; var dly = JSON.parse(localStorage.getItem('pocket-bj-daily')); if (dly) DAILY = dly; } catch (e) {}
+  function saveStats() { try { localStorage.setItem('pocket-bj-stats', JSON.stringify(ST)); localStorage.setItem('pocket-bj-coach', coachOn ? '1' : '0'); localStorage.setItem('pocket-bj-bettools', betTools ? '1' : '0'); localStorage.setItem('pocket-bj-dust', dustOn ? '1' : '0'); localStorage.setItem('pocket-bj-story', JSON.stringify(STORY)); localStorage.setItem('pocket-bj-daily', JSON.stringify(DAILY)); } catch (e) {} }
   var rc = 0, holeCounted = true, susp = 0, backoff = 0, dealTC = 0, dealBet = 0;
   var bank = START, bet = 25, pp = 0, t3 = 0, insBet = 0;
   var phase = 'bet'; // bet | busy | insure | play | done
@@ -1031,7 +1031,8 @@ body::before { filter: brightness(var(--dimf, 1)); }
     }
   }
   function updateGlow() {
-    var tc = trueCount(), hot = Math.max(0, Math.min(1, (tc - 0.5) / 2.5)), cold = Math.max(0, Math.min(1, (-tc - 0.5) / 2.5));
+    var tc = trueCount(), hot = Math.max(0, Math.min(1, (tc - 1.5) / 2.5)), cold = Math.max(0, Math.min(1, (-tc - 1.5) / 2.5));
+    if (!dustOn) { hot = 0; cold = 0; }
     $('hotv').style.opacity = String(hot);
     $('coldv').style.opacity = String(cold);
     document.body.style.setProperty('--dimf', String(cold > 0 ? Math.max(0.3, 1 - cold * 0.7) : 1));
@@ -1177,6 +1178,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
       c.disabled = v + pp + t3 > bank || (backoff > 0 && v > CHIPS[1]);
       c.setAttribute('aria-pressed', String(v === bet));
     });
+    $('dustBtn').textContent = dustOn ? 'Dust: on' : 'Dust: off'; $('dustBtn').setAttribute('aria-pressed', String(dustOn));
     $('toolsBtn').textContent = betTools ? 'Bet tools: on' : 'Bet tools: off'; $('toolsBtn').setAttribute('aria-pressed', String(betTools));
     document.querySelector('.betx').hidden = !betTools;
     var bx = phase === 'bet' || phase === 'done', mxb = maxBet();
@@ -2001,6 +2003,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     render();
   }
 
+  $('dustBtn').addEventListener('click', function () { dustOn = !dustOn; saveStats(); updateGlow(); render(); });
   $('toolsBtn').addEventListener('click', function () { betTools = !betTools; saveStats(); render(); });
   $('betHalf').addEventListener('click', function () { setBet(bet / 2); });
   $('betDbl').addEventListener('click', function () { setBet(bet * 2); });
