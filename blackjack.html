@@ -1980,7 +1980,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     h.done = true;
     say(h.bust ? 'Doubled and busted with ' + t + '.' : 'Doubled: one card only. You have ' + t + ' with $' + h.bet + ' on the line.', h.bust ? 'lose' : '');
     render();
-    await sleep(1500);
+    await sleep(700);
     advance();
   }
   async function split() {
