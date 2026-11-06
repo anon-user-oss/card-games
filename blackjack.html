@@ -513,7 +513,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     <div class="playrow" id="playRow" hidden>
       <button class="act hit" id="hit">Hit</button>
       <button class="act" id="stand">Stand</button>
-      <button class="act dbl" id="dbl">Double</button>
+      <button class="act dbl" id="dbl">Double (1 card)</button>
       <button class="act spl" id="spl">Split</button>
     </div>
   </section>
@@ -1976,8 +1976,9 @@ body::before { filter: brightness(var(--dimf, 1)); }
     var t = score(h.cards).total;
     if (t > 21) h.bust = true;
     h.done = true;
+    say(h.bust ? 'Doubled and busted with ' + t + '.' : 'Doubled: one card only. You have ' + t + ' with $' + h.bet + ' on the line.', h.bust ? 'lose' : '');
     render();
-    await sleep(650);
+    await sleep(1500);
     advance();
   }
   async function split() {
