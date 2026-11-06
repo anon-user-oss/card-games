@@ -508,10 +508,11 @@ body::before { filter: brightness(var(--dimf, 1)); }
 
   var deck = [], dealer = [], hands = [], active = -1;
   var DECKS = 6, CUT = 78;                 /* six-deck shoe, reshuffled once about 75% is dealt */
+  var STORY = { mid: {}, paid: {} }, DAILY = { last: '', streak: 0 }, storyQ = [];
   var coachOn = false, showHole = false, flashHole = false, statTaps = 0, statTimer = null;
   var ST = { hands: 0, won: 0, lost: 0, pushed: 0, bj: 0, busts: 0, bigWin: 0, bigLoss: 0, bestStreak: 0, curW: 0, curL: 0, shoes: 0, spotted: 0, dec: 0, decOk: 0, rounds: 0 };
-  try { var sst = JSON.parse(localStorage.getItem('pocket-bj-stats')); if (sst) for (var kk in sst) if (kk in ST) ST[kk] = sst[kk]; coachOn = localStorage.getItem('pocket-bj-coach') === '1'; } catch (e) {}
-  function saveStats() { try { localStorage.setItem('pocket-bj-stats', JSON.stringify(ST)); localStorage.setItem('pocket-bj-coach', coachOn ? '1' : '0'); } catch (e) {} }
+  try { var sst = JSON.parse(localStorage.getItem('pocket-bj-stats')); if (sst) for (var kk in sst) if (kk in ST) ST[kk] = sst[kk]; coachOn = localStorage.getItem('pocket-bj-coach') === '1'; var sty = JSON.parse(localStorage.getItem('pocket-bj-story')); if (sty) STORY = sty; var dly = JSON.parse(localStorage.getItem('pocket-bj-daily')); if (dly) DAILY = dly; } catch (e) {}
+  function saveStats() { try { localStorage.setItem('pocket-bj-stats', JSON.stringify(ST)); localStorage.setItem('pocket-bj-coach', coachOn ? '1' : '0'); localStorage.setItem('pocket-bj-story', JSON.stringify(STORY)); localStorage.setItem('pocket-bj-daily', JSON.stringify(DAILY)); } catch (e) {} }
   var rc = 0, holeCounted = true, susp = 0, backoff = 0, dealTC = 0, dealBet = 0;
   var bank = START, bet = 25, pp = 0, t3 = 0, insBet = 0;
   var phase = 'bet'; // bet | busy | insure | play | done
@@ -704,7 +705,47 @@ body::before { filter: brightness(var(--dimf, 1)); }
     if (totalDebt() === 0) btns.push({ label: 'No thanks, new game', fn: resetStack, go: false });
     showModal('Out of chips?', totalDebt() > 0 ? 'The sharks smell blood. Who is it going to be?' : 'A line of sharks leans on the table. Pick one, or walk away.', btns, false, 'neutral');
   }
+  /* ---------- Story: six sharks, one name ---------- */
+  var STORY_TEXT = {
+    eddie: { mid: 'Eddie leans on your table. "Tick tock, kid. Interest does not sleep, and neither do I."', paid: 'Eddie counts your chips twice, then slides some back. "Boss likes a fast payer," he mutters. "Do not ask which boss."' },
+    viper: { mid: 'A perfumed note lands by your elbow: "Darling, I do hope you have not forgotten me. Warmly, V."', paid: 'Madame Viper returns your side bets with a gold-edged card. The only thing printed on it is "M. G." She winks. "A tip for your trouble."' },
+    tony: { mid: 'Big Tony cracks his knuckles at the rail. "Five hands is a long time, pal."', paid: 'Tony almost smiles. "Mister G says you are the first to pay me early." He tucks a few chips under your glass. "On the house."' },
+    acct: { mid: 'The Accountant sends a spreadsheet. Your name is in red, and so is the total.', paid: 'The Accountant stamps your slip PAID. One line of his ledger catches your eye: "Owner: M. Gold." He closes the book. "You saw nothing. Here is your rebate."' },
+    lou: { mid: 'Lou leaves a coin on your table. It is already spinning. It lands tails.', paid: 'Lou flips his coin one last time. You catch it. Both sides are stamped with a "G". "Keep it," he grins. "It is lucky. Mostly."' },
+    sal: { mid: 'The lights flicker. A cold breath on your neck. "We should talk," says nobody.', paid: 'Sal appears one last time. "We all report upstairs, you know." He vanishes, and a few chips are sitting where he stood.' }
+  };
+  function queueStory(kind, sh) {
+    if (STORY[kind][sh.id]) return;
+    STORY[kind][sh.id] = 1; storyQ.push({ kind: kind, s: sh }); saveStats();
+  }
+  function storyCount() { return Object.keys(STORY.paid).length; }
+  function storyNext() {
+    if (!storyQ.length || !$('modal').hidden) return false;
+    var q = storyQ.shift(), sh = q.s, txt = STORY_TEXT[sh.id][q.kind], after = function () { if (!checkUnlock()) checkSal(); };
+    if (q.kind === 'paid') {
+      var gift = MIN * 5; bank += gift; save(); render();
+      showModal(sh.short + ': chapter ' + storyCount() + ' of ' + SHARKS.length, txt + ' (+$' + gift + ')', [{ label: 'Continue', fn: after }], false, sh.id);
+    } else {
+      showModal(sh.short + ' has noticed you', txt, [{ label: 'Uh oh', fn: after }], false, sh.id);
+    }
+    return true;
+  }
+  /* ---------- Daily bonus ---------- */
+  var DAILY_PAY = [50, 75, 100, 125, 150, 200, 300];
+  function dayKey() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function dayNum(k) { var p = k.split('-'); return Math.round(Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000); }
+  function dailyCheck(tries) {
+    var today = dayKey();
+    if (DAILY.last && dayNum(DAILY.last) >= dayNum(today)) return;
+    if (!$('modal').hidden || (phase !== 'bet' && phase !== 'done')) { if ((tries || 0) < 8) setTimeout(function () { dailyCheck((tries || 0) + 1); }, 2500); return; }
+    var next = (DAILY.last && dayNum(today) - dayNum(DAILY.last) === 1) ? DAILY.streak + 1 : 1;
+    var amt = DAILY_PAY[Math.min(next, DAILY_PAY.length) - 1], tomorrow = DAILY_PAY[Math.min(next + 1, DAILY_PAY.length) - 1];
+    showModal('Daily bonus: day ' + next, 'The house sends a little something for showing up: $' + amt + '. ' + (next >= DAILY_PAY.length ? 'That is the top reward. Keep your streak going to keep it.' : 'Come back tomorrow for $' + tomorrow + '. Miss a day and the streak starts over.'),
+      [{ label: 'Claim $' + amt, fn: function () { DAILY.last = today; DAILY.streak = next; bank += amt; say('Daily bonus: +$' + amt + '.', 'win'); save(); saveStats(); render(); } }], true, 'neutral');
+  }
+
   function checkSal() {
+    if (storyNext()) return;
     var over = SHARKS.filter(function (s) { return S[s.id].debt > s.limit; })[0];
     if (over) visit(over); else if (bank < MIN) showBroke();
   }
@@ -749,7 +790,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     bank -= p.amt + p.fee; st.debt -= p.amt;
     sideMsg = '';
     if (st.debt <= 0) {
-      st.debt = 0; st.held = 0; st.due = 0; st.hidden = false; cleared[s.id] = true;
+      st.debt = 0; st.held = 0; st.due = 0; st.hidden = false; cleared[s.id] = true; queueStory('paid', s);
       say(s.name + ' is paid off.', 'win');
       if (p.fee) sideMsg = 'Silence fee: $' + p.fee + '.';
     } else {
@@ -815,9 +856,9 @@ body::before { filter: brightness(var(--dimf, 1)); }
     if (room === 'high') { setRoom('low'); checkSal(); } else enterHigh();
   }
   function checkUnlock() {
-    if (unlocked || clearedCount() < SHARKS.length || totalDebt() > 0 || totalBounty() > 0) return false;
+    if (unlocked || clearedCount() < SHARKS.length || totalDebt() > 0 || totalBounty() > 0 || storyQ.length) return false;
     unlocked = true; save(); render();
-    showModal('The High-Roller Room is open', 'Every shark is paid off. A velvet rope lifts and a door opens upstairs: a new table, $' + ROOMS.high.min + ' minimum, and no loan sharks allowed.',
+    showModal('The High-Roller Room is open', 'Every shark is paid off. A velvet rope lifts, and a card slides across the felt: "Six debts, six sharks, one name. Thank you for the entertainment. Upstairs the stakes are higher, and nobody lends. Mr. Gold." A door opens: a new table, $' + ROOMS.high.min + ' minimum, and no loan sharks allowed.',
       [{ label: 'Enter now', fn: enterHigh }, { label: 'Stay here for now', fn: checkSal, go: false }], false, 'neutral');
     return true;
   }
@@ -1202,6 +1243,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     SHARKS.forEach(function (s) {
       var st = S[s.id]; if (st.debt <= 0) return;
       var r = rateOf(s); st.held++;
+      if (st.held === 6) queueStory('mid', s);
       st.debt += Math.ceil(st.debt * r);
       if (s.id === 'tony') { st.due--; if (st.due <= 0) { blindNext = true; st.due = 5; } }
     });
@@ -1249,7 +1291,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
   function restartGame(full) {
     SHARKS.forEach(function (sh) { S[sh.id] = { debt: 0, held: 0, due: 0, hidden: false, bounty: 0 }; });
     wanted = 0; blindNext = false; blind = false; interestMsg = ''; insBet = 0; susp = 0; backoff = 0; deck = []; updateGlow();
-    if (full) { unlocked = false; cleared = {}; stakesUnlocked = false; }
+    if (full) { unlocked = false; cleared = {}; stakesUnlocked = false; STORY = { mid: {}, paid: {} }; storyQ = []; saveStats(); }
     room = 'low'; game = 'bj'; derby.phase = 'bet'; derby.pick = -1; derby.prop = 0; vp.phase = 'bet'; vp.cards = []; vp.hidden = [1, 1, 1, 1, 1]; vp.win = 0; vp.dbl = null; vp.result = '';
     clearInterval(derby.timer); derby.timer = null; rnd = Math.random;
     resetStack();
@@ -1910,7 +1952,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
   function statsMenu() {
     if (phase !== 'bet' && phase !== 'done') return;
     var pct = function (a, b) { return b ? Math.round(a * 100 / b) + '%' : '-'; };
-    showModal('The Ledger', 'Hands played: ' + ST.hands + '\nWon ' + ST.won + ' \u00b7 Lost ' + ST.lost + ' \u00b7 Pushed ' + ST.pushed + '  (' + pct(ST.won, ST.hands) + ' wins)\nBlackjacks: ' + ST.bj + ' \u00b7 Busts: ' + ST.busts + '\nBiggest win: $' + ST.bigWin + ' \u00b7 Biggest loss: $' + ST.bigLoss + '\nBest win streak: ' + ST.bestStreak + '\nShoes shuffled: ' + ST.shoes + ' \u00b7 Times the pit boss backed you off: ' + ST.spotted + '\nPlayed by basic strategy: ' + pct(ST.decOk, ST.dec) + ' of ' + ST.dec + ' decisions',
+    showModal('The Ledger', 'Hands played: ' + ST.hands + '\nWon ' + ST.won + ' \u00b7 Lost ' + ST.lost + ' \u00b7 Pushed ' + ST.pushed + '  (' + pct(ST.won, ST.hands) + ' wins)\nBlackjacks: ' + ST.bj + ' \u00b7 Busts: ' + ST.busts + '\nBiggest win: $' + ST.bigWin + ' \u00b7 Biggest loss: $' + ST.bigLoss + '\nBest win streak: ' + ST.bestStreak + '\nShoes shuffled: ' + ST.shoes + ' \u00b7 Times the pit boss backed you off: ' + ST.spotted + '\nStory chapters: ' + storyCount() + ' of ' + SHARKS.length + ' \u00b7 Daily streak: ' + DAILY.streak + '\nPlayed by basic strategy: ' + pct(ST.decOk, ST.dec) + ' of ' + ST.dec + ' decisions',
       [{ label: 'Close', fn: function () {} }], true, 'neutral');
   }
   $('title').addEventListener('click', function () {
@@ -1921,6 +1963,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
   if (bank >= MIN && bet > bank) bet = CHIPS.filter(function (v) { return v <= bank; })[0];
   render();
   if (!checkStakes()) checkSal();
+  setTimeout(dailyCheck, 800);
 })();
 </script>
 
