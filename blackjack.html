@@ -221,6 +221,19 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .coachrow .sharkbtn { flex: 0 0 auto; padding: 0 14px; }
 #coachTip { font-weight: 700; color: #ffe27a; font-size: 0.95rem; }
 .act.rec { box-shadow: 0 0 0 3px #7dff9a, 0 0 14px rgba(125, 255, 154, 0.7); }
+/* ---- Jacks or Better ---- */
+.vp { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.vpay { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(5, auto); grid-auto-flow: column; gap: 2px 14px; padding: 8px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 210, 74, 0.45); font-size: 0.8rem; }
+.vpay div { display: flex; justify-content: space-between; gap: 6px; color: #fff; padding: 1px 4px; border-radius: 6px; }
+.vpay b { color: #ffe27a; font-variant-numeric: tabular-nums; }
+.vpay div.hit { background: #ffe27a; color: #1a1a1a; } .vpay div.hit b { color: #1a1a1a; }
+.vpcards { --ch: 88px; display: flex; justify-content: center; gap: 5px; margin: 8px 0 2px; padding: 0 4px; }
+.vpc { position: relative; padding: 0; background: none; border: 0; cursor: pointer; border-radius: 10px; }
+.vpc:disabled { cursor: default; }
+.vpc .card { margin: 0; }
+.vpc.held .card { transform: translateY(-8px); box-shadow: 0 0 0 3px #7dff9a, 0 8px 16px rgba(0, 0, 0, 0.5); }
+.vpc .heldtag { position: absolute; left: 0; right: 0; bottom: -18px; text-align: center; font-size: 0.72rem; font-weight: 800; color: #7dff9a; letter-spacing: 0.06em; }
+.vhand { margin: 14px 0 0; text-align: center; font-weight: 800; color: #fff; min-height: 1.3em; }
 /* Easter egg: the room follows the Hi-Lo true count. Rich shoe: gold glitter drifts over everything. Poor shoe: a cold blue chill and falling frost. */
 .hotv, .coldv { position: fixed; inset: 0; pointer-events: none; z-index: 5; opacity: 0; transition: opacity 2s ease; overflow: hidden; }
 .hotv::before, .hotv::after { content: ''; position: absolute; inset: 0; }
@@ -359,6 +372,17 @@ body::before { filter: brightness(var(--dimf, 1)); }
     <div class="sides"><button class="sidebtn" id="dProp" aria-pressed="false">Boot Stomp 3:1<span id="dPropAmt">$0</span></button><button class="sidebtn" id="dForm" type="button">Bet type<span id="dFormAmt">Win</span></button></div>
     <button class="sidebtn tipbtn" id="dTip" type="button">Pay the bookie for a tip<span id="dTipAmt"></span></button>
     <button class="primary" id="dGo">Pick a bug</button>
+  </section>
+
+  <section class="vp" id="vp" hidden>
+    <div class="dhead"><h2>Jacks or Better</h2><p class="dsub" id="vSub">Bet, deal, hold, draw.</p></div>
+    <div class="vpay" id="vPay"></div>
+    <div class="vpcards" id="vCards"></div>
+    <p class="vhand" id="vHand"></p>
+    <p class="msg dmsg" id="vMsg"></p>
+    <div class="betline"><span>Bet</span><b id="vWager">$25</b></div>
+    <div class="chips" id="vChips" role="group" aria-label="Bet size"></div>
+    <button class="primary" id="vGo">Deal</button>
   </section>
 
   <section class="controls" id="bjControls">
@@ -774,7 +798,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     el.dim.style.opacity = String(heat * 0.5);
     el.redv.style.opacity = String(heat);
     document.body.classList.toggle('hr', room === 'high');
-    $('title').textContent = game === 'derby' ? 'Roach Derby' : (room === 'high' ? 'High-Roller Blackjack' : 'Pocket Blackjack');
+    $('title').textContent = game === 'derby' ? 'Roach Derby' : game === 'vp' ? 'Jacks or Better' : (room === 'high' ? 'High-Roller Blackjack' : 'Pocket Blackjack');
   }
 
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
@@ -1164,6 +1188,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     if (g === game) return;
     game = g;
     if (g === 'derby') { if (CHIPS.indexOf(bet) < 0 || bet > bank) bet = bestChip(); newRace(); }
+    if (g === 'vp') { if (CHIPS.indexOf(bet) < 0 || bet > bank) bet = bestChip(); }
     render();
     if (bank < MIN) checkSal();
   }
@@ -1171,7 +1196,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     SHARKS.forEach(function (sh) { S[sh.id] = { debt: 0, held: 0, due: 0, hidden: false, bounty: 0 }; });
     wanted = 0; blindNext = false; blind = false; interestMsg = ''; insBet = 0; susp = 0; backoff = 0; deck = []; updateGlow();
     if (full) { unlocked = false; cleared = {}; stakesUnlocked = false; }
-    room = 'low'; game = 'bj'; derby.phase = 'bet'; derby.pick = -1; derby.prop = 0;
+    room = 'low'; game = 'bj'; derby.phase = 'bet'; derby.pick = -1; derby.prop = 0; vp.phase = 'bet'; vp.cards = []; vp.result = '';
     clearInterval(derby.timer); derby.timer = null; rnd = Math.random;
     resetStack();
   }
@@ -1186,6 +1211,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     var btns = [
       { label: 'Blackjack' + (game === 'bj' ? ' (here)' : ''), sub: 'Splits, side bets, loan sharks', go: false, disabled: game === 'bj', fn: function () { setGame('bj'); } },
       { label: 'Back Alley Roach Derby' + (game === 'derby' ? ' (here)' : ''), sub: room === 'high' ? 'Back alley only. Head downstairs first.' : 'Bet on bugs. Boots may fall.', go: false, disabled: game === 'derby' || room === 'high', fn: function () { setGame('derby'); } },
+      { label: 'Jacks or Better' + (game === 'vp' ? ' (here)' : ''), sub: 'Video poker. Hold, draw, get paid.', go: false, disabled: game === 'vp', fn: function () { setGame('vp'); } },
       { label: 'Restart game…', sub: 'Start over with a fresh stack', go: false, fn: restartMenu },
       { label: 'Close', go: false, fn: function () {} }
     ];
@@ -1193,12 +1219,13 @@ body::before { filter: brightness(var(--dimf, 1)); }
   }
   function renderTables() {
     var d = game === 'derby', betting = phase === 'bet' || phase === 'done';
-    $('bjTable').hidden = d; $('bjControls').hidden = d; $('derby').hidden = !d;
+    $('bjTable').hidden = game !== 'bj'; $('bjControls').hidden = game !== 'bj'; $('derby').hidden = !d; $('vp').hidden = game !== 'vp';
     el.stakesBtn.hidden = !(stakesUnlocked && room === 'low' && !d && betting);
     el.stakesBtn.textContent = stakes ? 'Lower stakes' : 'Raise stakes';
     el.stakesBtn2.hidden = !(stakesUnlocked && room === 'low' && d && derby.phase !== 'run');
     el.stakesBtn2.textContent = stakes ? 'Lower stakes' : 'Raise stakes';
     if (d) renderDerby();
+    if (game === 'vp') renderVp();
   }
 
   /* ---------- Back Alley Roach Derby ---------- */
@@ -1447,6 +1474,95 @@ body::before { filter: brightness(var(--dimf, 1)); }
     if (!checkStakes()) checkSal();
   }
 
+  /* ---------- Jacks or Better (video poker) ---------- */
+  var VP_PAY = [['Royal flush', 250], ['Straight flush', 50], ['Four of a kind', 25], ['Full house', 9], ['Flush', 6], ['Straight', 4], ['Three of a kind', 3], ['Two pair', 2], ['Jacks or better', 1]];
+  var vp = { phase: 'bet', cards: [], held: [0, 0, 0, 0, 0], deck: [], prevPhase: 'bet', result: '', resultClass: '', hit: -1, built: false, boxes: [] };
+  function vpRank(c) { return c.r === 'A' ? 14 : RANKS.indexOf(c.r) + 1; }
+  function vpEval(cs) {
+    var r = cs.map(vpRank).sort(function (a, b) { return a - b; }), cnt = {}, i;
+    r.forEach(function (v) { cnt[v] = (cnt[v] || 0) + 1; });
+    var groups = Object.keys(cnt).map(function (k) { return [cnt[k], +k]; }).sort(function (a, b) { return b[0] - a[0] || b[1] - a[1]; });
+    var flush = cs.every(function (c) { return c.s === cs[0].s; });
+    var uniq = groups.length === 5, straight = uniq && (r[4] - r[0] === 4 || (r[4] === 14 && r[3] === 5 && r[0] === 2));
+    if (straight && flush) return r[0] === 10 ? 0 : 1;
+    if (groups[0][0] === 4) return 2;
+    if (groups[0][0] === 3 && groups[1][0] === 2) return 3;
+    if (flush) return 4;
+    if (straight) return 5;
+    if (groups[0][0] === 3) return 6;
+    if (groups[0][0] === 2 && groups[1][0] === 2) return 7;
+    if (groups[0][0] === 2 && groups[0][1] >= 11) return 8;
+    return -1;
+  }
+  function vpMult(idx) { return idx === 0 && bet === CHIPS[0] ? 800 : VP_PAY[idx][1]; }
+  function vpBuild() {
+    var pay = $('vPay'), box = $('vCards'), i;
+    pay.textContent = '';
+    VP_PAY.forEach(function (p, k) { var d = document.createElement('div'); d.innerHTML = '<span></span><b></b>'; d.firstChild.textContent = p[0]; d.lastChild.textContent = p[1]; pay.appendChild(d); });
+    box.textContent = ''; vp.boxes = [];
+    for (i = 0; i < 5; i++) (function (k) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'vpc';
+      b.addEventListener('click', function () { if (vp.phase !== 'hold') return; vp.held[k] = vp.held[k] ? 0 : 1; renderVp(); });
+      box.appendChild(b); vp.boxes.push(b);
+    })(i);
+    vp.built = true;
+  }
+  function renderVp() {
+    if (!vp.built) vpBuild();
+    var hold = vp.phase === 'hold', done = vp.phase === 'done', cur = vp.cards.length === 5 ? vpEval(vp.cards) : -2;
+    vp.boxes.forEach(function (b, i) {
+      b.textContent = '';
+      b.appendChild(cardEl(vp.cards[i], !vp.cards[i], true));
+      if (hold && vp.held[i]) { var t = document.createElement('span'); t.className = 'heldtag'; t.textContent = 'HELD'; b.appendChild(t); }
+      b.className = 'vpc' + (hold && vp.held[i] ? ' held' : ''); b.disabled = !hold;
+      b.setAttribute('aria-label', vp.cards[i] ? vp.cards[i].r + ' of ' + NAMES[vp.cards[i].s] + (vp.held[i] ? ', held' : '') : 'Empty card');
+    });
+    var rows = $('vPay').children, k;
+    for (k = 0; k < rows.length; k++) { rows[k].className = (cur === k && (hold || done)) ? 'hit' : ''; }
+    rows[0].lastChild.textContent = bet === CHIPS[0] ? '800' : '250';
+    $('vHand').textContent = (hold || done) ? (cur >= 0 ? VP_PAY[cur][0] : 'No win') : '';
+    $('vSub').textContent = hold ? 'Tap the cards you want to keep, then Draw.' : (done ? 'Change your bet or deal again.' : 'Max chip pays 800 for a royal flush.');
+    var dm = $('vMsg'); dm.textContent = vp.result; dm.className = 'msg dmsg' + (vp.resultClass ? ' ' + vp.resultClass : '');
+    $('vWager').textContent = '$' + bet;
+    var box = $('vChips'), sig = CHIPS.join(',');
+    if (vp.sig !== sig) {
+      vp.sig = sig; box.textContent = '';
+      CHIPS.slice().reverse().forEach(function (v) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.dataset.v = String(v); b.textContent = v >= 1000 ? (v / 1000) + 'K' : String(v);
+        b.addEventListener('click', function () { if (vp.phase === 'hold') return; bet = v; render(); });
+        box.appendChild(b);
+      });
+    }
+    Array.prototype.forEach.call(box.children, function (b) { var v = parseInt(b.dataset.v, 10); b.disabled = hold || v > bank; b.setAttribute('aria-pressed', String(v === bet)); });
+    var go = $('vGo');
+    if (hold) { go.disabled = false; go.textContent = 'Draw'; }
+    else if (bank < Math.max(bet, MIN)) { go.disabled = true; go.textContent = 'Not enough chips'; }
+    else { go.disabled = false; go.textContent = (done ? 'Deal again: $' : 'Deal: $') + bet; }
+  }
+  function vpGo() {
+    if (vp.phase === 'hold') { vpDraw(); return; }
+    if ((phase !== 'bet' && phase !== 'done') || bank < bet || bank < MIN) return;
+    vp.prevPhase = phase; phase = 'busy';
+    bank -= bet; save();
+    var notes = tickDebts(); blindNext = false; save();
+    vp.deck = (function () { var d = [], j; SUITS.forEach(function (st) { RANKS.forEach(function (r) { d.push({ r: r, s: st }); }); }); for (j = d.length - 1; j > 0; j--) { var k = Math.floor(Math.random() * (j + 1)), t = d[j]; d[j] = d[k]; d[k] = t; } return d; })();
+    vp.cards = vp.deck.splice(0, 5); vp.held = [0, 0, 0, 0, 0]; vp.phase = 'hold';
+    vp.result = notes.length ? notes.join(' \u00b7 ') : ''; vp.resultClass = '';
+    render();
+  }
+  function vpDraw() {
+    var i; for (i = 0; i < 5; i++) if (!vp.held[i]) vp.cards[i] = vp.deck.shift();
+    var idx = vpEval(vp.cards);
+    vp.phase = 'done'; phase = vp.prevPhase;
+    if (idx >= 0) {
+      var m = vpMult(idx), got = bet * m; bank += got;
+      vp.result = VP_PAY[idx][0] + '! ' + (m === 1 ? 'Bet returned.' : 'You win $' + (got - bet)); vp.resultClass = m === 1 ? '' : 'win';
+    } else { vp.result = 'No win. You lose $' + bet; vp.resultClass = 'lose'; }
+    if (bet > bank && bank >= MIN) bet = bestChip();
+    save(); render();
+    if (!checkStakes()) checkSal();
+  }
+
   /* Actions */
   async function deal() {
     if (phase !== 'bet' && phase !== 'done') return;
@@ -1589,6 +1705,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
   $('dProp').addEventListener('click', cycleProp);
   $('dForm').addEventListener('click', toggleBetType);
   $('dTip').addEventListener('click', tipMenu);
+  $('vGo').addEventListener('click', vpGo);
   $('coachBtn').addEventListener('click', function () { coachOn = !coachOn; saveStats(); render(); });
   $('bank').addEventListener('click', function () {
     statTaps++; clearTimeout(statTimer); statTimer = setTimeout(function () { statTaps = 0; }, 1500);
