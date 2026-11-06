@@ -216,14 +216,34 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     background-image: radial-gradient(circle at 40px 70px, var(--spk) 0 1.4px, transparent 2.4px), radial-gradient(circle at 150px 20px, var(--spk2) 0 1.2px, transparent 2.2px);
     background-size: 227px 193px, 181px 239px; animation: twinkle 4.5s ease-in-out infinite alternate; }
 }
-/* Easter egg: the felt follows the Hi-Lo true count (gold when the shoe is rich in tens and aces) */
-.hotv { position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0; transition: opacity 2.5s ease; }
+/* Easter egg: the room follows the Hi-Lo true count. Rich shoe: gold glitter drifts over everything. Poor shoe: a cold blue chill and falling frost. */
+.hotv, .coldv { position: fixed; inset: 0; pointer-events: none; z-index: 5; opacity: 0; transition: opacity 2s ease; overflow: hidden; }
+.hotv::before, .hotv::after { content: ''; position: absolute; inset: 0; }
+.hotv::before {
+  background-image:
+    radial-gradient(circle at 20px 30px, #fff6c2 0 2px, rgba(255, 210, 74, 0.9) 3px, transparent 6px),
+    radial-gradient(circle at 90px 110px, #fff 0 1.6px, rgba(255, 225, 120, 0.9) 3px, transparent 6px),
+    radial-gradient(circle at 150px 40px, #ffe27a 0 2.2px, rgba(255, 190, 40, 0.8) 3.5px, transparent 7px),
+    radial-gradient(circle at 60px 170px, #fff6c2 0 1.8px, rgba(255, 210, 74, 0.9) 3px, transparent 6px);
+  background-size: 113px 131px, 157px 143px, 191px 167px, 97px 211px; }
+.hotv::after {
+  background-image:
+    radial-gradient(circle at 40px 70px, #fff 0 1.8px, rgba(255, 215, 90, 0.9) 3px, transparent 6px),
+    radial-gradient(circle at 130px 20px, #ffe27a 0 2px, rgba(255, 200, 60, 0.85) 3.5px, transparent 7px),
+    radial-gradient(circle at 10px 120px, #fff6c2 0 1.6px, rgba(255, 225, 120, 0.9) 3px, transparent 6px);
+  background-size: 139px 109px, 173px 193px, 127px 157px; }
+.coldv { background: radial-gradient(ellipse at 50% 40%, rgba(70, 130, 255, 0.3) 10%, rgba(10, 30, 120, 0.7) 120%); }
+.coldv::before { content: ''; position: absolute; inset: -200px 0 0 0;
+  background-image: radial-gradient(circle at 20px 20px, rgba(235, 248, 255, 1) 0 2.4px, transparent 4px), radial-gradient(circle at 80px 70px, rgba(210, 235, 255, 1) 0 3.2px, transparent 5px), radial-gradient(circle at 50px 120px, rgba(245, 252, 255, 1) 0 2px, transparent 3.6px);
+  background-size: 101px 137px, 149px 173px, 83px 109px; }
 @media (prefers-reduced-motion: no-preference) {
-  .hotv::before { content: ''; position: absolute; inset: 0;
-    background-image: radial-gradient(circle at 30px 50px, rgba(255, 215, 90, 1) 0 1.6px, transparent 2.8px), radial-gradient(circle at 110px 130px, rgba(255, 240, 170, 1) 0 1.4px, transparent 2.6px), radial-gradient(circle at 170px 20px, rgba(255, 215, 90, 1) 0 1.5px, transparent 2.7px), radial-gradient(circle at 70px 190px, rgba(255, 240, 170, 1) 0 1.3px, transparent 2.5px);
-    background-size: 139px 163px, 187px 149px, 211px 177px, 157px 223px; animation: twinkle var(--twk, 2.4s) ease-in-out infinite alternate; }
+  .hotv::before { animation: glit 1.9s ease-in-out infinite alternate; }
+  .hotv::after { animation: glit 1.3s ease-in-out -0.7s infinite alternate; }
+  .coldv::before { animation: frost 9s linear infinite; }
 }
-body::before { filter: brightness(var(--cold, 1)); }
+@keyframes glit { 0% { opacity: 0.05; transform: scale(0.98); } 55% { opacity: 1; } 100% { opacity: 0.2; transform: scale(1.02); } }
+@keyframes frost { from { transform: translateY(0); } to { transform: translateY(200px); } }
+body::before { filter: brightness(var(--dimf, 1)); }
 @keyframes twinkle { from { opacity: 0.15; } to { opacity: 1; } }
 
 /* ---- Brighter buttons and text ---- */
@@ -297,6 +317,7 @@ body::before { filter: brightness(var(--cold, 1)); }
 <div class="dim" id="dim" aria-hidden="true"></div>
 <div class="redv" id="redv" aria-hidden="true"></div>
 <div class="hotv" id="hotv" aria-hidden="true"></div>
+<div class="coldv" id="coldv" aria-hidden="true"></div>
 
 <main class="app">
   <header class="top">
@@ -762,10 +783,10 @@ body::before { filter: brightness(var(--cold, 1)); }
   function trueCount() { return rc / Math.max(0.5, deck.length / 52); }
   function draw() { if (deck.length < 16) { deck = shuffled(); } var c = deck.pop(); rc += hiLo(c); return c; }
   function updateGlow() {
-    var tc = trueCount(), hot = Math.max(0, Math.min(1, (tc - 1) / 4)), cold = tc < -1 ? Math.max(0.3, 1 + (tc + 1) * 0.12) : 1;
+    var tc = trueCount(), hot = Math.max(0, Math.min(1, (tc - 0.5) / 2.5)), cold = Math.max(0, Math.min(1, (-tc - 0.5) / 2.5));
     $('hotv').style.opacity = String(hot);
-    document.body.style.setProperty('--twk', (2.6 - hot * 1.4).toFixed(2) + 's');
-    document.body.style.setProperty('--cold', cold.toFixed(2));
+    $('coldv').style.opacity = String(cold);
+    document.body.style.setProperty('--dimf', String(cold > 0 ? Math.max(0.3, 1 - cold * 0.7) : 1));
   }
 
   function cardVal(c) { return c.r === 'A' ? 11 : (['J', 'Q', 'K'].indexOf(c.r) >= 0 ? 10 : parseInt(c.r, 10)); }
