@@ -228,10 +228,10 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .coachrow .sharkbtn { flex: 0 0 auto; padding: 0 14px; }
 #coachTip { font-weight: 700; color: #ffe27a; font-size: 0.95rem; }
 .act.rec { box-shadow: 0 0 0 3px #7dff9a, 0 0 14px rgba(125, 255, 154, 0.7); }
-.betx { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
-.betx button { min-height: 40px; border-radius: 10px; border: 1.5px solid rgba(255, 210, 74, 0.6); background: rgba(0, 0, 0, 0.4); color: #ffe27a; font-weight: 800; font-size: 0.9rem; }
-.betx button:disabled { opacity: 0.4; }
 .coachrow { flex-wrap: wrap; }
+.optrow { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.optrow .sharkbtn { flex: 1 1 auto; padding: 0 10px; font-size: 0.88rem; }
+.coachrow:has(#coachTip:empty):has(#coachBet[hidden]) { display: none; }
 #coachBet { color: #7dff9a; border-color: #7dff9a; }
 /* ---- Shoe and discard tray ---- */
 .tray { margin: 8px 0 0; padding: 8px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 210, 74, 0.35); cursor: pointer; color: #fff; }
@@ -479,7 +479,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
   <section class="controls" id="bjControls">
     <div class="betline"><span id="wlabel">Bet</span><button class="stakesbtn" id="stakesBtn" hidden>Raise stakes</button><b id="wager">$25</b></div>
 
-    <div class="coachrow"><button class="sharkbtn" id="coachBtn" type="button" aria-pressed="false">Coach: off</button><button class="sharkbtn" id="toolsBtn" type="button" aria-pressed="false">Bet tools: off</button><button class="sharkbtn" id="dustBtn" type="button" aria-pressed="true">Dust: on</button><span id="coachTip" role="status"></span><button class="sharkbtn" id="coachBet" type="button" hidden></button></div>
+    <div class="coachrow"><span id="coachTip" role="status"></span><button class="sharkbtn" id="coachBet" type="button" hidden></button></div>
 
     <div id="betRow" class="stack">
       <div class="chips" role="group" aria-label="Bet size">
@@ -487,9 +487,6 @@ body::before { filter: brightness(var(--dimf, 1)); }
         <button class="chip" data-v="25" aria-pressed="true">25</button>
         <button class="chip" data-v="50" aria-pressed="false">50</button>
         <button class="chip" data-v="100" aria-pressed="false">100</button>
-      </div>
-      <div class="betx" role="group" aria-label="Adjust bet">
-        <button type="button" id="betHalf">Half</button><button type="button" id="betDbl">Double</button><button type="button" id="betMax">Max bet</button>
       </div>
       <div class="sides">
         <button class="sidebtn" id="ppBtn" aria-pressed="false">Lucky Lucky<span id="ppAmt">$0</span></button>
@@ -500,6 +497,14 @@ body::before { filter: brightness(var(--dimf, 1)); }
         <p><b>Lucky Lucky</b> (your first two cards plus the dealer's up card): total 19 or 20 pays 2:1, 21 pays 3:1, suited 21 pays 15:1, 6-7-8 pays 30:1 (suited 100:1), 7-7-7 pays 50:1 (suited 200:1). Tap to cycle $0, $5, $10, $25.</p>
         <p><b>Bust-It</b> (the dealer's final hand): the dealer busts on 3 cards pays 1:1, 4 cards 2:1, 5 cards 9:1, 6 cards 50:1, 7 cards 100:1, 8 or more 250:1. If the dealer does not bust, you lose it.</p>
         <p><b>Insurance</b> is offered when the dealer shows an Ace. It costs half your bet and pays 2:1.</p>
+      </details>
+      <details class="pay" id="optsBox">
+        <summary>Coach and dust</summary>
+        <div class="optrow">
+          <button class="sharkbtn" id="coachBtn" type="button" aria-pressed="false">Coach: off</button>
+          <button class="sharkbtn" id="dustBtn" type="button" aria-pressed="true">Dust: on</button>
+        </div>
+        <p>Coach shows the true count, whether to bet heavy or light, the best play and insurance advice. Dust makes the room glitter gold when the count is high and turn blue when it is low.</p>
       </details>
       <button class="sharkbtn" id="roomBtn" hidden></button>
       <button class="primary" id="deal">Deal</button>
@@ -513,7 +518,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     <div class="playrow" id="playRow" hidden>
       <button class="act hit" id="hit">Hit</button>
       <button class="act" id="stand">Stand</button>
-      <button class="act dbl" id="dbl">Double (1 card)</button>
+      <button class="act dbl" id="dbl">Double</button>
       <button class="act spl" id="spl">Split</button>
     </div>
   </section>
@@ -1179,10 +1184,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
       c.setAttribute('aria-pressed', String(v === bet));
     });
     $('dustBtn').textContent = dustOn ? 'Dust: on' : 'Dust: off'; $('dustBtn').setAttribute('aria-pressed', String(dustOn));
-    $('toolsBtn').textContent = betTools ? 'Bet tools: on' : 'Bet tools: off'; $('toolsBtn').setAttribute('aria-pressed', String(betTools));
-    document.querySelector('.betx').hidden = !betTools;
     var bx = phase === 'bet' || phase === 'done', mxb = maxBet();
-    $('betHalf').disabled = !bx || bet <= MIN; $('betDbl').disabled = !bx || bet * 2 > mxb; $('betMax').disabled = !bx || mxb < MIN || bet >= mxb;
     el.ppAmt.textContent = '$' + pp; el.ppBtn.setAttribute('aria-pressed', String(pp > 0));
     el.t3Amt.textContent = '$' + t3; el.t3Btn.setAttribute('aria-pressed', String(t3 > 0));
     var locked = S.viper.debt > 0;
@@ -2014,10 +2016,6 @@ body::before { filter: brightness(var(--dimf, 1)); }
   }
 
   $('dustBtn').addEventListener('click', function () { dustOn = !dustOn; saveStats(); updateGlow(); render(); });
-  $('toolsBtn').addEventListener('click', function () { betTools = !betTools; saveStats(); render(); });
-  $('betHalf').addEventListener('click', function () { setBet(bet / 2); });
-  $('betDbl').addEventListener('click', function () { setBet(bet * 2); });
-  $('betMax').addEventListener('click', function () { setBet(maxBet()); });
   $('coachBet').addEventListener('click', function () { setBet(coachBetAdvice().amt); });
   chips.forEach(function (c) {
     c.addEventListener('click', function () {
