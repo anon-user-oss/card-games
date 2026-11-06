@@ -1875,6 +1875,10 @@ body::before { filter: brightness(var(--dimf, 1)); }
     say('Dealing…', ''); render();
     var order = [hands[0].cards, dealer, hands[0].cards, dealer];
     for (var i = 0; i < order.length; i++) { order[i].push(draw()); render(); await sleep(260); }
+    if (showHole && cardVal(dealer[0]) >= 10) {   /* never flash the hole card under an Ace or ten: that would make insurance free money */
+      showHole = false; flashHole = true;
+      interestMsg = interestMsg.split(' \u00b7 ').filter(function (t) { return t.indexOf('flashes his hole card') < 0; }).join(' \u00b7 ');
+    }
     if (!showHole) { rc -= hiLo(dealer[1]); holeCounted = false; }
     resolveSides();
     render();
