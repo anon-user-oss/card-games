@@ -770,13 +770,16 @@ body::before { filter: brightness(var(--dimf, 1)); }
   function dailyCheck(tries) {
     var today = dayKey();
     if (DAILY.last && dayNum(DAILY.last) >= dayNum(today)) return;
-    if (!$('modal').hidden || (phase !== 'bet' && phase !== 'done')) { if ((tries || 0) < 8) setTimeout(function () { dailyCheck((tries || 0) + 1); }, 2500); return; }
+    if (!$('modal').hidden || (phase !== 'bet' && phase !== 'done') || Date.now() - lastAct < 3000) { if ((tries || 0) < 8) setTimeout(function () { dailyCheck((tries || 0) + 1); }, 2500); return; }
     var next = (DAILY.last && dayNum(today) - dayNum(DAILY.last) === 1) ? DAILY.streak + 1 : 1;
     var amt = DAILY_PAY[Math.min(next, DAILY_PAY.length) - 1], tomorrow = DAILY_PAY[Math.min(next + 1, DAILY_PAY.length) - 1];
     showModal('Daily bonus: day ' + next, 'The house sends a little something for showing up: $' + amt + '. ' + (next >= DAILY_PAY.length ? 'That is the top reward. Keep your streak going to keep it.' : 'Come back tomorrow for $' + tomorrow + '. Miss a day and the streak starts over.'),
       [{ label: 'Claim $' + amt, fn: function () { DAILY.last = today; DAILY.streak = next; bank += amt; say('Daily bonus: +$' + amt + '.', 'win'); save(); saveStats(); render(); } }], true, 'neutral');
   }
 
+  /* Automatic popups wait until the result of a hand has been on screen for a moment, and never open mid-hand. */
+  var lastAct = 0;
+  function afterHand(fn) { setTimeout(function () { if (phase === 'bet' || phase === 'done') fn(); }, 1800); }
   function checkSal() {
     if (storyNext()) return;
     var over = SHARKS.filter(function (s) { return S[s.id].debt > s.limit; })[0];
@@ -1090,6 +1093,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
   }
 
   function render() {
+    lastAct = Date.now();
     fixStakes();
     el.bank.textContent = '$' + bank;
     renderDebt();
@@ -1254,7 +1258,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     if (bet > bank && bank >= MIN) bet = CHIPS.filter(function (v) { return v <= bank; })[0];
     phase = 'done';
     render();
-    if (!maybeReveal(net)) { if (!checkStakes()) checkSal(); }
+    afterHand(function () { if (!maybeReveal(net)) { if (!checkStakes()) checkSal(); } });
   }
 
   function startPlay() {
@@ -1616,7 +1620,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     if (bet + derby.prop > bank) { derby.prop = 0; }
     if (bet > bank) bet = bestChip();
     save(); render();
-    if (!checkStakes()) checkSal();
+    afterHand(function () { if (!checkStakes()) checkSal(); });
   }
 
   /* ---------- Jacks or Better (video poker) ---------- */
@@ -1786,7 +1790,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     vp.banner = text; vp.bannerCls = cls; vpBurst(big);
     clearTimeout(vp.timer); vp.timer = setTimeout(function () { vp.banner = ''; if (game === 'vp') renderVp(); }, 2600);
   }
-  function vpFinish() { if (!checkStakes()) checkSal(); }
+  function vpFinish() { afterHand(function () { if (!checkStakes()) checkSal(); }); }
   async function vpGo() {
     if (vp.phase === 'hold') { vpDraw(); return; }
     if (vp.phase === 'dbl') {
