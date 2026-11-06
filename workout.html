@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EMOM Workout Clock</title>
+<style>
+:root { --bg:#0e1116; --card:#181d25; --fg:#f2f5f9; --mut:#8b95a5; --work:#22c55e; --rest:#f59e0b; --pre:#3b82f6; --done:#a855f7; --accent:#22c55e; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+body { display:flex; flex-direction:column; padding:max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); max-width:560px; margin:0 auto; transition: background .3s; }
+body.work { background:#0b2a17; --accent:var(--work); }
+body.rest { background:#33210a; --accent:var(--rest); }
+body.pre { background:#0d1d3a; --accent:var(--pre); }
+body.done { background:#26103a; --accent:var(--done); }
+h1 { font-size:1.1rem; margin:0 0 12px; color:var(--mut); font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
+a.back { color:var(--mut); text-decoration:none; font-size:.9rem; }
+#setup { display:flex; flex-direction:column; gap:12px; }
+.presets { display:flex; gap:8px; flex-wrap:wrap; }
+.presets button, .step button { background:var(--card); color:var(--fg); border:1px solid #2b3340; border-radius:10px; min-height:44px; padding:0 14px; font-size:.95rem; font-weight:600; }
+.row { background:var(--card); border-radius:14px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.row label { font-weight:600; }
+.row small { display:block; color:var(--mut); font-weight:400; font-size:.8rem; }
+.step { display:flex; align-items:center; gap:8px; }
+.step button { width:46px; padding:0; font-size:1.3rem; }
+.step input { width:72px; min-height:44px; text-align:center; font-size:1.3rem; font-weight:700; background:#0e1116; color:var(--fg); border:1px solid #2b3340; border-radius:10px; }
+.sum { text-align:center; color:var(--mut); padding:4px 0; }
+.big { background:var(--accent); color:#04110a; border:0; border-radius:16px; min-height:62px; font-size:1.3rem; font-weight:800; width:100%; }
+#run { display:none; flex:1; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:8px; }
+body.running #setup { display:none; }
+body.running #run { display:flex; }
+#phase { font-size:clamp(2rem, 10vw, 3.4rem); font-weight:900; letter-spacing:.06em; color:var(--accent); }
+#clock { font-size:clamp(7rem, 38vw, 12rem); font-weight:900; line-height:1; font-variant-numeric: tabular-nums; }
+#round { font-size:1.4rem; font-weight:700; }
+#next { color:var(--mut); min-height:1.4em; }
+.bar { width:100%; height:12px; background:rgba(255,255,255,.12); border-radius:6px; overflow:hidden; margin-top:10px; }
+.bar i { display:block; height:100%; width:0; background:var(--accent); }
+.ctl { display:flex; gap:10px; width:100%; margin-top:18px; }
+.ctl button { flex:1; min-height:56px; border-radius:14px; border:1px solid rgba(255,255,255,.25); background:rgba(0,0,0,.3); color:var(--fg); font-size:1.05rem; font-weight:700; }
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; Menu</a>
+<h1>EMOM / Interval Clock</h1>
+<main id="setup">
+  <div class="presets">
+    <button type="button" data-p="45,15,15">45 / 15 x 15</button>
+    <button type="button" data-p="40,20,12">40 / 20 x 12</button>
+    <button type="button" data-p="50,10,10">50 / 10 x 10</button>
+    <button type="button" data-p="60,0,20">EMOM 20</button>
+  </div>
+  <div class="row"><label>Work<small>seconds each round</small></label><div class="step"><button type="button" data-f="work" data-d="-5">&minus;</button><input id="work" inputmode="numeric" value="45"><button type="button" data-f="work" data-d="5">+</button></div></div>
+  <div class="row"><label>Rest<small>seconds each round</small></label><div class="step"><button type="button" data-f="rest" data-d="-5">&minus;</button><input id="rest" inputmode="numeric" value="15"><button type="button" data-f="rest" data-d="5">+</button></div></div>
+  <div class="row"><label>Rounds</label><div class="step"><button type="button" data-f="rounds" data-d="-1">&minus;</button><input id="rounds" inputmode="numeric" value="15"><button type="button" data-f="rounds" data-d="1">+</button></div></div>
+  <div class="row"><label>Get ready<small>countdown before start</small></label><div class="step"><button type="button" data-f="pre" data-d="-5">&minus;</button><input id="pre" inputmode="numeric" value="10"><button type="button" data-f="pre" data-d="5">+</button></div></div>
+  <div class="sum" id="sum"></div>
+  <button class="big" id="start" type="button">Start</button>
+</main>
+<section id="run">
+  <div id="phase">READY</div>
+  <div id="clock">0</div>
+  <div id="round"></div>
+  <div id="next"></div>
+  <div class="bar"><i id="bar"></i></div>
+  <div class="ctl"><button id="pause" type="button">Pause</button><button id="skip" type="button">Skip</button><button id="stop" type="button">End</button></div>
+</section>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var F = ['work', 'rest', 'rounds', 'pre'], MAXV = { work: 600, rest: 600, rounds: 99, pre: 60 };
+  try { var sv = JSON.parse(localStorage.getItem('emom-cfg')); if (sv) F.forEach(function (k) { if (sv[k] != null) $(k).value = sv[k]; }); } catch (e) {}
+  function cfg() {
+    var c = {};
+    F.forEach(function (k) { var v = parseInt($(k).value, 10); if (isNaN(v) || v < 0) v = 0; if (v > MAXV[k]) v = MAXV[k]; c[k] = v; });
+    if (c.rounds < 1) c.rounds = 1; if (c.work < 1) c.work = 1;
+    return c;
+  }
+  function fmt(s) { var m = Math.floor(s / 60), r = s % 60; return m + ':' + (r < 10 ? '0' : '') + r; }
+  function sum() { var c = cfg(); $('sum').textContent = 'Total ' + fmt(c.rounds * (c.work + c.rest)) + ' · ' + c.rounds + ' rounds of ' + c.work + 's work' + (c.rest ? ' + ' + c.rest + 's rest' : ''); }
+  function save() { try { localStorage.setItem('emom-cfg', JSON.stringify(cfg())); } catch (e) {} }
+  Array.prototype.forEach.call(document.querySelectorAll('.step button'), function (b) {
+    b.addEventListener('click', function () { var i = $(b.dataset.f); i.value = Math.max(0, (parseInt(i.value, 10) || 0) + parseInt(b.dataset.d, 10)); i.value = cfg()[b.dataset.f]; sum(); save(); });
+  });
+  F.forEach(function (k) { $(k).addEventListener('input', sum); $(k).addEventListener('change', function () { $(k).value = cfg()[k]; sum(); save(); }); });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-p]'), function (b) {
+    b.addEventListener('click', function () { var p = b.dataset.p.split(','); $('work').value = p[0]; $('rest').value = p[1]; $('rounds').value = p[2]; sum(); save(); });
+  });
+
+  var ac = null;
+  function beep(f, d, v) {
+    try {
+      if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+      var o = ac.createOscillator(), g = ac.createGain();
+      o.frequency.value = f; o.type = 'sine'; g.gain.value = v || 0.25;
+      o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime + d);
+    } catch (e) {}
+  }
+  function buzz(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+  var wl = null;
+  function lock() { try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then(function (l) { wl = l; }, function () {}); } catch (e) {} }
+  function unlock() { try { if (wl) wl.release(); } catch (e) {} wl = null; }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && running) lock(); });
+
+  var C, segs, idx, segStart, paused, pausedAt, running = false, timer = null, lastShown;
+  function build() {
+    segs = [];
+    if (C.pre > 0) segs.push({ t: 'pre', d: C.pre, r: 0 });
+    for (var r = 1; r <= C.rounds; r++) {
+      segs.push({ t: 'work', d: C.work, r: r });
+      if (C.rest > 0 && r < C.rounds) segs.push({ t: 'rest', d: C.rest, r: r });
+    }
+  }
+  function enter(i, now) {
+    idx = i; segStart = now; lastShown = -1;
+    var s = segs[i];
+    document.body.className = 'running ' + s.t;
+    $('phase').textContent = s.t === 'pre' ? 'GET READY' : s.t === 'work' ? 'WORK' : 'REST';
+    $('round').textContent = s.t === 'pre' ? C.rounds + ' rounds' : 'Round ' + s.r + ' of ' + C.rounds;
+    var n = segs[i + 1];
+    $('next').textContent = n ? 'Next: ' + (n.t === 'work' ? 'work ' + n.d + 's' : 'rest ' + n.d + 's') : 'Last one. Finish strong.';
+    if (s.t === 'work') { beep(880, 0.35, 0.35); buzz([200]); }
+    else if (s.t === 'rest') { beep(520, 0.3, 0.3); buzz([100, 60, 100]); }
+  }
+  function finish() {
+    running = false; clearInterval(timer); unlock();
+    document.body.className = 'running done';
+    $('phase').textContent = 'DONE'; $('clock').textContent = fmt(C.rounds * (C.work + C.rest) - (C.rest || 0));
+    $('round').textContent = C.rounds + ' rounds complete'; $('next').textContent = 'Great work.'; $('bar').style.width = '100%';
+    $('pause').textContent = 'Again'; $('skip').style.display = 'none';
+    beep(660, 0.2, 0.35); setTimeout(function () { beep(880, 0.2, 0.35); }, 250); setTimeout(function () { beep(1100, 0.5, 0.35); }, 500); buzz([300, 100, 300, 100, 600]);
+  }
+  function tick() {
+    if (paused || !running) return;
+    var now = Date.now(), s = segs[idx], el = (now - segStart) / 1000;
+    while (el >= s.d) {
+      if (idx + 1 >= segs.length) { finish(); return; }
+      segStart += s.d * 1000; enter(idx + 1, segStart); s = segs[idx]; el = (now - segStart) / 1000;
+    }
+    var left = Math.ceil(s.d - el);
+    if (left !== lastShown) {
+      lastShown = left; $('clock').textContent = left;
+      if (left <= 3 && left >= 1) { beep(left === 1 ? 700 : 600, 0.12, 0.2); buzz(40); }
+    }
+    $('bar').style.width = Math.min(100, el / s.d * 100) + '%';
+  }
+  function start() {
+    C = cfg(); save(); build();
+    paused = false; running = true;
+    try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.resume) ac.resume(); } catch (e) {}
+    $('pause').textContent = 'Pause'; $('skip').style.display = '';
+    lock(); enter(0, Date.now()); tick();
+    clearInterval(timer); timer = setInterval(tick, 100);
+  }
+  function toSetup() { running = false; clearInterval(timer); unlock(); document.body.className = ''; }
+  $('start').addEventListener('click', start);
+  $('stop').addEventListener('click', toSetup);
+  $('skip').addEventListener('click', function () { if (!running) return; if (paused) { segStart += Date.now() - pausedAt; paused = false; $('pause').textContent = 'Pause'; } if (idx + 1 >= segs.length) finish(); else enter(idx + 1, Date.now()); });
+  $('pause').addEventListener('click', function () {
+    if (!running) { start(); return; }
+    if (paused) { segStart += Date.now() - pausedAt; paused = false; $('pause').textContent = 'Pause'; }
+    else { paused = true; pausedAt = Date.now(); $('pause').textContent = 'Resume'; }
+  });
+  sum();
+})();
+</script>
+</body>
+</html>
