@@ -240,8 +240,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .optrow { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
 .optrow .sharkbtn { flex: 1 1 auto; padding: 0 10px; font-size: 0.88rem; }
 #coachBet { color: #7dff9a; border-color: #7dff9a; }
-#longShot { color: #ffb36b; border-color: #ffb36b; }
-.coachrow:has(#coachTip:empty):has(#coachBet[hidden]):has(#longShot[hidden]) { display: none; }
+.coachrow:has(#coachTip:empty):has(#coachBet[hidden]) { display: none; }
 /* ---- Shoe and discard tray ---- */
 .tray { margin: 8px 0 0; padding: 8px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 210, 74, 0.35); cursor: pointer; color: #fff; }
 .trayrow { display: flex; align-items: center; gap: 12px; }
@@ -489,7 +488,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
   <section class="controls" id="bjControls">
     <div class="betline"><span id="wlabel">Bet</span><button class="stakesbtn" id="stakesBtn" hidden>Raise stakes</button><b id="wager">$25</b></div>
 
-    <div class="coachrow"><span id="coachTip" role="status"></span><button class="sharkbtn" id="coachBet" type="button" hidden></button><button class="sharkbtn" id="longShot" type="button" hidden></button></div>
+    <div class="coachrow"><span id="coachTip" role="status"></span><button class="sharkbtn" id="coachBet" type="button" hidden></button></div>
 
     <div id="betRow" class="stack">
       <div class="chips" role="group" aria-label="Bet size">
@@ -504,6 +503,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
       </div>
       <details class="pay">
         <summary>Side bet payouts</summary>
+        <p><b>Long shots:</b> while you owe a shark, side bets go up to $100. Suited 7-7-7 pays 200 to 1 and a seven-card dealer bust pays 100 to 1.</p>
         <p><b>Lucky Lucky</b> (your first two cards plus the dealer's up card): total 19 or 20 pays 2:1, 21 pays 3:1, suited 21 pays 15:1, 6-7-8 pays 30:1 (suited 100:1), 7-7-7 pays 50:1 (suited 200:1). Tap to cycle $0, $5, $10, $25.</p>
         <p><b>Bust-It</b> (the dealer's final hand): the dealer busts on 3 cards pays 1:1, 4 cards 2:1, 5 cards 9:1, 6 cards 50:1, 7 cards 100:1, 8 or more 250:1. If the dealer does not bust, you lose it.</p>
         <p><b>Insurance</b> is offered when the dealer shows an Ace. It costs half your bet and pays 2:1.</p>
@@ -1073,6 +1073,8 @@ body::before { filter: brightness(var(--dimf, 1)); }
   /* Side bets */
   function isRed(c) { return c.s === '♥' || c.s === '♦'; }
   /* ppBtn = Lucky Lucky (pp), t3Btn = Bust-It (t3) */
+  /* Owing a shark opens bigger side bets: the long shot to clear a debt. */
+  function sideSteps() { return (room === 'low' && !stakes && totalDebt() > 0) ? SIDE_STEPS.concat([50, 100]) : SIDE_STEPS; }
   function evalLucky(cards) {
     var t = score(cards).total, suited = cards.every(function (c) { return c.s === cards[0].s; });
     if (cards.every(function (c) { return c.r === '7'; })) return suited ? ['Suited 7-7-7', 200] : ['7-7-7', 50];
@@ -1218,9 +1220,6 @@ body::before { filter: brightness(var(--dimf, 1)); }
     var cbet = (coachOn && (phase === 'bet' || phase === 'done') && bank >= MIN) ? coachBetAdvice() : null;
     var tcI = deck.length ? trueCount() : 0, insTip = (coachOn && phase === 'insure') ? (tcI >= 3 ? 'True count ' + fmtTC(tcI) + ': take insurance.' : 'True count ' + fmtTC(tcI) + ': skip insurance.') : '';
     $('coachTip').textContent = recA ? 'Basic strategy: ' + recA : (cbet ? cbet.text : insTip);
-    var lsAmt = Math.floor(Math.min(bank - pp - t3, maxBet()) / MIN) * MIN;
-    $('longShot').hidden = !((phase === 'bet' || phase === 'done') && game === 'bj' && room === 'low' && totalDebt() > 0 && lsAmt > CHIPS[0] && lsAmt !== bet);
-    $('longShot').textContent = 'Long shot: bet $' + lsAmt;
     $('coachBet').hidden = !(cbet && cbet.amt !== bet); if (cbet) $('coachBet').textContent = 'Bet $' + cbet.amt;
     el.insYes.classList.toggle('rec', !!insTip && tcI >= 3); el.insNo.classList.toggle('rec', !!insTip && tcI < 3);
     ['hit', 'stand', 'dbl', 'spl'].forEach(function (id) { el[id].classList.toggle('rec', recA === ({ hit: 'hit', stand: 'stand', dbl: 'double', spl: 'split' })[id]); });
@@ -2025,9 +2024,9 @@ body::before { filter: brightness(var(--dimf, 1)); }
     if (phase !== 'bet' && phase !== 'done') return;
     if (S.viper.debt > 0) { sideMsg = 'Madame Viper is holding your side bets as collateral.'; render(); return; }
     var cur = which === 'pp' ? pp : t3, other = which === 'pp' ? t3 : pp;
-    var i = SIDE_STEPS.indexOf(cur), next = 0;
-    for (var k = 1; k <= SIDE_STEPS.length; k++) {
-      var v = SIDE_STEPS[(i + k) % SIDE_STEPS.length];
+    var STEPS = sideSteps(), i = STEPS.indexOf(cur), next = 0;
+    for (var k = 1; k <= STEPS.length; k++) {
+      var v = STEPS[(i + k) % STEPS.length];
       if (bet + other + v <= bank) { next = v; break; }
     }
     if (which === 'pp') pp = next; else t3 = next;
@@ -2035,7 +2034,6 @@ body::before { filter: brightness(var(--dimf, 1)); }
   }
 
   $('dustBtn').addEventListener('click', function () { dustOn = !dustOn; saveStats(); updateGlow(); render(); });
-  $('longShot').addEventListener('click', function () { setBet(maxBet()); });
   $('coachBet').addEventListener('click', function () { setBet(coachBetAdvice().amt); });
   chips.forEach(function (c) {
     c.addEventListener('click', function () {
