@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Blackjack">
+<meta name="theme-color" id="themeColor" content="#0a5230">
 <title>Pocket Blackjack</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 
@@ -12,6 +15,9 @@
 
 <style>
 [hidden]{display:none!important}
+:root[data-skin="midnight"] { --felt: #0b1530; --felt-hi: #22407a; }
+:root[data-skin="neon"] { --felt: #160a2e; --felt-hi: #6a1fa8; --brass: #3dffe0; }
+:root[data-skin="wine"] { --felt: #3a0a16; --felt-hi: #8a1f3c; }
 :root {
   /* Layout: one-screen felt table. Dealer hand on top, status band in the middle, your hand(s) below, controls pinned to the bottom. */
   --felt: #0a5230;
@@ -509,10 +515,11 @@ body::before { filter: brightness(var(--dimf, 1)); }
         <p><b>Insurance</b> is offered when the dealer shows an Ace. It costs half your bet and pays 2:1.</p>
       </details>
       <details class="pay" id="optsBox">
-        <summary>Coach and dust</summary>
+        <summary>Coach, dust and table</summary>
         <div class="optrow">
           <button class="sharkbtn" id="coachBtn" type="button" aria-pressed="false">Coach: off</button>
           <button class="sharkbtn" id="dustBtn" type="button" aria-pressed="true">Dust: on</button>
+          <button class="sharkbtn" id="skinBtn" type="button">Table: Green</button>
         </div>
         <p>Coach shows the true count, whether to bet heavy or light, the best play and insurance advice. Dust makes the room glitter gold when the count is high and turn blue when it is low.</p>
       </details>
@@ -570,6 +577,14 @@ body::before { filter: brightness(var(--dimf, 1)); }
   var coachOn = false, showHole = false, flashHole = false, statTaps = 0, statTimer = null;
   var ST = { hands: 0, won: 0, lost: 0, pushed: 0, bj: 0, busts: 0, bigWin: 0, bigLoss: 0, bestStreak: 0, curW: 0, curL: 0, shoes: 0, spotted: 0, dec: 0, decOk: 0, rounds: 0 };
   try { var sst = JSON.parse(localStorage.getItem('pocket-bj-stats')); if (sst) for (var kk in sst) if (kk in ST) ST[kk] = sst[kk]; coachOn = localStorage.getItem('pocket-bj-coach') === '1'; betTools = localStorage.getItem('pocket-bj-bettools') === '1'; dustOn = localStorage.getItem('pocket-bj-dust') !== '0'; var sty = JSON.parse(localStorage.getItem('pocket-bj-story')); if (sty) STORY = sty; var dly = JSON.parse(localStorage.getItem('pocket-bj-daily')); if (dly) DAILY = dly; } catch (e) {}
+  var SKINS = [['green', 'Green', '#0a5230'], ['midnight', 'Midnight', '#0b1530'], ['neon', 'Neon', '#160a2e'], ['wine', 'Wine', '#3a0a16']], skin = 0;
+  try { var sk0 = localStorage.getItem('pocket-bj-skin'); SKINS.forEach(function (k, n) { if (k[0] === sk0) skin = n; }); } catch (e) {}
+  function applySkin() {
+    var k = SKINS[skin]; document.documentElement.setAttribute('data-skin', k[0]);
+    var tc = document.getElementById('themeColor'); if (tc) tc.setAttribute('content', k[2]);
+    var b = document.getElementById('skinBtn'); if (b) b.textContent = 'Table: ' + k[1];
+    try { localStorage.setItem('pocket-bj-skin', k[0]); } catch (e) {}
+  }
   function saveStats() { try { localStorage.setItem('pocket-bj-stats', JSON.stringify(ST)); localStorage.setItem('pocket-bj-coach', coachOn ? '1' : '0'); localStorage.setItem('pocket-bj-bettools', betTools ? '1' : '0'); localStorage.setItem('pocket-bj-dust', dustOn ? '1' : '0'); localStorage.setItem('pocket-bj-story', JSON.stringify(STORY)); localStorage.setItem('pocket-bj-daily', JSON.stringify(DAILY)); } catch (e) {} }
   var rc = 0, holeCounted = true, susp = 0, backoff = 0, dealTC = 0, dealBet = 0;
   var bank = START, bet = 25, pp = 0, t3 = 0, insBet = 0;
@@ -2035,6 +2050,8 @@ body::before { filter: brightness(var(--dimf, 1)); }
     render();
   }
 
+  applySkin();
+  $('skinBtn').addEventListener('click', function () { skin = (skin + 1) % SKINS.length; applySkin(); });
   $('dustBtn').addEventListener('click', function () { dustOn = !dustOn; saveStats(); updateGlow(); render(); });
   $('coachBet').addEventListener('click', function () { setBet(coachBetAdvice().amt); });
   chips.forEach(function (c) {
