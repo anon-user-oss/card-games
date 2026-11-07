@@ -1922,6 +1922,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
       hands = []; dealer = []; sideMsg = ''; say('Fresh stack of $' + START + '. Pick a chip and deal.', '');
       phase = 'bet'; render(); return;
     }
+    var dropped = (bet + pp + t3 > bank && (pp > 0 || t3 > 0));
     if (bet + pp + t3 > bank) { pp = 0; t3 = 0; }
     if (bet > bank) bet = CHIPS.filter(function (v) { return v <= bank; })[0];
     if (backoff > 0 && bet > CHIPS[1]) bet = CHIPS[1];
@@ -1929,7 +1930,8 @@ body::before { filter: brightness(var(--dimf, 1)); }
     if (reshuffle) { deck = shuffled(); updateGlow(); ST.shoes++; }
     dealTC = trueCount(); dealBet = bet;
     phase = 'busy'; bank -= bet + pp + t3; save();
-    insBet = 0; sideMsg = reshuffle ? 'Cut card. The dealer shuffles up a fresh shoe.' : ''; dealer = []; hole = true;
+    insBet = 0; sideMsg = reshuffle ? 'Cut card. The dealer shuffles up a fresh shoe.' : '';
+    if (dropped) sideMsg = (sideMsg ? sideMsg + ' \u00b7 ' : '') + 'Not enough chips for your side bets, so they were taken off the table.'; dealer = []; hole = true;
     interestMsg = '';
     var notes = tickDebts();
     interestMsg = notes.join(' \u00b7 ');
