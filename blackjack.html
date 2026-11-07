@@ -210,6 +210,14 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
     radial-gradient(ellipse 90% 45% at 40% 78%, rgba(205, 200, 190, 0.28), transparent 70%),
     radial-gradient(ellipse at 50% 50%, rgba(150, 145, 138, 0.10), rgba(90, 86, 80, 0.30) 130%);
   background-size: 140% 140%, 150% 150%, 160% 160%, 100% 100%; filter: blur(14px); }
+.wisps { position: fixed; inset: 0; pointer-events: none; z-index: 41; overflow: hidden; opacity: 0; transition: opacity 1.4s ease; }
+.wisps i { position: absolute; bottom: -90px; width: 150px; height: 190px; border-radius: 50%; background: radial-gradient(ellipse at 50% 60%, rgba(215, 210, 200, 0.28), transparent 70%); filter: blur(16px); opacity: 0; }
+.wisps i:nth-child(1) { left: 4%; } .wisps i:nth-child(2) { left: 22%; } .wisps i:nth-child(3) { left: 40%; }
+.wisps i:nth-child(4) { left: 58%; } .wisps i:nth-child(5) { left: 74%; } .wisps i:nth-child(6) { left: 88%; }
+.wisps i:nth-child(1) { animation-delay: 0s; } .wisps i:nth-child(2) { animation-delay: -4s; } .wisps i:nth-child(3) { animation-delay: -8s; }
+.wisps i:nth-child(4) { animation-delay: -12s; } .wisps i:nth-child(5) { animation-delay: -2s; } .wisps i:nth-child(6) { animation-delay: -6s; }
+@media (prefers-reduced-motion: no-preference) { .wisps i { animation: rise 16s ease-in infinite; } }
+@keyframes rise { 0% { transform: translate(0, 0) scale(0.6); opacity: 0; } 15% { opacity: 1; } 60% { opacity: 0.7; } 100% { transform: translate(40px, -105vh) scale(1.7); opacity: 0; } }
 @media (prefers-reduced-motion: no-preference) { .redv { animation: smoke 26s ease-in-out infinite alternate; } }
 @keyframes smoke { from { background-position: 0% 0%, 100% 20%, 30% 100%, 0 0; } to { background-position: 100% 60%, 0% 80%, 90% 0%, 0 0; } }
 .sharkbtn { min-height: 40px; border-radius: 12px; border: 2px solid var(--brass); background: rgba(0, 0, 0, 0.45); color: var(--brass); font-weight: 800; font-size: 0.85rem; }
@@ -391,6 +399,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
 <body>
 <div class="dim" id="dim" aria-hidden="true"></div>
 <div class="redv" id="redv" aria-hidden="true"></div>
+<div class="wisps" id="wisps" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
 <div class="hotv" id="hotv" aria-hidden="true"></div>
 <div class="coldv" id="coldv" aria-hidden="true"></div>
 
@@ -944,6 +953,9 @@ body::before { filter: brightness(var(--dimf, 1)); }
     el.dim.style.opacity = String(heat * 0.12);
     renderTray();
     el.redv.style.opacity = String(heat * 0.3);
+    var loans = 0; SHARKS.forEach(function (sh) { if (shown(sh) && S[sh.id].debt > 0) loans++; });
+    var wsp = $('wisps'); wsp.style.opacity = room === 'high' || loans < 2 ? '0' : '1';
+    Array.prototype.forEach.call(wsp.children, function (w, k) { w.style.display = k < loans ? '' : 'none'; });
     document.body.classList.toggle('hr', room === 'high');
     $('title').textContent = game === 'derby' ? 'Roach Derby' : game === 'vp' ? 'Jacks or Better' : (room === 'high' ? 'High-Roller Blackjack' : 'Pocket Blackjack');
   }
