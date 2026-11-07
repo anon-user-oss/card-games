@@ -239,8 +239,9 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .coachrow { flex-wrap: wrap; }
 .optrow { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
 .optrow .sharkbtn { flex: 1 1 auto; padding: 0 10px; font-size: 0.88rem; }
-.coachrow:has(#coachTip:empty):has(#coachBet[hidden]) { display: none; }
 #coachBet { color: #7dff9a; border-color: #7dff9a; }
+#longShot { color: #ffb36b; border-color: #ffb36b; }
+.coachrow:has(#coachTip:empty):has(#coachBet[hidden]):has(#longShot[hidden]) { display: none; }
 /* ---- Shoe and discard tray ---- */
 .tray { margin: 8px 0 0; padding: 8px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 210, 74, 0.35); cursor: pointer; color: #fff; }
 .trayrow { display: flex; align-items: center; gap: 12px; }
@@ -488,7 +489,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
   <section class="controls" id="bjControls">
     <div class="betline"><span id="wlabel">Bet</span><button class="stakesbtn" id="stakesBtn" hidden>Raise stakes</button><b id="wager">$25</b></div>
 
-    <div class="coachrow"><span id="coachTip" role="status"></span><button class="sharkbtn" id="coachBet" type="button" hidden></button></div>
+    <div class="coachrow"><span id="coachTip" role="status"></span><button class="sharkbtn" id="coachBet" type="button" hidden></button><button class="sharkbtn" id="longShot" type="button" hidden></button></div>
 
     <div id="betRow" class="stack">
       <div class="chips" role="group" aria-label="Bet size">
@@ -736,16 +737,19 @@ body::before { filter: brightness(var(--dimf, 1)); }
     save(); render(); checkUnlock();
   }
   function visit(s) {
-    var st = S[s.id], owed = st.debt; wanted++;
+    var st = S[s.id], owed = st.debt, before = bank; wanted++;
     st.debt = 0; st.held = 0; st.due = 0; st.hidden = false;
-    bank = STAKE; bet = 25; pp = 0; t3 = 0;
+    var kept = before >= owed + STAKE;
+    bank = kept ? before - owed : STAKE;
+    bet = bestChip(); pp = 0; t3 = 0;
+    if (typeof vp !== 'undefined' && vp) { vp.phase = 'done'; vp.win = 0; vp.dbl = null; vp.draw = false; phase = 'bet'; }
     if (s.id === 'tony') blindNext = true;
     save();
     say(s.short + ' came by.', 'lose');
-    sideMsg = 'Fresh start with $' + STAKE + '. You are Wanted x' + wanted + '.';
+    sideMsg = kept ? s.short + ' took the $' + owed + ' you owed. You still have $' + bank + '. You are Wanted x' + wanted + '.' : 'Fresh start with $' + bank + '. You are Wanted x' + wanted + '.';
     render();
     showModal(s.name + ' paid a visit',
-      s.visit + ' "You owe me $' + owed + ', kid." They take your chips, tear up the slip, and leave you $' + STAKE + ' to start over. You are now Wanted x' + wanted + '.',
+      s.visit + ' "You owe me $' + owed + ', kid." ' + (kept ? 'They take exactly what you owe, tear up the slip, and leave the rest of your chips alone. You have $' + bank + ' left.' : 'They take what they can, tear up the slip, and leave you $' + bank + ' to start over.') + ' You are now Wanted x' + wanted + '.',
       [{ label: 'Phew. Thanks', fn: function () {} }], true, s.id);
   }
   function showBroke() {
@@ -1214,6 +1218,9 @@ body::before { filter: brightness(var(--dimf, 1)); }
     var cbet = (coachOn && (phase === 'bet' || phase === 'done') && bank >= MIN) ? coachBetAdvice() : null;
     var tcI = deck.length ? trueCount() : 0, insTip = (coachOn && phase === 'insure') ? (tcI >= 3 ? 'True count ' + fmtTC(tcI) + ': take insurance.' : 'True count ' + fmtTC(tcI) + ': skip insurance.') : '';
     $('coachTip').textContent = recA ? 'Basic strategy: ' + recA : (cbet ? cbet.text : insTip);
+    var lsAmt = Math.floor(Math.min(bank - pp - t3, maxBet()) / MIN) * MIN;
+    $('longShot').hidden = !((phase === 'bet' || phase === 'done') && game === 'bj' && room === 'low' && totalDebt() > 0 && lsAmt > CHIPS[0] && lsAmt !== bet);
+    $('longShot').textContent = 'Long shot: bet $' + lsAmt;
     $('coachBet').hidden = !(cbet && cbet.amt !== bet); if (cbet) $('coachBet').textContent = 'Bet $' + cbet.amt;
     el.insYes.classList.toggle('rec', !!insTip && tcI >= 3); el.insNo.classList.toggle('rec', !!insTip && tcI < 3);
     ['hit', 'stand', 'dbl', 'spl'].forEach(function (id) { el[id].classList.toggle('rec', recA === ({ hit: 'hit', stand: 'stand', dbl: 'double', spl: 'split' })[id]); });
@@ -1849,7 +1856,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     vp.banner = text; vp.bannerCls = cls; vpBurst(big);
     clearTimeout(vp.timer); vp.timer = setTimeout(function () { vp.banner = ''; if (game === 'vp') renderVp(); }, 2600);
   }
-  function vpFinish() { afterHand(function () { if (!checkStakes()) checkSal(); }); }
+  function vpFinish() { afterHand(function () { if (vp.phase !== 'done') return; if (!checkStakes()) checkSal(); }); }
   async function vpGo() {
     if (vp.phase === 'hold') { vpDraw(); return; }
     if (vp.phase === 'dbl') {
@@ -2028,6 +2035,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
   }
 
   $('dustBtn').addEventListener('click', function () { dustOn = !dustOn; saveStats(); updateGlow(); render(); });
+  $('longShot').addEventListener('click', function () { setBet(maxBet()); });
   $('coachBet').addEventListener('click', function () { setBet(coachBetAdvice().amt); });
   chips.forEach(function (c) {
     c.addEventListener('click', function () {
