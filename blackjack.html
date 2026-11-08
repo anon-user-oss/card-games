@@ -299,6 +299,9 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .wstage { position: relative; width: min(78vw, 300px); aspect-ratio: 1; margin: 14px auto 6px; }
 .wptr { position: absolute; left: 50%; top: -12px; width: 0; height: 0; margin-left: -12px; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 26px solid var(--brass); z-index: 3; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.6)); }
 .wdisc { position: absolute; inset: 0; border-radius: 50%; border: 6px solid var(--brass); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55); transition: transform 4.2s cubic-bezier(0.12, 0.6, 0.12, 1); }
+.wlab { position: absolute; left: 50%; top: 50%; width: 50%; height: 0; line-height: 0; transform-origin: 0 50%; text-align: right; padding-right: 9%; box-sizing: border-box; font-weight: 900; font-size: 0.78rem; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); white-space: nowrap; pointer-events: none; }
+.wlab.jp { color: #3a2a00; text-shadow: none; font-size: 0.85rem; }
+.wlab.bk { color: #ff8a8a; letter-spacing: 0.04em; }
 .whub { position: absolute; left: 50%; top: 50%; width: 22%; height: 22%; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff3b0, var(--brass) 55%, #9a7410); box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.5); }
 .wcoin { position: absolute; inset: 8%; transform-style: preserve-3d; transition: transform 1.8s cubic-bezier(0.2, 0.7, 0.2, 1); }
 .wcoin[hidden] { display: none; }
@@ -530,9 +533,9 @@ body::before { filter: brightness(var(--dimf, 1)); }
     <div class="vpay" id="wPay"></div>
     <details class="pay">
       <summary>How the wheel works</summary>
-      <p><b>Wheel:</b> 40 slices. Most are a bust, 12 pay 1x to 3x your bet back, and one slice pays 20x. The wheel is tuned slightly in your favor, about $1.02 back per $1 bet over time, though it swings a lot.</p>
+      <p><b>Wheel:</b> 24 wedges, each a multiple of your bet. Land on BUST and you lose it, ½× returns half, and the star pays 10x. Normal odds return about $1.04 per $1 over time. While you owe a shark it is sweetened.</p>
       <p><b>Double or nothing:</b> a coin flip you win 48% of the time. A win pays double your bet. A small edge for the house, and the quickest way to clear a loan or lose it all.</p>
-      <p><b>Debt odds:</b> while you owe any loan shark, the wheel pays back about $1.12 per $1 (15 winning slices) and the coin lands your way 55% of the time. Pay off every loan and the odds go back to normal.</p>
+      <p><b>Debt odds:</b> while you owe any loan shark, the wheel pays back about $1.15 per $1 (fewer busts and more big wedges) and the coin lands your way 55% of the time. Pay off every loan and the odds go back to normal.</p>
       <p>Press <b>All in</b> to bet every chip you have. Same chips and same loan sharks as every other table. Interest still ticks on every spin.</p>
     </details>
   </section>
@@ -1461,35 +1464,36 @@ body::before { filter: brightness(var(--dimf, 1)); }
 
 
   /* ---------- Shark's Wheel ---------- */
-  var WSL = 40, WSLICE = (function () {
-    var a = []; for (var q = 0; q < WSL; q++) a.push(0);
-    a[0] = 20; [14, 30].forEach(function (x) { a[x] = 3; }); [6, 12, 19, 27, 34].forEach(function (x) { a[x] = 2; }); [3, 9, 16, 24, 38].forEach(function (x) { a[x] = 1; });
-    return a;
-  })();
-  var WCOL = { 0: ['#4a1620', '#2f0d14'], 1: ['#2c6fbf'], 2: ['#23a05a'], 3: ['#e0a21a'], 20: ['#b04ae0'] };
-  var WNAME = { 0: 'Bust', 1: 'Bet back', 2: 'Double', 3: 'Triple', 20: 'JACKPOT' };
-  var WSLICE_FAV = (function () {
-    var a = []; for (var q = 0; q < WSL; q++) a.push(0);
-    a[0] = 20; [9, 22, 35].forEach(function (x) { a[x] = 3; }); [4, 12, 17, 26, 31].forEach(function (x) { a[x] = 2; }); [2, 7, 14, 19, 28, 37].forEach(function (x) { a[x] = 1; });
-    return a;
-  })();
+  var WSL = 24;
+  /* Wheel of Fortune style: 24 labelled wedges, each a multiple of your bet. Normal wheel returns about 104%, the debt wheel about 115%. */
+  var WSLICE = [10, 0, 0.5, 1, 0, 0.5, 2, 0, 1, 0.5, 0, 1.5, 3, 0, 0.5, 1, 0, 0.5, 1.5, 0, 1, 0.5, 0, 0];
+  var WSLICE_FAV = [10, 0.5, 1, 0, 1.5, 0.5, 2, 1, 0, 0.5, 0, 1.5, 3, 0, 1, 0.5, 0, 1.5, 0.5, 1, 0, 0.5, 1, 0];
+  var WCOL = { '0': '#17181c', '0.5': '#d62f3a', '1': '#f08a1c', '1.5': '#2f9e44', '2': '#2a6fdb', '3': '#8e44c9', '10': '#ffd24a' };
+  var WNAME = { '0': 'BANKRUPT', '0.5': 'Half back', '1': 'Bet back', '1.5': 'One and a half', '2': 'Double', '3': 'Triple', '10': 'JACKPOT' };
+  var WLAB = { '0': 'BUST', '0.5': '\u00bd\u00d7', '1': '1\u00d7', '1.5': '1.5\u00d7', '2': '2\u00d7', '3': '3\u00d7', '10': '\u2605 10\u00d7' };
   var FLIP_P = 0.48, FLIP_P_FAV = 0.55;
   /* While you owe a shark the house sweetens the wheel and the coin, so winning the debt back is feasible. Clear the debt and the odds go back to normal. */
   function wheelFav() { return totalDebt() > 0; }
   function wSlices() { return wheelFav() ? WSLICE_FAV : WSLICE; }
   var wheel = { mode: 'wheel', busy: false, rot: 0, crot: 0, msg: '', cls: '', big: '', bigCls: '', sig: '', built: false, hit: -1 };
   function wheelBuild() {
-    var stops = [], k, c;
-    var SL = wSlices(); wheel.favBuilt = wheelFav();
-    for (k = 0; k < WSL; k++) { c = WCOL[SL[k]]; c = c[k % c.length]; stops.push(c + ' ' + (k * 360 / WSL) + 'deg ' + ((k + 1) * 360 / WSL) + 'deg'); }
-    $('wDisc').style.background = 'conic-gradient(' + stops.join(',') + ')';
+    var stops = [], k, SL = wSlices(), disc = $('wDisc'), old = disc.querySelectorAll('.wlab');
+    wheel.favBuilt = wheelFav();
+    Array.prototype.forEach.call(old, function (n) { n.parentNode.removeChild(n); });
+    for (k = 0; k < WSL; k++) {
+      stops.push(WCOL[SL[k]] + ' ' + (k * 360 / WSL) + 'deg ' + ((k + 1) * 360 / WSL) + 'deg');
+      var lb = document.createElement('span'); lb.className = 'wlab' + (SL[k] === 10 ? ' jp' : SL[k] === 0 ? ' bk' : '');
+      lb.textContent = WLAB[SL[k]]; lb.style.transform = 'rotate(' + (k * 360 / WSL + 180 / WSL - 90) + 'deg)';
+      disc.appendChild(lb);
+    }
+    disc.style.background = 'conic-gradient(' + stops.join(',') + ')';
     var pay = $('wPay'), cnt = {};
     SL.forEach(function (m) { cnt[m] = (cnt[m] || 0) + 1; });
     pay.textContent = '';
-    [20, 3, 2, 1, 0].forEach(function (m) {
+    [10, 3, 2, 1.5, 1, 0.5, 0].forEach(function (m) {
       var d = document.createElement('div'); d.className = 'wpr'; d.dataset.m = String(m);
       var l = document.createElement('span'), r = document.createElement('b'), sw = document.createElement('i');
-      sw.style.background = WCOL[m][0]; l.appendChild(sw); l.appendChild(document.createTextNode(WNAME[m] + (m ? ' (' + m + 'x)' : '')));
+      sw.style.background = WCOL[m]; l.appendChild(sw); l.appendChild(document.createTextNode(WNAME[m] + (m ? ' (' + m + 'x)' : '')));
       r.textContent = cnt[m] + ' of ' + WSL + ' (' + (cnt[m] * 100 / WSL).toFixed(1).replace('.0', '') + '%)';
       d.appendChild(l); d.appendChild(r); pay.appendChild(d);
     });
@@ -1503,7 +1507,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     $('wTabWheel').setAttribute('aria-pressed', String(!flip)); $('wTabFlip').setAttribute('aria-pressed', String(flip));
     $('wTabWheel').disabled = !betting; $('wTabFlip').disabled = !betting;
     $('wPay').hidden = flip;
-    $('wSub').textContent = wheel.busy ? (flip ? 'Flipping…' : 'Spinning…') : (flip ? 'Double your bet ' + (wheelFav() ? '55' : '48') + '% of the time, or lose it.' : 'Pick a bet, then spin. One slice pays 20x.') + (wheelFav() ? ' Debt odds: the sharks sweeten the game while you owe.' : '');
+    $('wSub').textContent = wheel.busy ? (flip ? 'Flipping…' : 'Spinning…') : (flip ? 'Double your bet ' + (wheelFav() ? '55' : '48') + '% of the time, or lose it.' : 'Pick a bet, then spin. Land on the star for 10x.') + (wheelFav() ? ' Debt odds: the sharks sweeten the game while you owe.' : '');
     $('wBig').textContent = wheel.big; $('wBig').className = 'wbig' + (wheel.bigCls ? ' ' + wheel.bigCls : '');
     var m = $('wMsg'); m.textContent = wheel.msg; m.className = 'msg dmsg' + (wheel.cls ? ' ' + wheel.cls : '');
     $('wWager').textContent = '$' + bet;
@@ -1520,7 +1524,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     $('wAll').disabled = !betting || bank < MIN; $('wAll').textContent = 'All in: $' + bank;
     var go = $('wGo'); go.disabled = !betting || bank < bet || bank < MIN;
     go.textContent = wheel.busy ? (flip ? 'Flipping…' : 'Spinning…') : (flip ? 'Flip for $' + bet : 'Spin for $' + bet);
-    Array.prototype.forEach.call($('wPay').children, function (r) { r.className = 'wpr' + (wheel.hit === parseInt(r.dataset.m, 10) ? ' hit' : ''); });
+    Array.prototype.forEach.call($('wPay').children, function (r) { r.className = 'wpr' + (wheel.hit === parseFloat(r.dataset.m) ? ' hit' : ''); });
   }
   async function wheelGo() {
     if (wheel.busy || (phase !== 'bet' && phase !== 'done') || bank < bet || bank < MIN || bet < MIN) return;
@@ -1543,11 +1547,12 @@ body::before { filter: brightness(var(--dimf, 1)); }
       $('wDisc').style.transform = 'rotate(' + wheel.rot + 'deg)';
       await sleep(4500);
     }
-    var back = stake * mult, net = back - stake;
+    var back = Math.floor(stake * mult), net = back - stake;
     bank += back; wheel.hit = flip ? -1 : mult; wheel.busy = false; phase = 'done';
-    if (mult === 20) { wheel.big = 'JACKPOT! +$' + net; wheel.bigCls = ''; }
+    if (mult === 10) { wheel.big = 'JACKPOT! +$' + net; wheel.bigCls = ''; }
     else if (mult === 0) { wheel.big = flip ? 'The shark wins.' : 'Bust.'; wheel.bigCls = 'lose'; }
     else if (mult === 1) { wheel.big = 'Bet back.'; }
+    else if (mult < 1) { wheel.big = 'Half back. -$' + (-net); wheel.bigCls = 'lose'; }
     else { wheel.big = (flip ? 'You win +$' : mult + 'x! +$') + net; }
     wheel.msg = (wheel.msg ? wheel.msg + ' \u00b7 ' : '') + (net > 0 ? 'Won $' + net + '.' : net < 0 ? 'Lost $' + stake + '.' : 'Even.');
     wheel.cls = net > 0 ? 'win' : net < 0 ? 'lose' : '';
@@ -1592,7 +1597,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
       { label: 'Blackjack' + (game === 'bj' ? ' (here)' : ''), sub: 'Splits, side bets, loan sharks', go: false, disabled: game === 'bj', fn: function () { setGame('bj'); } },
       { label: 'Back Alley Roach Derby' + (game === 'derby' ? ' (here)' : ''), sub: room === 'high' ? 'Back alley only. Head downstairs first.' : 'Bet on bugs. Boots may fall.', go: false, disabled: game === 'derby' || room === 'high', fn: function () { setGame('derby'); } },
       { label: 'Jacks or Better' + (game === 'vp' ? ' (here)' : ''), sub: 'Video poker. Hold, draw, get paid.', go: false, disabled: game === 'vp', fn: function () { setGame('vp'); } },
-      { label: "Shark's Wheel" + (game === 'wheel' ? ' (here)' : ''), sub: 'Spin for a 20x jackpot or flip double or nothing', go: false, disabled: game === 'wheel', fn: function () { setGame('wheel'); } },
+      { label: "Shark's Wheel" + (game === 'wheel' ? ' (here)' : ''), sub: 'Spin for a 10x jackpot or flip double or nothing', go: false, disabled: game === 'wheel', fn: function () { setGame('wheel'); } },
       { label: 'Restart game…', sub: 'Start over with a fresh stack', go: false, fn: restartMenu },
       { label: 'Close', go: false, fn: function () {} }
     ];
