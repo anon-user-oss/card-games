@@ -292,6 +292,25 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .vdealer, .vpicks { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #fff; }
 .vpicks > div { display: flex; gap: 4px; }
 .vdealer small, .vpicks small { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; color: #ffe27a; text-transform: uppercase; }
+.wheel { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: auto; }
+.wtabs { display: flex; gap: 8px; }
+.wtabs button { flex: 1; min-height: 44px; border-radius: 12px; border: 2px solid var(--line); background: rgba(0, 0, 0, 0.3); font-weight: 800; }
+.wtabs button[aria-pressed="true"] { border-color: var(--brass); color: var(--brass); background: rgba(0, 0, 0, 0.5); }
+.wstage { position: relative; width: min(78vw, 300px); aspect-ratio: 1; margin: 14px auto 6px; }
+.wptr { position: absolute; left: 50%; top: -12px; width: 0; height: 0; margin-left: -12px; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 26px solid var(--brass); z-index: 3; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.6)); }
+.wdisc { position: absolute; inset: 0; border-radius: 50%; border: 6px solid var(--brass); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55); transition: transform 4.2s cubic-bezier(0.12, 0.6, 0.12, 1); }
+.whub { position: absolute; left: 50%; top: 50%; width: 22%; height: 22%; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff3b0, var(--brass) 55%, #9a7410); box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.5); }
+.wcoin { position: absolute; inset: 8%; transform-style: preserve-3d; transition: transform 1.8s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.wcoin[hidden] { display: none; }
+.wface { position: absolute; inset: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 900; font-size: 1.7rem; backface-visibility: hidden; -webkit-backface-visibility: hidden; border: 6px solid rgba(0, 0, 0, 0.35); }
+.wfront { background: radial-gradient(circle at 35% 30%, #fff3b0, var(--brass) 60%, #9a7410); color: #3a2a00; }
+.wback { background: radial-gradient(circle at 35% 30%, #5a6370, #20252c 70%); color: #f3b0b0; transform: rotateY(180deg); }
+.wheel.flip .wdisc, .wheel.flip .wptr { display: none; }
+.wbig { margin: 0; min-height: 1.6em; text-align: center; font-family: var(--display); font-weight: 900; font-size: 1.5rem; color: var(--brass); }
+.wbig.lose { color: var(--lose); }
+.wpr { display: flex; justify-content: space-between; gap: 8px; font-size: 0.9rem; padding: 2px 0; }
+.wpr i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 8px; vertical-align: -1px; }
+.wpr.hit { color: var(--brass); font-weight: 800; }
 .vpay { display: grid; gap: 1px; padding: 6px 8px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 210, 74, 0.45); }
 .vpay div { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: #fff; padding: 3px 6px; border-radius: 6px; }
 .vpay span { display: flex; flex-direction: column; line-height: 1.15; }
@@ -490,6 +509,33 @@ body::before { filter: brightness(var(--dimf, 1)); }
       <p>Stuck? Press <b>Hint</b> any time during step 2 and the game shows the best cards to keep.</p>
     </details>
   </section>
+
+  <section class="wheel" id="wheel" hidden>
+    <div class="dhead"><h2>Shark's Wheel</h2><p class="dsub" id="wSub">Pick a bet, then spin.</p></div>
+    <div class="wtabs" role="group" aria-label="Game">
+      <button type="button" id="wTabWheel" aria-pressed="true">Wheel</button>
+      <button type="button" id="wTabFlip" aria-pressed="false">Double or nothing</button>
+    </div>
+    <div class="wstage" id="wStage">
+      <div class="wptr" aria-hidden="true"></div>
+      <div class="wdisc" id="wDisc" aria-hidden="true"><div class="whub"></div></div>
+      <div class="wcoin" id="wCoin" hidden aria-hidden="true"><div class="wface wfront">YOU</div><div class="wface wback">SHARK</div></div>
+    </div>
+    <p class="wbig" id="wBig" role="status" aria-live="polite"></p>
+    <p class="msg dmsg" id="wMsg"></p>
+    <div class="betline"><span>Bet</span><b id="wWager">$25</b></div>
+    <div class="chips" id="wChips" role="group" aria-label="Bet size"></div>
+    <div class="sides"><button class="sidebtn" id="wAll" type="button">All in</button></div>
+    <button class="primary" id="wGo" type="button">Spin</button>
+    <div class="vpay" id="wPay"></div>
+    <details class="pay">
+      <summary>How the wheel works</summary>
+      <p><b>Wheel:</b> 40 slices. Most are a bust, a few pay 1x to 3x your bet back, and one slice pays 25x. The wheel returns about 95 cents on the dollar over time, so it is a long shot.</p>
+      <p><b>Double or nothing:</b> a coin flip you win 48% of the time. A win pays double your bet. A small edge for the house, and the quickest way to clear a loan or lose it all.</p>
+      <p>Press <b>All in</b> to bet every chip you have. Same chips and same loan sharks as every other table. Interest still ticks on every spin.</p>
+    </details>
+  </section>
+
 
   <section class="controls" id="bjControls">
     <div class="betline"><span id="wlabel">Bet</span><button class="stakesbtn" id="stakesBtn" hidden>Raise stakes</button><b id="wager">$25</b></div>
@@ -976,7 +1022,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     var wsp = $('wisps'); wsp.style.opacity = room === 'high' || loans < 2 ? '0' : '1';
     Array.prototype.forEach.call(wsp.children, function (w, k) { w.style.display = k < loans ? '' : 'none'; });
     document.body.classList.toggle('hr', room === 'high');
-    $('title').textContent = game === 'derby' ? 'Roach Derby' : game === 'vp' ? 'Jacks or Better' : (room === 'high' ? 'High-Roller Blackjack' : 'Pocket Blackjack');
+    $('title').textContent = game === 'derby' ? 'Roach Derby' : game === 'vp' ? 'Jacks or Better' : game === 'wheel' ? "Shark's Wheel" : (room === 'high' ? 'High-Roller Blackjack' : 'Pocket Blackjack');
   }
 
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
@@ -1412,12 +1458,107 @@ body::before { filter: brightness(var(--dimf, 1)); }
     return true;
   }
 
+
+  /* ---------- Shark's Wheel ---------- */
+  var WSL = 40, WSLICE = (function () {
+    var a = []; for (var q = 0; q < WSL; q++) a.push(0);
+    a[0] = 25; a[20] = 3; [7, 19, 33].forEach(function (x) { a[x] = 2; }); [4, 12, 27, 36].forEach(function (x) { a[x] = 1; });
+    return a;
+  })();
+  var WCOL = { 0: ['#4a1620', '#2f0d14'], 1: ['#2c6fbf'], 2: ['#23a05a'], 3: ['#e0a21a'], 25: ['#b04ae0'] };
+  var WNAME = { 0: 'Bust', 1: 'Bet back', 2: 'Double', 3: 'Triple', 25: 'JACKPOT' };
+  var FLIP_P = 0.48;
+  var wheel = { mode: 'wheel', busy: false, rot: 0, crot: 0, msg: '', cls: '', big: '', bigCls: '', sig: '', built: false, hit: -1 };
+  function wheelBuild() {
+    var stops = [], k, c;
+    for (k = 0; k < WSL; k++) { c = WCOL[WSLICE[k]]; c = c[k % c.length]; stops.push(c + ' ' + (k * 360 / WSL) + 'deg ' + ((k + 1) * 360 / WSL) + 'deg'); }
+    $('wDisc').style.background = 'conic-gradient(' + stops.join(',') + ')';
+    var pay = $('wPay'), cnt = {};
+    WSLICE.forEach(function (m) { cnt[m] = (cnt[m] || 0) + 1; });
+    pay.textContent = '';
+    [25, 3, 2, 1, 0].forEach(function (m) {
+      var d = document.createElement('div'); d.className = 'wpr'; d.dataset.m = String(m);
+      var l = document.createElement('span'), r = document.createElement('b'), sw = document.createElement('i');
+      sw.style.background = WCOL[m][0]; l.appendChild(sw); l.appendChild(document.createTextNode(WNAME[m] + (m ? ' (' + m + 'x)' : '')));
+      r.textContent = cnt[m] + ' of ' + WSL + ' (' + (cnt[m] * 100 / WSL).toFixed(1).replace('.0', '') + '%)';
+      d.appendChild(l); d.appendChild(r); pay.appendChild(d);
+    });
+    wheel.built = true;
+  }
+  function renderWheel() {
+    if (!wheel.built) wheelBuild();
+    var flip = wheel.mode === 'flip', betting = (phase === 'bet' || phase === 'done') && !wheel.busy;
+    $('wheel').classList.toggle('flip', flip);
+    $('wDisc').hidden = flip; $('wCoin').hidden = !flip;
+    $('wTabWheel').setAttribute('aria-pressed', String(!flip)); $('wTabFlip').setAttribute('aria-pressed', String(flip));
+    $('wTabWheel').disabled = !betting; $('wTabFlip').disabled = !betting;
+    $('wPay').hidden = flip;
+    $('wSub').textContent = wheel.busy ? (flip ? 'Flipping…' : 'Spinning…') : (flip ? 'Double your bet 48% of the time, or lose it.' : 'Pick a bet, then spin. One slice pays 25x.');
+    $('wBig').textContent = wheel.big; $('wBig').className = 'wbig' + (wheel.bigCls ? ' ' + wheel.bigCls : '');
+    var m = $('wMsg'); m.textContent = wheel.msg; m.className = 'msg dmsg' + (wheel.cls ? ' ' + wheel.cls : '');
+    $('wWager').textContent = '$' + bet;
+    var box = $('wChips'), sg = CHIPS.join(',');
+    if (wheel.sig !== sg) {
+      wheel.sig = sg; box.textContent = '';
+      CHIPS.slice().reverse().forEach(function (v) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.dataset.v = String(v); b.textContent = v >= 1000 ? (v / 1000) + 'K' : String(v);
+        b.addEventListener('click', function () { if (wheel.busy || (phase !== 'bet' && phase !== 'done')) return; bet = v; render(); });
+        box.appendChild(b);
+      });
+    }
+    Array.prototype.forEach.call(box.children, function (b) { var v = parseInt(b.dataset.v, 10); b.disabled = !betting || v > bank; b.setAttribute('aria-pressed', String(v === bet)); });
+    $('wAll').disabled = !betting || bank < MIN; $('wAll').textContent = 'All in: $' + bank;
+    var go = $('wGo'); go.disabled = !betting || bank < bet || bank < MIN;
+    go.textContent = wheel.busy ? (flip ? 'Flipping…' : 'Spinning…') : (flip ? 'Flip for $' + bet : 'Spin for $' + bet);
+    Array.prototype.forEach.call($('wPay').children, function (r) { r.className = 'wpr' + (wheel.hit === parseInt(r.dataset.m, 10) ? ' hit' : ''); });
+  }
+  async function wheelGo() {
+    if (wheel.busy || (phase !== 'bet' && phase !== 'done') || bank < bet || bank < MIN || bet < MIN) return;
+    if (checkStakes()) return;
+    var flip = wheel.mode === 'flip', stake = bet, i, mult, won;
+    wheel.busy = true; phase = 'busy'; wheel.hit = -1; wheel.big = ''; wheel.bigCls = '';
+    bank -= stake; save();
+    var notes = tickDebts(); blindNext = false; save();
+    wheel.msg = notes.length ? notes.join(' \u00b7 ') : ''; wheel.cls = '';
+    render();
+    if (flip) {
+      won = Math.random() < FLIP_P; mult = won ? 2 : 0;
+      wheel.crot = (Math.floor(wheel.crot / 360) + 5) * 360 + (won ? 0 : 180);
+      var coin = $('wCoin'); coin.style.transform = 'rotateY(' + wheel.crot + 'deg)';
+      await sleep(2000);
+    } else {
+      i = Math.floor(Math.random() * WSL); mult = WSLICE[i];
+      var centre = i * 360 / WSL + 360 / WSL / 2, jit = (Math.random() - 0.5) * (360 / WSL) * 0.6;
+      wheel.rot = (Math.floor(wheel.rot / 360) + 6) * 360 + (360 - centre) + jit;
+      $('wDisc').style.transform = 'rotate(' + wheel.rot + 'deg)';
+      await sleep(4500);
+    }
+    var back = stake * mult, net = back - stake;
+    bank += back; wheel.hit = flip ? -1 : mult; wheel.busy = false; phase = 'done';
+    if (mult === 25) { wheel.big = 'JACKPOT! +$' + net; wheel.bigCls = ''; }
+    else if (mult === 0) { wheel.big = flip ? 'The shark wins.' : 'Bust.'; wheel.bigCls = 'lose'; }
+    else if (mult === 1) { wheel.big = 'Bet back.'; }
+    else { wheel.big = (flip ? 'You win +$' : mult + 'x! +$') + net; }
+    wheel.msg = (wheel.msg ? wheel.msg + ' \u00b7 ' : '') + (net > 0 ? 'Won $' + net + '.' : net < 0 ? 'Lost $' + stake + '.' : 'Even.');
+    wheel.cls = net > 0 ? 'win' : net < 0 ? 'lose' : '';
+    if (bet > bank) bet = bank >= MIN ? CHIPS.filter(function (v) { return v <= bank; })[0] || MIN : bet;
+    save(); render();
+    afterHand(function () { if (!checkStakes()) checkSal(); });
+  }
+  function wheelWire() {
+    $('wGo').addEventListener('click', wheelGo);
+    $('wAll').addEventListener('click', function () { if (wheel.busy || (phase !== 'bet' && phase !== 'done')) return; bet = bank; render(); });
+    $('wTabWheel').addEventListener('click', function () { if (wheel.busy) return; wheel.mode = 'wheel'; wheel.big = ''; wheel.msg = ''; render(); });
+    $('wTabFlip').addEventListener('click', function () { if (wheel.busy) return; wheel.mode = 'flip'; wheel.big = ''; wheel.msg = ''; render(); });
+  }
+
   /* ---------- Switching tables ---------- */
   function setGame(g) {
     if (g === game) return;
     game = g;
     if (g === 'derby') { if (CHIPS.indexOf(bet) < 0 || bet > bank) bet = bestChip(); newRace(); }
-    if (g === 'vp') { if (CHIPS.indexOf(bet) < 0 || bet > bank) bet = bestChip(); }
+    if (g === 'vp' || g === 'wheel') { if (CHIPS.indexOf(bet) < 0 || bet > bank) bet = bestChip(); }
+    if (g === 'bj' && bet > maxBet()) bet = bestChip();
     render();
     if (bank < MIN) checkSal();
   }
@@ -1425,7 +1566,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     SHARKS.forEach(function (sh) { S[sh.id] = { debt: 0, held: 0, due: 0, hidden: false, bounty: 0 }; });
     wanted = 0; blindNext = false; blind = false; interestMsg = ''; insBet = 0; susp = 0; backoff = 0; deck = []; updateGlow();
     if (full) { unlocked = false; cleared = {}; stakesUnlocked = false; STORY = { mid: {}, paid: {} }; storyQ = []; saveStats(); }
-    room = 'low'; game = 'bj'; derby.phase = 'bet'; derby.pick = -1; derby.prop = 0; vp.phase = 'bet'; vp.cards = []; vp.hidden = [1, 1, 1, 1, 1]; vp.win = 0; vp.dbl = null; vp.result = '';
+    room = 'low'; game = 'bj'; derby.phase = 'bet'; derby.pick = -1; derby.prop = 0; wheel.busy = false; wheel.mode = 'wheel'; wheel.msg = ''; wheel.big = ''; vp.phase = 'bet'; vp.cards = []; vp.hidden = [1, 1, 1, 1, 1]; vp.win = 0; vp.dbl = null; vp.result = '';
     clearInterval(derby.timer); derby.timer = null; rnd = Math.random;
     resetStack();
   }
@@ -1441,6 +1582,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
       { label: 'Blackjack' + (game === 'bj' ? ' (here)' : ''), sub: 'Splits, side bets, loan sharks', go: false, disabled: game === 'bj', fn: function () { setGame('bj'); } },
       { label: 'Back Alley Roach Derby' + (game === 'derby' ? ' (here)' : ''), sub: room === 'high' ? 'Back alley only. Head downstairs first.' : 'Bet on bugs. Boots may fall.', go: false, disabled: game === 'derby' || room === 'high', fn: function () { setGame('derby'); } },
       { label: 'Jacks or Better' + (game === 'vp' ? ' (here)' : ''), sub: 'Video poker. Hold, draw, get paid.', go: false, disabled: game === 'vp', fn: function () { setGame('vp'); } },
+      { label: "Shark's Wheel" + (game === 'wheel' ? ' (here)' : ''), sub: 'Spin for a 25x jackpot or flip double or nothing', go: false, disabled: game === 'wheel', fn: function () { setGame('wheel'); } },
       { label: 'Restart game…', sub: 'Start over with a fresh stack', go: false, fn: restartMenu },
       { label: 'Close', go: false, fn: function () {} }
     ];
@@ -1448,13 +1590,14 @@ body::before { filter: brightness(var(--dimf, 1)); }
   }
   function renderTables() {
     var d = game === 'derby', betting = phase === 'bet' || phase === 'done';
-    $('bjTable').hidden = game !== 'bj'; $('tray').hidden = game !== 'bj'; $('bjControls').hidden = game !== 'bj'; $('derby').hidden = !d; $('vp').hidden = game !== 'vp';
-    el.stakesBtn.hidden = !(stakesUnlocked && room === 'low' && !d && betting);
+    $('bjTable').hidden = game !== 'bj'; $('tray').hidden = game !== 'bj'; $('bjControls').hidden = game !== 'bj'; $('derby').hidden = !d; $('vp').hidden = game !== 'vp'; $('wheel').hidden = game !== 'wheel';
+    el.stakesBtn.hidden = !(stakesUnlocked && room === 'low' && !d && game !== 'wheel' && betting);
     el.stakesBtn.textContent = stakes ? 'Lower stakes' : 'Raise stakes';
     el.stakesBtn2.hidden = !(stakesUnlocked && room === 'low' && d && derby.phase !== 'run');
     el.stakesBtn2.textContent = stakes ? 'Lower stakes' : 'Raise stakes';
     if (d) renderDerby();
     if (game === 'vp') renderVp();
+    if (game === 'wheel') renderWheel();
   }
 
   /* ---------- Back Alley Roach Derby ---------- */
@@ -2050,7 +2193,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     render();
   }
 
-  applySkin();
+  applySkin(); wheelWire();
   $('skinBtn').addEventListener('click', function () { skin = (skin + 1) % SKINS.length; applySkin(); });
   $('dustBtn').addEventListener('click', function () { dustOn = !dustOn; saveStats(); updateGlow(); render(); });
   $('coachBet').addEventListener('click', function () { setBet(coachBetAdvice().amt); });
