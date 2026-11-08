@@ -532,6 +532,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
       <summary>How the wheel works</summary>
       <p><b>Wheel:</b> 40 slices. Most are a bust, 12 pay 1x to 3x your bet back, and one slice pays 20x. The wheel is tuned slightly in your favor, about $1.02 back per $1 bet over time, though it swings a lot.</p>
       <p><b>Double or nothing:</b> a coin flip you win 48% of the time. A win pays double your bet. A small edge for the house, and the quickest way to clear a loan or lose it all.</p>
+      <p><b>Debt odds:</b> while you owe any loan shark, the wheel pays back about $1.12 per $1 (15 winning slices) and the coin lands your way 55% of the time. Pay off every loan and the odds go back to normal.</p>
       <p>Press <b>All in</b> to bet every chip you have. Same chips and same loan sharks as every other table. Interest still ticks on every spin.</p>
     </details>
   </section>
@@ -1467,14 +1468,23 @@ body::before { filter: brightness(var(--dimf, 1)); }
   })();
   var WCOL = { 0: ['#4a1620', '#2f0d14'], 1: ['#2c6fbf'], 2: ['#23a05a'], 3: ['#e0a21a'], 20: ['#b04ae0'] };
   var WNAME = { 0: 'Bust', 1: 'Bet back', 2: 'Double', 3: 'Triple', 20: 'JACKPOT' };
-  var FLIP_P = 0.48;
+  var WSLICE_FAV = (function () {
+    var a = []; for (var q = 0; q < WSL; q++) a.push(0);
+    a[0] = 20; [9, 22, 35].forEach(function (x) { a[x] = 3; }); [4, 12, 17, 26, 31].forEach(function (x) { a[x] = 2; }); [2, 7, 14, 19, 28, 37].forEach(function (x) { a[x] = 1; });
+    return a;
+  })();
+  var FLIP_P = 0.48, FLIP_P_FAV = 0.55;
+  /* While you owe a shark the house sweetens the wheel and the coin, so winning the debt back is feasible. Clear the debt and the odds go back to normal. */
+  function wheelFav() { return totalDebt() > 0; }
+  function wSlices() { return wheelFav() ? WSLICE_FAV : WSLICE; }
   var wheel = { mode: 'wheel', busy: false, rot: 0, crot: 0, msg: '', cls: '', big: '', bigCls: '', sig: '', built: false, hit: -1 };
   function wheelBuild() {
     var stops = [], k, c;
-    for (k = 0; k < WSL; k++) { c = WCOL[WSLICE[k]]; c = c[k % c.length]; stops.push(c + ' ' + (k * 360 / WSL) + 'deg ' + ((k + 1) * 360 / WSL) + 'deg'); }
+    var SL = wSlices(); wheel.favBuilt = wheelFav();
+    for (k = 0; k < WSL; k++) { c = WCOL[SL[k]]; c = c[k % c.length]; stops.push(c + ' ' + (k * 360 / WSL) + 'deg ' + ((k + 1) * 360 / WSL) + 'deg'); }
     $('wDisc').style.background = 'conic-gradient(' + stops.join(',') + ')';
     var pay = $('wPay'), cnt = {};
-    WSLICE.forEach(function (m) { cnt[m] = (cnt[m] || 0) + 1; });
+    SL.forEach(function (m) { cnt[m] = (cnt[m] || 0) + 1; });
     pay.textContent = '';
     [20, 3, 2, 1, 0].forEach(function (m) {
       var d = document.createElement('div'); d.className = 'wpr'; d.dataset.m = String(m);
@@ -1486,14 +1496,14 @@ body::before { filter: brightness(var(--dimf, 1)); }
     wheel.built = true;
   }
   function renderWheel() {
-    if (!wheel.built) wheelBuild();
+    if (!wheel.built || (!wheel.busy && wheel.favBuilt !== wheelFav())) wheelBuild();
     var flip = wheel.mode === 'flip', betting = (phase === 'bet' || phase === 'done') && !wheel.busy;
     $('wheel').classList.toggle('flip', flip);
     $('wDisc').hidden = flip; $('wCoin').hidden = !flip;
     $('wTabWheel').setAttribute('aria-pressed', String(!flip)); $('wTabFlip').setAttribute('aria-pressed', String(flip));
     $('wTabWheel').disabled = !betting; $('wTabFlip').disabled = !betting;
     $('wPay').hidden = flip;
-    $('wSub').textContent = wheel.busy ? (flip ? 'Flipping…' : 'Spinning…') : (flip ? 'Double your bet 48% of the time, or lose it.' : 'Pick a bet, then spin. One slice pays 20x.');
+    $('wSub').textContent = wheel.busy ? (flip ? 'Flipping…' : 'Spinning…') : (flip ? 'Double your bet ' + (wheelFav() ? '55' : '48') + '% of the time, or lose it.' : 'Pick a bet, then spin. One slice pays 20x.') + (wheelFav() ? ' Debt odds: the sharks sweeten the game while you owe.' : '');
     $('wBig').textContent = wheel.big; $('wBig').className = 'wbig' + (wheel.bigCls ? ' ' + wheel.bigCls : '');
     var m = $('wMsg'); m.textContent = wheel.msg; m.className = 'msg dmsg' + (wheel.cls ? ' ' + wheel.cls : '');
     $('wWager').textContent = '$' + bet;
@@ -1522,12 +1532,12 @@ body::before { filter: brightness(var(--dimf, 1)); }
     wheel.msg = notes.length ? notes.join(' \u00b7 ') : ''; wheel.cls = '';
     render();
     if (flip) {
-      won = Math.random() < FLIP_P; mult = won ? 2 : 0;
+      won = Math.random() < (wheelFav() ? FLIP_P_FAV : FLIP_P); mult = won ? 2 : 0;
       wheel.crot = (Math.floor(wheel.crot / 360) + 5) * 360 + (won ? 0 : 180);
       var coin = $('wCoin'); coin.style.transform = 'rotateY(' + wheel.crot + 'deg)';
       await sleep(2000);
     } else {
-      i = Math.floor(Math.random() * WSL); mult = WSLICE[i];
+      i = Math.floor(Math.random() * WSL); mult = wSlices()[i];
       var centre = i * 360 / WSL + 360 / WSL / 2, jit = (Math.random() - 0.5) * (360 / WSL) * 0.6;
       wheel.rot = (Math.floor(wheel.rot / 360) + 6) * 360 + (360 - centre) + jit;
       $('wDisc').style.transform = 'rotate(' + wheel.rot + 'deg)';
