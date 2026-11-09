@@ -314,6 +314,8 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .wface { position: absolute; inset: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 900; font-size: 1.7rem; backface-visibility: hidden; -webkit-backface-visibility: hidden; border: 6px solid rgba(0, 0, 0, 0.35); }
 .wfront { background: radial-gradient(circle at 35% 30%, #fff3b0, var(--brass) 60%, #9a7410); color: #3a2a00; }
 .wback { background: radial-gradient(circle at 35% 30%, #5a6370, #20252c 70%); color: #f3b0b0; transform: rotateY(180deg); }
+.wpick button { font-size: 0.78rem; min-height: 40px; padding: 0 4px; line-height: 1.1; }
+.wheel.flip #wPick { display: none; }
 .wheel.flip .wdisc, .wheel.flip .wptr { display: none; }
 .wbig { margin: 0; min-height: 1.6em; text-align: center; font-family: var(--display); font-weight: 900; font-size: 1.5rem; color: var(--brass); }
 .wbig.lose { color: var(--lose); }
@@ -549,6 +551,12 @@ body::before { filter: brightness(var(--dimf, 1)); }
       <button type="button" id="wTabWheel" aria-pressed="true">Wheel</button>
       <button type="button" id="wTabFlip" aria-pressed="false">Double or nothing</button>
     </div>
+    <div class="wtabs wpick" id="wPick" role="group" aria-label="What to bet on">
+      <button type="button" data-pick="any" aria-pressed="true">Wedges</button>
+      <button type="button" data-pick="bust" aria-pressed="false"></button>
+      <button type="button" data-pick="big" aria-pressed="false"></button>
+      <button type="button" data-pick="star" aria-pressed="false"></button>
+    </div>
     <div class="wstage" id="wStage">
       <div class="wptr" aria-hidden="true"></div>
       <div class="wdisc" id="wDisc" aria-hidden="true"><div class="whub"></div></div>
@@ -565,6 +573,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
       <summary>How the wheel works</summary>
       <p><b>Wheel:</b> 24 wedges, each a multiple of your bet. Land on BUST and you lose it, ½× returns half, and the star pays 10x. Normal odds return about $1.04 per $1 over time. While you owe a shark it is sweetened.</p>
       <p><b>Double or nothing:</b> a coin flip you win 48% of the time. A win pays double your bet. A small edge for the house, and the quickest way to clear a loan or lose it all.</p>
+      <p><b>Call your shot:</b> instead of the wedge payouts, bet on <b>Bust</b> (any BUST wedge), <b>Big 2x+</b> (a 2x, 3x or star wedge) or the <b>Star</b> alone. If the wheel stops where you called it you win the listed multiple, otherwise you lose the bet. The payouts shown are set to about 95 cents on the dollar, a little more while you owe a shark.</p>
       <p><b>Debt odds:</b> while you owe any loan shark, the wheel pays back about $1.15 per $1 (fewer busts and more big wedges) and the coin lands your way 55% of the time. Pay off every loan and the odds go back to normal.</p>
       <p>Press <b>All in</b> to bet every chip you have. Same chips and same loan sharks as every other table. Interest still ticks on every spin.</p>
     </details>
@@ -1504,8 +1513,14 @@ body::before { filter: brightness(var(--dimf, 1)); }
   var FLIP_P = 0.48, FLIP_P_FAV = 0.55;
   /* While you owe a shark the house sweetens the wheel and the coin, so winning the debt back is feasible. Clear the debt and the odds go back to normal. */
   function wheelFav() { return totalDebt() > 0; }
+  /* Call-your-shot bets: instead of the wedge payouts, bet on where the wheel stops. */
+  var WPICKS = { bust: { name: 'Bust', test: function (m) { return m === 0; } }, big: { name: 'Big 2x+', test: function (m) { return m >= 2; } }, star: { name: 'Star', test: function (m) { return m === 10; } } };
+  function pickPay(k) {
+    var SL = wSlices(), n = SL.filter(WPICKS[k].test).length, tgt = wheelFav() ? 1.08 : 0.95;
+    return Math.round(tgt / (n / WSL) * 10) / 10;
+  }
   function wSlices() { return wheelFav() ? WSLICE_FAV : WSLICE; }
-  var wheel = { mode: 'wheel', busy: false, rot: 0, crot: 0, msg: '', cls: '', big: '', bigCls: '', sig: '', built: false, hit: -1 };
+  var wheel = { pick: 'any', mode: 'wheel', busy: false, rot: 0, crot: 0, msg: '', cls: '', big: '', bigCls: '', sig: '', built: false, hit: -1 };
   function wheelBuild() {
     var stops = [], k, SL = wSlices(), disc = $('wDisc'), old = disc.querySelectorAll('.wlab');
     wheel.favBuilt = wheelFav();
@@ -1537,6 +1552,11 @@ body::before { filter: brightness(var(--dimf, 1)); }
     $('wTabWheel').setAttribute('aria-pressed', String(!flip)); $('wTabFlip').setAttribute('aria-pressed', String(flip));
     $('wTabWheel').disabled = !betting; $('wTabFlip').disabled = !betting;
     $('wPay').hidden = flip;
+    Array.prototype.forEach.call($('wPick').children, function (b) {
+      var k = b.dataset.pick; b.disabled = !betting;
+      if (k !== 'any') b.textContent = 'Bet ' + WPICKS[k].name + ' ' + pickPay(k) + '\u00d7';
+      b.setAttribute('aria-pressed', String(wheel.pick === k));
+    });
     $('wSub').textContent = wheel.busy ? (flip ? 'Flipping…' : 'Spinning…') : (flip ? 'Double your bet ' + (wheelFav() ? '55' : '48') + '% of the time, or lose it.' : 'Pick a bet, then spin. Land on the star for 10x.') + (wheelFav() ? ' Debt odds: the sharks sweeten the game while you owe.' : '');
     $('wBig').textContent = wheel.big; $('wBig').className = 'wbig' + (wheel.bigCls ? ' ' + wheel.bigCls : '');
     var m = $('wMsg'); m.textContent = wheel.msg; m.className = 'msg dmsg' + (wheel.cls ? ' ' + wheel.cls : '');
@@ -1577,9 +1597,12 @@ body::before { filter: brightness(var(--dimf, 1)); }
       $('wDisc').style.transform = 'rotate(' + wheel.rot + 'deg)';
       await sleep(4500);
     }
+    var wedge = mult, called = !flip && wheel.pick !== 'any', calledHit = false;
+    if (called) { calledHit = WPICKS[wheel.pick].test(wedge); mult = calledHit ? pickPay(wheel.pick) : 0; }
     var back = Math.floor(stake * mult), net = back - stake;
-    bank += back; wheel.hit = flip ? -1 : mult; wheel.busy = false; phase = 'done';
-    if (mult === 10) { wheel.big = 'JACKPOT! +$' + net; wheel.bigCls = ''; }
+    bank += back; wheel.hit = flip ? -1 : wedge; wheel.busy = false; phase = 'done';
+    if (called) { wheel.big = calledHit ? 'You called it! ' + mult + 'x  +$' + net : (wedge === 0 ? 'Bust.' : wedge + 'x wedge') + '  -$' + stake; wheel.bigCls = calledHit ? '' : 'lose'; }
+    else if (mult === 10) { wheel.big = 'JACKPOT! +$' + net; wheel.bigCls = ''; }
     else if (mult === 0) { wheel.big = flip ? 'The shark wins.' : 'Bust.'; wheel.bigCls = 'lose'; }
     else if (mult === 1) { wheel.big = 'Bet back.'; }
     else if (mult < 1) { wheel.big = 'Half back. -$' + (-net); wheel.bigCls = 'lose'; }
@@ -1593,6 +1616,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
   function wheelWire() {
     $('wGo').addEventListener('click', wheelGo);
     $('wAll').addEventListener('click', function () { if (wheel.busy || (phase !== 'bet' && phase !== 'done')) return; bet = bank; render(); });
+    Array.prototype.forEach.call($('wPick').children, function (b) { b.addEventListener('click', function () { if (wheel.busy) return; wheel.pick = b.dataset.pick; render(); }); });
     $('wTabWheel').addEventListener('click', function () { if (wheel.busy) return; wheel.mode = 'wheel'; wheel.big = ''; wheel.msg = ''; render(); });
     $('wTabFlip').addEventListener('click', function () { if (wheel.busy) return; wheel.mode = 'flip'; wheel.big = ''; wheel.msg = ''; render(); });
   }
