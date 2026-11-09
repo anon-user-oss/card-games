@@ -292,6 +292,12 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .vdealer, .vpicks { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #fff; }
 .vpicks > div { display: flex; gap: 4px; }
 .vdealer small, .vpicks small { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; color: #ffe27a; text-transform: uppercase; }
+.plinko { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: auto; }
+.pboard { width: min(92vw, 340px); margin: 6px auto 0; }
+.pboard canvas { display: block; width: 100%; height: auto; border-radius: 12px 12px 0 0; background: rgba(0, 0, 0, 0.35); }
+.pslots { display: grid; grid-template-columns: repeat(13, 1fr); gap: 2px; margin-top: 2px; }
+.pslots span { text-align: center; font-weight: 900; font-size: 0.52rem; padding: 6px 0; border-radius: 0 0 5px 5px; color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6); overflow: hidden; }
+.pslots span.hit { outline: 3px solid #fff; transform: translateY(3px) scale(1.08); position: relative; z-index: 2; }
 .wheel { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: auto; }
 .wtabs { display: flex; gap: 8px; }
 .wtabs button { flex: 1; min-height: 44px; border-radius: 12px; border: 2px solid var(--line); background: rgba(0, 0, 0, 0.3); font-weight: 800; }
@@ -510,6 +516,30 @@ body::before { filter: brightness(var(--dimf, 1)); }
         <li>Nothing: keep one or two high cards (J, Q, K, A), or draw five new cards.</li>
       </ul>
       <p>Stuck? Press <b>Hint</b> any time during step 2 and the game shows the best cards to keep.</p>
+    </details>
+  </section>
+
+  <section class="plinko" id="plinko" hidden>
+    <div class="dhead"><h2>Plinko</h2><p class="dsub" id="pSub">Pick a risk level and a bet, then drop the ball.</p></div>
+    <div class="wtabs" role="group" aria-label="Risk">
+      <button type="button" data-risk="low" aria-pressed="true">Low</button>
+      <button type="button" data-risk="med" aria-pressed="false">Medium</button>
+      <button type="button" data-risk="high" aria-pressed="false">High</button>
+    </div>
+    <div class="pboard" id="pBoard">
+      <canvas id="pCanvas" width="340" height="300"></canvas>
+      <div class="pslots" id="pSlots"></div>
+    </div>
+    <p class="wbig" id="pBig" role="status" aria-live="polite"></p>
+    <p class="msg dmsg" id="pMsg"></p>
+    <div class="betline"><span>Bet</span><b id="pWager">$25</b></div>
+    <div class="chips" id="pChips" role="group" aria-label="Bet size"></div>
+    <div class="sides"><button class="sidebtn" id="pAll" type="button">All in</button></div>
+    <button class="primary" id="pGo" type="button">Drop</button>
+    <details class="pay">
+      <summary>How Plinko works</summary>
+      <p>The ball bounces left or right at every peg, so it usually lands in the middle. The slots at the edges pay the most. <b>Low</b> risk pays a little most of the time, <b>High</b> risk is mostly small returns with huge edge slots (up to 250x).</p>
+      <p>Normal odds return about 97 cents per dollar over time. While you owe a loan shark the slots pay about 12% more, so the board leans your way. Interest still ticks on every drop.</p>
     </details>
   </section>
 
@@ -1026,7 +1056,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     var wsp = $('wisps'); wsp.style.opacity = room === 'high' || loans < 2 ? '0' : '1';
     Array.prototype.forEach.call(wsp.children, function (w, k) { w.style.display = k < loans ? '' : 'none'; });
     document.body.classList.toggle('hr', room === 'high');
-    $('title').textContent = game === 'derby' ? 'Roach Derby' : game === 'vp' ? 'Jacks or Better' : game === 'wheel' ? "Shark's Wheel" : (room === 'high' ? 'High-Roller Blackjack' : 'Pocket Blackjack');
+    $('title').textContent = game === 'derby' ? 'Roach Derby' : game === 'vp' ? 'Jacks or Better' : game === 'wheel' ? "Shark's Wheel" : game === 'plinko' ? 'Plinko' : (room === 'high' ? 'High-Roller Blackjack' : 'Pocket Blackjack');
   }
 
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
@@ -1567,12 +1597,110 @@ body::before { filter: brightness(var(--dimf, 1)); }
     $('wTabFlip').addEventListener('click', function () { if (wheel.busy) return; wheel.mode = 'flip'; wheel.big = ''; wheel.msg = ''; render(); });
   }
 
+
+  /* ---------- Plinko ---------- */
+  var PROWS = 12, PHALF = { low: [16, 3, 1.5, 1.2, 1.1, 1, 0.5], med: [58, 9, 3.2, 1.5, 1.1, 0.7, 0.4], high: [250, 18, 5, 2, 0.8, 0.3, 0.2] };
+  var plinko = { risk: 'low', busy: false, msg: '', cls: '', big: '', bigCls: '', sig: '', built: false, hit: -1, ball: null };
+  function pMults(risk) {
+    var h = PHALF[risk], full = h.concat(h.slice(0, 6).reverse());
+    return wheelFav() ? full.map(function (m) { return Math.round(m * 1.12 * 10) / 10; }) : full;
+  }
+  function pColor(m) { return m >= 100 ? '#b3199c' : m >= 20 ? '#d62f3a' : m >= 5 ? '#e0701c' : m >= 2 ? '#d9a21a' : m >= 1 ? '#2f9e44' : '#3b4a66'; }
+  function pFmt(m) { return m >= 10 ? String(Math.round(m)) : String(m); }
+  function plinkoDraw() {
+    var cv = $('pCanvas'), g = cv.getContext('2d'), W = 340, H = 300, sp = 24, top = 22, vy = 21, cx = W / 2;
+    g.clearRect(0, 0, W, H);
+    g.fillStyle = 'rgba(255,255,255,0.75)';
+    for (var j = 0; j < PROWS; j++) for (var m = 0; m <= j; m++) { g.beginPath(); g.arc(cx + (m - j / 2) * sp, top + j * vy, 2.6, 0, 6.2832); g.fill(); }
+    var b = plinko.ball;
+    if (b) { g.fillStyle = '#ffd24a'; g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 1.5; g.beginPath(); g.arc(b.x, b.y, 6.5, 0, 6.2832); g.fill(); g.stroke(); }
+  }
+  function plinkoBuild() {
+    var box = $('pSlots'), full = pMults(plinko.risk);
+    if (box.children.length !== 13) { box.textContent = ''; for (var k = 0; k < 13; k++) box.appendChild(document.createElement('span')); }
+    Array.prototype.forEach.call(box.children, function (n, k) { n.textContent = pFmt(full[k]); n.style.background = pColor(full[k]); n.className = plinko.hit === k ? 'hit' : ''; });
+    plinko.favBuilt = wheelFav(); plinko.built = true;
+    plinkoDraw();
+  }
+  function renderPlinko() {
+    if (!plinko.built || (!plinko.busy && plinko.favBuilt !== wheelFav())) plinkoBuild();
+    var betting = (phase === 'bet' || phase === 'done') && !plinko.busy;
+    Array.prototype.forEach.call(document.querySelectorAll('#plinko [data-risk]'), function (b) { b.setAttribute('aria-pressed', String(b.dataset.risk === plinko.risk)); b.disabled = !betting; });
+    $('pSub').textContent = plinko.busy ? 'Dropping…' : 'Pick a risk level and a bet, then drop the ball.' + (wheelFav() ? ' Debt odds: slots pay 12% more while you owe.' : '');
+    $('pBig').textContent = plinko.big; $('pBig').className = 'wbig' + (plinko.bigCls ? ' ' + plinko.bigCls : '');
+    var m = $('pMsg'); m.textContent = plinko.msg; m.className = 'msg dmsg' + (plinko.cls ? ' ' + plinko.cls : '');
+    $('pWager').textContent = '$' + bet;
+    var box = $('pChips'), sg = CHIPS.join(',');
+    if (plinko.sig !== sg) {
+      plinko.sig = sg; box.textContent = '';
+      CHIPS.slice().reverse().forEach(function (v) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.dataset.v = String(v); b.textContent = v >= 1000 ? (v / 1000) + 'K' : String(v);
+        b.addEventListener('click', function () { if (plinko.busy || (phase !== 'bet' && phase !== 'done')) return; bet = v; render(); });
+        box.appendChild(b);
+      });
+    }
+    Array.prototype.forEach.call(box.children, function (b) { var v = parseInt(b.dataset.v, 10); b.disabled = !betting || v > bank; b.setAttribute('aria-pressed', String(v === bet)); });
+    $('pAll').disabled = !betting || bank < MIN; $('pAll').textContent = 'All in: $' + bank;
+    var go = $('pGo'); go.disabled = !betting || bank < bet || bank < MIN; go.textContent = plinko.busy ? 'Dropping…' : 'Drop for $' + bet;
+  }
+  function plinkoAnimate(path) {
+    return new Promise(function (resolve) {
+      var sp = 24, top = 22, vy = 21, cx = 170, step = 0, t0 = null, DUR = 230, rights = 0, x0 = cx, y0 = 4;
+      plinko.ball = { x: cx, y: 4 };
+      function frame(ts) {
+        if (t0 === null) t0 = ts;
+        var t = Math.min(1, (ts - t0) / DUR), x1, y1;
+        if (step < PROWS) { x1 = cx + (rights + (path[step] ? 1 : 0) - (step + 1) / 2) * sp; y1 = top + (step + 1) * vy - (step + 1 === PROWS ? 0 : 0); }
+        var sx = step === 0 ? cx : cx + (rights - step / 2) * sp, sy = step === 0 ? 4 : top + step * vy - 8;
+        var ex = x1, ey = top + (step + 1) * vy - 8;
+        plinko.ball.x = sx + (ex - sx) * t;
+        plinko.ball.y = sy + (ey - sy) * (t * t) - Math.sin(Math.PI * t) * 5;
+        plinkoDraw();
+        if (t >= 1) { rights += path[step] ? 1 : 0; step++; t0 = null; if (step >= PROWS) { plinko.ball.y = H_END(); plinkoDraw(); resolve(rights); return; } }
+        requestAnimationFrame(frame);
+      }
+      function H_END() { return top + PROWS * vy + 2; }
+      requestAnimationFrame(frame);
+    });
+  }
+  async function plinkoGo() {
+    if (plinko.busy || (phase !== 'bet' && phase !== 'done') || bank < bet || bank < MIN || bet < MIN) return;
+    if (checkStakes()) return;
+    var stake = bet, path = [], j, k;
+    for (j = 0; j < PROWS; j++) path.push(Math.random() < 0.5);
+    k = path.filter(Boolean).length;
+    var full = pMults(plinko.risk), mult = full[k];
+    plinko.busy = true; phase = 'busy'; plinko.hit = -1; plinko.big = ''; plinko.bigCls = '';
+    bank -= stake; save();
+    var notes = tickDebts(); blindNext = false; save();
+    plinko.msg = notes.length ? notes.join(' \u00b7 ') : ''; plinko.cls = '';
+    render();
+    await plinkoAnimate(path);
+    var back = Math.floor(stake * mult), net = back - stake;
+    bank += back; plinko.hit = k; plinko.busy = false; phase = 'done';
+    plinko.big = mult >= 1 ? (mult >= 10 ? 'BIG HIT! ' : '') + pFmt(mult) + 'x  +$' + net : pFmt(mult) + 'x  -$' + (-net);
+    if (mult === 1) plinko.big = '1x  Bet back.';
+    plinko.bigCls = net < 0 ? 'lose' : '';
+    plinko.msg = (plinko.msg ? plinko.msg + ' \u00b7 ' : '') + (net > 0 ? 'Won $' + net + '.' : net < 0 ? 'Lost $' + (-net) + '.' : 'Even.');
+    plinko.cls = net > 0 ? 'win' : net < 0 ? 'lose' : '';
+    if (bet > bank) bet = bank >= MIN ? CHIPS.filter(function (v) { return v <= bank; })[0] || MIN : bet;
+    plinko.ball = null; save(); plinkoBuild(); render();
+    afterHand(function () { if (!checkStakes()) checkSal(); });
+  }
+  function plinkoWire() {
+    $('pGo').addEventListener('click', plinkoGo);
+    $('pAll').addEventListener('click', function () { if (plinko.busy || (phase !== 'bet' && phase !== 'done')) return; bet = bank; render(); });
+    Array.prototype.forEach.call(document.querySelectorAll('#plinko [data-risk]'), function (b) {
+      b.addEventListener('click', function () { if (plinko.busy) return; plinko.risk = b.dataset.risk; plinko.big = ''; plinko.msg = ''; plinko.hit = -1; plinko.built = false; render(); });
+    });
+  }
+
   /* ---------- Switching tables ---------- */
   function setGame(g) {
     if (g === game) return;
     game = g;
     if (g === 'derby') { if (CHIPS.indexOf(bet) < 0 || bet > bank) bet = bestChip(); newRace(); }
-    if (g === 'vp' || g === 'wheel') { if (CHIPS.indexOf(bet) < 0 || bet > bank) bet = bestChip(); }
+    if (g === 'vp' || g === 'wheel' || g === 'plinko') { if (CHIPS.indexOf(bet) < 0 || bet > bank) bet = bestChip(); }
     if (g === 'bj' && bet > maxBet()) bet = bestChip();
     render();
     if (bank < MIN) checkSal();
@@ -1581,7 +1709,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     SHARKS.forEach(function (sh) { S[sh.id] = { debt: 0, held: 0, due: 0, hidden: false, bounty: 0 }; });
     wanted = 0; blindNext = false; blind = false; interestMsg = ''; insBet = 0; susp = 0; backoff = 0; deck = []; updateGlow();
     if (full) { unlocked = false; cleared = {}; stakesUnlocked = false; STORY = { mid: {}, paid: {} }; storyQ = []; saveStats(); }
-    room = 'low'; game = 'bj'; derby.phase = 'bet'; derby.pick = -1; derby.prop = 0; wheel.busy = false; wheel.mode = 'wheel'; wheel.msg = ''; wheel.big = ''; vp.phase = 'bet'; vp.cards = []; vp.hidden = [1, 1, 1, 1, 1]; vp.win = 0; vp.dbl = null; vp.result = '';
+    room = 'low'; game = 'bj'; derby.phase = 'bet'; derby.pick = -1; derby.prop = 0; wheel.busy = false; plinko.busy = false; plinko.msg = ''; plinko.big = ''; wheel.mode = 'wheel'; wheel.msg = ''; wheel.big = ''; vp.phase = 'bet'; vp.cards = []; vp.hidden = [1, 1, 1, 1, 1]; vp.win = 0; vp.dbl = null; vp.result = '';
     clearInterval(derby.timer); derby.timer = null; rnd = Math.random;
     resetStack();
   }
@@ -1598,6 +1726,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
       { label: 'Back Alley Roach Derby' + (game === 'derby' ? ' (here)' : ''), sub: room === 'high' ? 'Back alley only. Head downstairs first.' : 'Bet on bugs. Boots may fall.', go: false, disabled: game === 'derby' || room === 'high', fn: function () { setGame('derby'); } },
       { label: 'Jacks or Better' + (game === 'vp' ? ' (here)' : ''), sub: 'Video poker. Hold, draw, get paid.', go: false, disabled: game === 'vp', fn: function () { setGame('vp'); } },
       { label: "Shark's Wheel" + (game === 'wheel' ? ' (here)' : ''), sub: 'Spin for a 10x jackpot or flip double or nothing', go: false, disabled: game === 'wheel', fn: function () { setGame('wheel'); } },
+      { label: 'Plinko' + (game === 'plinko' ? ' (here)' : ''), sub: 'Drop the ball, up to 250x on the high-risk board', go: false, disabled: game === 'plinko', fn: function () { setGame('plinko'); } },
       { label: 'Restart game…', sub: 'Start over with a fresh stack', go: false, fn: restartMenu },
       { label: 'Close', go: false, fn: function () {} }
     ];
@@ -1605,14 +1734,15 @@ body::before { filter: brightness(var(--dimf, 1)); }
   }
   function renderTables() {
     var d = game === 'derby', betting = phase === 'bet' || phase === 'done';
-    $('bjTable').hidden = game !== 'bj'; $('tray').hidden = game !== 'bj'; $('bjControls').hidden = game !== 'bj'; $('derby').hidden = !d; $('vp').hidden = game !== 'vp'; $('wheel').hidden = game !== 'wheel';
-    el.stakesBtn.hidden = !(stakesUnlocked && room === 'low' && !d && game !== 'wheel' && betting);
+    $('bjTable').hidden = game !== 'bj'; $('tray').hidden = game !== 'bj'; $('bjControls').hidden = game !== 'bj'; $('derby').hidden = !d; $('vp').hidden = game !== 'vp'; $('wheel').hidden = game !== 'wheel'; $('plinko').hidden = game !== 'plinko';
+    el.stakesBtn.hidden = !(stakesUnlocked && room === 'low' && !d && game !== 'wheel' && game !== 'plinko' && betting);
     el.stakesBtn.textContent = stakes ? 'Lower stakes' : 'Raise stakes';
     el.stakesBtn2.hidden = !(stakesUnlocked && room === 'low' && d && derby.phase !== 'run');
     el.stakesBtn2.textContent = stakes ? 'Lower stakes' : 'Raise stakes';
     if (d) renderDerby();
     if (game === 'vp') renderVp();
     if (game === 'wheel') renderWheel();
+    if (game === 'plinko') renderPlinko();
   }
 
   /* ---------- Back Alley Roach Derby ---------- */
@@ -2208,7 +2338,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     render();
   }
 
-  applySkin(); wheelWire();
+  applySkin(); wheelWire(); plinkoWire();
   $('skinBtn').addEventListener('click', function () { skin = (skin + 1) % SKINS.length; applySkin(); });
   $('dustBtn').addEventListener('click', function () { dustOn = !dustOn; saveStats(); updateGlow(); render(); });
   $('coachBet').addEventListener('click', function () { setBet(coachBetAdvice().amt); });
