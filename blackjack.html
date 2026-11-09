@@ -1623,8 +1623,12 @@ body::before { filter: brightness(var(--dimf, 1)); }
     else if (mult < 1) { wheel.big = 'Half back. -$' + (-mainNet); wheel.bigCls = 'lose'; }
     else { wheel.big = (flip ? 'You win +$' : mult + 'x! +$') + mainNet; }
     var sideTxt = '';
-    if (called) sideTxt = calledHit ? 'Side bet on ' + WPICKS[wheel.pick].name + ' hit: +$' + (sideBack - sideAmt) + '.' : 'Side bet on ' + WPICKS[wheel.pick].name + ' missed: -$' + sideAmt + '.';
-    wheel.msg = (wheel.msg ? wheel.msg + ' \u00b7 ' : '') + sideTxt + (sideTxt ? ' ' : '') + (net > 0 ? 'Net won $' + net + '.' : net < 0 ? 'Net lost $' + (-net) + '.' : 'Even.');
+    if (called) {
+      wheel.big = calledHit ? 'Side bet hit! +$' + (sideBack - sideAmt) : wheel.big;
+      if (calledHit) wheel.bigCls = '';
+      sideTxt = 'Main: ' + (mainNet >= 0 ? '+$' + mainNet : '-$' + (-mainNet)) + ' \u00b7 Side on ' + WPICKS[wheel.pick].name + ': ' + (calledHit ? '+$' + (sideBack - sideAmt) : '-$' + sideAmt) + ' \u00b7 ';
+    }
+    wheel.msg = (wheel.msg ? wheel.msg + ' \u00b7 ' : '') + sideTxt + (net > 0 ? 'Net won $' + net + '.' : net < 0 ? 'Net lost $' + (-net) + '.' : 'Net even.');
     wheel.cls = net > 0 ? 'win' : net < 0 ? 'lose' : '';
     if (bet > bank) bet = bank >= MIN ? CHIPS.filter(function (v) { return v <= bank; })[0] || MIN : bet;
     save(); render();
