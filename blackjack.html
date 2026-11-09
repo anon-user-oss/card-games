@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -58,6 +58,8 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
+html, body, .wheel, .plinko { touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.whub, .wdisc, canvas { touch-action: manipulation; }
 button:focus-visible, summary:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
 
 .app {
@@ -2441,6 +2443,8 @@ body::before { filter: brightness(var(--dimf, 1)); }
   }
 
   applySkin(); wheelWire(); plinkoWire();
+  /* iOS: touch-action manipulation above stops double-tap zoom without blocking fast taps; this stops pinch zoom. */
+  document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
   $('skinBtn').addEventListener('click', function () { skin = (skin + 1) % SKINS.length; applySkin(); });
   $('dustBtn').addEventListener('click', function () { dustOn = !dustOn; saveStats(); updateGlow(); render(); });
   $('coachBet').addEventListener('click', function () { setBet(coachBetAdvice().amt); });
