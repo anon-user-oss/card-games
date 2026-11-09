@@ -1582,7 +1582,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     Array.prototype.forEach.call(box.children, function (b) { var v = parseInt(b.dataset.v, 10); b.disabled = !betting || v > bank; b.setAttribute('aria-pressed', String(v === bet)); });
     $('wAll').disabled = !betting || bank < MIN; $('wAll').textContent = 'All in: $' + bank;
     var go = $('wGo'); go.disabled = !betting || bank < bet || bank < MIN;
-    go.textContent = wheel.busy ? (flip ? 'Flipping…' : 'Spinning…') : (flip ? 'Flip for $' + bet : 'Spin for $' + bet);
+    go.textContent = wheel.busy ? (flip ? 'Flipping…' : 'Spinning…') : (flip ? 'Flip for $' + bet : wheel.pick !== 'any' ? 'Bet $' + bet + ' on ' + WPICKS[wheel.pick].name : 'Spin for $' + bet);
     Array.prototype.forEach.call($('wPay').children, function (r) { r.className = 'wpr' + (wheel.hit === parseFloat(r.dataset.m) ? ' hit' : ''); });
   }
   async function wheelGo() {
@@ -1610,7 +1610,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     if (called) { calledHit = WPICKS[wheel.pick].test(wedge); mult = calledHit ? pickPay(wheel.pick) : 0; }
     var back = Math.floor(stake * mult), net = back - stake;
     bank += back; wheel.hit = flip ? -1 : wedge; wheel.busy = false; phase = 'done';
-    if (called) { wheel.big = calledHit ? 'You called it! ' + mult + 'x  +$' + net : (wedge === 0 ? 'Bust.' : wedge + 'x wedge') + '  -$' + stake; wheel.bigCls = calledHit ? '' : 'lose'; }
+    if (called) { wheel.big = calledHit ? 'You called ' + WPICKS[wheel.pick].name + '! ' + mult + 'x  +$' + net : 'Landed on ' + (wedge === 0 ? 'BUST' : wedge + 'x') + '. You bet ' + WPICKS[wheel.pick].name + '  -$' + stake; wheel.bigCls = calledHit ? '' : 'lose'; }
     else if (mult === 10) { wheel.big = 'JACKPOT! +$' + net; wheel.bigCls = ''; }
     else if (mult === 0) { wheel.big = flip ? 'The shark wins.' : 'Bust.'; wheel.bigCls = 'lose'; }
     else if (mult === 1) { wheel.big = 'Bet back.'; }
