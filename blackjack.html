@@ -318,7 +318,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .wfront { background: radial-gradient(circle at 35% 30%, #fff3b0, var(--brass) 60%, #9a7410); color: #3a2a00; }
 .wback { background: radial-gradient(circle at 35% 30%, #5a6370, #20252c 70%); color: #f3b0b0; transform: rotateY(180deg); }
 .wpick button { font-size: 0.78rem; min-height: 40px; padding: 0 4px; line-height: 1.1; }
-.wheel.flip #wPick { display: none; }
+.wheel.flip #wPick, .wheel.flip .sides:has(#wSide) { display: none; }
 .wheel.flip .wdisc, .wheel.flip .wptr { display: none; }
 .wbig { margin: 0; min-height: 1.6em; text-align: center; font-family: var(--display); font-weight: 900; font-size: 1.5rem; color: var(--brass); }
 .wbig.lose { color: var(--lose); }
@@ -561,11 +561,12 @@ body::before { filter: brightness(var(--dimf, 1)); }
       <button type="button" id="wTabFlip" aria-pressed="false">Double or nothing</button>
     </div>
     <div class="wtabs wpick" id="wPick" role="group" aria-label="What to bet on">
-      <button type="button" data-pick="any" aria-pressed="true">Wedges</button>
+      <button type="button" data-pick="any" aria-pressed="true">No side bet</button>
       <button type="button" data-pick="bust" aria-pressed="false"></button>
       <button type="button" data-pick="big" aria-pressed="false"></button>
       <button type="button" data-pick="star" aria-pressed="false"></button>
     </div>
+    <div class="sides"><button class="sidebtn" id="wSide" type="button" hidden>Side stake: $10</button></div>
     <div class="wstage" id="wStage">
       <div class="wptr" aria-hidden="true"></div>
       <div class="wdisc" id="wDisc" aria-hidden="true"><div class="whub"></div></div>
@@ -582,7 +583,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
       <summary>How the wheel works</summary>
       <p><b>Wheel:</b> 24 wedges, each a multiple of your bet. Land on BUST and you lose it, ½× returns half, and the star pays 10x. Normal odds return about $1.04 per $1 over time. While you owe a shark it is sweetened.</p>
       <p><b>Double or nothing:</b> a coin flip you win 48% of the time. A win pays double your bet. A small edge for the house, and the quickest way to clear a loan or lose it all.</p>
-      <p><b>Call your shot:</b> instead of the wedge payouts, bet on <b>Bust</b> (any BUST wedge), <b>Big 2x+</b> (a 2x, 3x or star wedge) or the <b>Star</b> alone. If the wheel stops where you called it you win the listed multiple, otherwise you lose the bet. The payouts shown are set to about 95 cents on the dollar, a little more while you owe a shark.</p>
+      <p><b>Side bets:</b> pick <b>Bust</b> (any BUST wedge), <b>Big 2x+</b> (a 2x, 3x or star wedge) or the <b>Star</b> alone, then tap the side stake button to set how much. Your main bet still pays its wedge as usual. The side bet wins the listed multiple if the wheel stops where you called it, otherwise you lose only the side stake. Payouts are set to about 95 cents on the dollar, more while you owe a shark.</p>
       <p><b>Debt odds:</b> while you owe any loan shark, the wheel pays back about $1.15 per $1 (fewer busts and more big wedges) and the coin lands your way 55% of the time. Pay off every loan and the odds go back to normal.</p>
       <p>Press <b>All in</b> to bet every chip you have. Same chips and same loan sharks as every other table. Interest still ticks on every spin.</p>
     </details>
@@ -1529,7 +1530,8 @@ body::before { filter: brightness(var(--dimf, 1)); }
     return Math.round(tgt / (n / WSL) * 10) / 10;
   }
   function wSlices() { return wheelFav() ? WSLICE_FAV : WSLICE; }
-  var wheel = { pick: 'any', mode: 'wheel', busy: false, rot: 0, crot: 0, msg: '', cls: '', big: '', bigCls: '', sig: '', built: false, hit: -1 };
+  var WSIDES = [5, 10, 25, 50, 100];
+  var wheel = { side: 10, pick: 'any', mode: 'wheel', busy: false, rot: 0, crot: 0, msg: '', cls: '', big: '', bigCls: '', sig: '', built: false, hit: -1 };
   function wheelBuild() {
     var stops = [], k, SL = wSlices(), disc = $('wDisc'), old = disc.querySelectorAll('.wlab');
     wheel.favBuilt = wheelFav();
@@ -1561,9 +1563,12 @@ body::before { filter: brightness(var(--dimf, 1)); }
     $('wTabWheel').setAttribute('aria-pressed', String(!flip)); $('wTabFlip').setAttribute('aria-pressed', String(flip));
     $('wTabWheel').disabled = !betting; $('wTabFlip').disabled = !betting;
     $('wPay').hidden = flip;
+    var sideOn = !flip && wheel.pick !== 'any';
+    if (sideOn && wheel.side > bank - bet) { var okS = WSIDES.filter(function (v) { return v <= bank - bet; }); wheel.side = okS.length ? okS[okS.length - 1] : 0; }
+    $('wSide').hidden = !sideOn || wheel.side <= 0; $('wSide').disabled = !betting; $('wSide').textContent = 'Side stake on ' + (sideOn ? WPICKS[wheel.pick].name : '') + ': $' + wheel.side + ' (tap to change)';
     Array.prototype.forEach.call($('wPick').children, function (b) {
       var k = b.dataset.pick; b.disabled = !betting;
-      if (k !== 'any') b.textContent = 'Bet ' + WPICKS[k].name + ' ' + pickPay(k) + '\u00d7';
+      if (k !== 'any') b.textContent = 'Side: ' + WPICKS[k].name + ' ' + pickPay(k) + '\u00d7';
       b.setAttribute('aria-pressed', String(wheel.pick === k));
     });
     $('wSub').textContent = wheel.busy ? (flip ? 'Flipping…' : 'Spinning…') : (flip ? 'Double your bet ' + (wheelFav() ? '55' : '48') + '% of the time, or lose it.' : 'Pick a bet, then spin. Land on the star for 10x.') + (wheelFav() ? ' Debt odds: the sharks sweeten the game while you owe.' : '');
@@ -1581,16 +1586,17 @@ body::before { filter: brightness(var(--dimf, 1)); }
     }
     Array.prototype.forEach.call(box.children, function (b) { var v = parseInt(b.dataset.v, 10); b.disabled = !betting || v > bank; b.setAttribute('aria-pressed', String(v === bet)); });
     $('wAll').disabled = !betting || bank < MIN; $('wAll').textContent = 'All in: $' + bank;
-    var go = $('wGo'); go.disabled = !betting || bank < bet || bank < MIN;
-    go.textContent = wheel.busy ? (flip ? 'Flipping…' : 'Spinning…') : (flip ? 'Flip for $' + bet : wheel.pick !== 'any' ? 'Bet $' + bet + ' on ' + WPICKS[wheel.pick].name : 'Spin for $' + bet);
+    var go = $('wGo'); go.disabled = !betting || bank < bet + (sideOn ? wheel.side : 0) || bank < MIN;
+    go.textContent = wheel.busy ? (flip ? 'Flipping…' : 'Spinning…') : (flip ? 'Flip for $' + bet : 'Spin for $' + bet + (sideOn && wheel.side > 0 ? ' + $' + wheel.side + ' side' : ''));
     Array.prototype.forEach.call($('wPay').children, function (r) { r.className = 'wpr' + (wheel.hit === parseFloat(r.dataset.m) ? ' hit' : ''); });
   }
   async function wheelGo() {
-    if (wheel.busy || (phase !== 'bet' && phase !== 'done') || bank < bet || bank < MIN || bet < MIN) return;
+    var sideAmt = (wheel.mode === 'wheel' && wheel.pick !== 'any') ? wheel.side : 0;
+    if (wheel.busy || (phase !== 'bet' && phase !== 'done') || bank < bet + sideAmt || bank < MIN || bet < MIN) return;
     if (checkStakes()) return;
     var flip = wheel.mode === 'flip', stake = bet, i, mult, won;
     wheel.busy = true; phase = 'busy'; wheel.hit = -1; wheel.big = ''; wheel.bigCls = '';
-    bank -= stake; save();
+    bank -= stake + sideAmt; save();
     var notes = tickDebts(); blindNext = false; save();
     wheel.msg = notes.length ? notes.join(' \u00b7 ') : ''; wheel.cls = '';
     render();
@@ -1606,17 +1612,19 @@ body::before { filter: brightness(var(--dimf, 1)); }
       $('wDisc').style.transform = 'rotate(' + wheel.rot + 'deg)';
       await sleep(4500);
     }
-    var wedge = mult, called = !flip && wheel.pick !== 'any', calledHit = false;
-    if (called) { calledHit = WPICKS[wheel.pick].test(wedge); mult = calledHit ? pickPay(wheel.pick) : 0; }
-    var back = Math.floor(stake * mult), net = back - stake;
+    var wedge = mult, called = sideAmt > 0, calledHit = false, sideBack = 0;
+    if (called) { calledHit = WPICKS[wheel.pick].test(wedge); if (calledHit) sideBack = Math.floor(sideAmt * pickPay(wheel.pick)); }
+    var mainBack = Math.floor(stake * mult), back = mainBack + sideBack, net = back - stake - sideAmt;
     bank += back; wheel.hit = flip ? -1 : wedge; wheel.busy = false; phase = 'done';
-    if (called) { wheel.big = calledHit ? 'You called ' + WPICKS[wheel.pick].name + '! ' + mult + 'x  +$' + net : 'Landed on ' + (wedge === 0 ? 'BUST' : wedge + 'x') + '. You bet ' + WPICKS[wheel.pick].name + '  -$' + stake; wheel.bigCls = calledHit ? '' : 'lose'; }
-    else if (mult === 10) { wheel.big = 'JACKPOT! +$' + net; wheel.bigCls = ''; }
+    var mainNet = mainBack - stake;
+    if (mult === 10) { wheel.big = 'JACKPOT! +$' + mainNet; wheel.bigCls = ''; }
     else if (mult === 0) { wheel.big = flip ? 'The shark wins.' : 'Bust.'; wheel.bigCls = 'lose'; }
     else if (mult === 1) { wheel.big = 'Bet back.'; }
-    else if (mult < 1) { wheel.big = 'Half back. -$' + (-net); wheel.bigCls = 'lose'; }
-    else { wheel.big = (flip ? 'You win +$' : mult + 'x! +$') + net; }
-    wheel.msg = (wheel.msg ? wheel.msg + ' \u00b7 ' : '') + (net > 0 ? 'Won $' + net + '.' : net < 0 ? 'Lost $' + stake + '.' : 'Even.');
+    else if (mult < 1) { wheel.big = 'Half back. -$' + (-mainNet); wheel.bigCls = 'lose'; }
+    else { wheel.big = (flip ? 'You win +$' : mult + 'x! +$') + mainNet; }
+    var sideTxt = '';
+    if (called) sideTxt = calledHit ? 'Side bet on ' + WPICKS[wheel.pick].name + ' hit: +$' + (sideBack - sideAmt) + '.' : 'Side bet on ' + WPICKS[wheel.pick].name + ' missed: -$' + sideAmt + '.';
+    wheel.msg = (wheel.msg ? wheel.msg + ' \u00b7 ' : '') + sideTxt + (sideTxt ? ' ' : '') + (net > 0 ? 'Net won $' + net + '.' : net < 0 ? 'Net lost $' + (-net) + '.' : 'Even.');
     wheel.cls = net > 0 ? 'win' : net < 0 ? 'lose' : '';
     if (bet > bank) bet = bank >= MIN ? CHIPS.filter(function (v) { return v <= bank; })[0] || MIN : bet;
     save(); render();
@@ -1625,7 +1633,8 @@ body::before { filter: brightness(var(--dimf, 1)); }
   function wheelWire() {
     $('wGo').addEventListener('click', wheelGo);
     $('wAll').addEventListener('click', function () { if (wheel.busy || (phase !== 'bet' && phase !== 'done')) return; bet = bank; render(); });
-    Array.prototype.forEach.call($('wPick').children, function (b) { b.addEventListener('click', function () { if (wheel.busy) return; wheel.pick = b.dataset.pick; render(); }); });
+    Array.prototype.forEach.call($('wPick').children, function (b) { b.addEventListener('click', function () { if (wheel.busy) return; wheel.pick = (wheel.pick === b.dataset.pick) ? 'any' : b.dataset.pick; render(); }); });
+    $('wSide').addEventListener('click', function () { if (wheel.busy) return; var avail = WSIDES.filter(function (v) { return v <= bank - bet; }); if (!avail.length) return; var i = avail.indexOf(wheel.side); wheel.side = avail[(i + 1) % avail.length]; render(); });
     $('wTabWheel').addEventListener('click', function () { if (wheel.busy) return; wheel.mode = 'wheel'; wheel.big = ''; wheel.msg = ''; render(); });
     $('wTabFlip').addEventListener('click', function () { if (wheel.busy) return; wheel.mode = 'flip'; wheel.big = ''; wheel.msg = ''; render(); });
   }
