@@ -295,7 +295,10 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .plinko { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: auto; }
 .pboard { width: min(92vw, 340px); margin: 6px auto 0; }
 .pboard canvas { display: block; width: 100%; height: auto; border-radius: 12px 12px 0 0; background: rgba(0, 0, 0, 0.35); }
-.pslots { display: grid; grid-template-columns: repeat(13, 1fr); gap: 2px; margin-top: 2px; }
+.pdrop { display: grid; grid-template-columns: repeat(13, 1fr); padding: 0 4.1176%; margin-bottom: 2px; }
+.pdrop button { grid-row: 1; min-height: 34px; padding: 0; border: 0; border-radius: 8px; background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 0.9rem; }
+.pdrop button[aria-pressed="true"] { background: var(--brass); color: #3a2a00; font-weight: 900; }
+.pslots { padding: 0 4.1176%; display: grid; grid-template-columns: repeat(13, 1fr); gap: 2px; margin-top: 2px; }
 .pslots span { text-align: center; font-weight: 900; font-size: 0.52rem; padding: 6px 0; border-radius: 0 0 5px 5px; color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6); overflow: hidden; }
 .pslots span.hit { outline: 3px solid #fff; transform: translateY(3px) scale(1.08); position: relative; z-index: 2; }
 .wheel { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: auto; }
@@ -528,7 +531,13 @@ body::before { filter: brightness(var(--dimf, 1)); }
       <button type="button" data-risk="med" aria-pressed="false">Medium</button>
       <button type="button" data-risk="high" aria-pressed="false">High</button>
     </div>
+    <div class="wtabs" role="group" aria-label="Drop height">
+      <button type="button" data-rows="6" aria-pressed="false">Short drop</button>
+      <button type="button" data-rows="10" aria-pressed="false">Medium drop</button>
+      <button type="button" data-rows="14" aria-pressed="true">Tall drop</button>
+    </div>
     <div class="pboard" id="pBoard">
+      <div class="pdrop" id="pDrop" role="group" aria-label="Drop point"></div>
       <canvas id="pCanvas" width="340" height="300"></canvas>
       <div class="pslots" id="pSlots"></div>
     </div>
@@ -540,8 +549,8 @@ body::before { filter: brightness(var(--dimf, 1)); }
     <button class="primary" id="pGo" type="button">Drop</button>
     <details class="pay">
       <summary>How Plinko works</summary>
-      <p>The ball bounces left or right at every peg, so it usually lands in the middle. The slots at the edges pay the most. <b>Low</b> risk pays a little most of the time, <b>High</b> risk is mostly small returns with huge edge slots (up to 250x).</p>
-      <p>Normal odds return about 97 cents per dollar over time. While you owe a loan shark the slots pay about 12% more, so the board leans your way. Interest still ticks on every drop.</p>
+      <p>Tap an arrow above the board to choose where the ball drops, and pick a drop height. The ball bounces left or right at every peg and bounces off the side walls. A <b>taller drop</b> spreads the ball out more. Slots you are more likely to hit pay less and slots across the board pay a lot more, so dropping from one side is a long shot at the far side. A dash means the ball cannot reach that slot.</p>
+      <p><b>Low</b> risk pays a little most of the time, <b>High</b> risk is mostly small returns with huge edge slots. Every setup returns about 97 cents per dollar over time, and about $1.08 per $1 while you owe a loan shark. Interest still ticks on every drop.</p>
     </details>
   </section>
 
@@ -1623,26 +1632,53 @@ body::before { filter: brightness(var(--dimf, 1)); }
 
 
   /* ---------- Plinko ---------- */
-  var PROWS = 12, PHALF = { low: [16, 3, 1.5, 1.2, 1.1, 1, 0.5], med: [58, 9, 3.2, 1.5, 1.1, 0.7, 0.4], high: [250, 18, 5, 2, 0.8, 0.3, 0.2] };
-  var plinko = { risk: 'low', busy: false, msg: '', cls: '', big: '', bigCls: '', sig: '', built: false, hit: -1, ball: null };
-  function pMults(risk) {
-    var h = PHALF[risk], full = h.concat(h.slice(0, 6).reverse());
-    return wheelFav() ? full.map(function (m) { return Math.round(m * 1.12 * 10) / 10; }) : full;
+  /* Staggered peg grid, 13 slots wide. The ball random-walks one half-step per row and bounces off the walls. Each setup's payouts are scaled so it returns the same share over time. */
+  var PBASE = { low: [16, 3, 1.5, 1.2, 1.1, 1, 0.5], med: [58, 9, 3.2, 1.5, 1.1, 0.7, 0.4], high: [250, 18, 5, 2, 0.8, 0.3, 0.2] };
+  var PSX = 26, PSTEP = 12, PTOP = 22, PBOT = 274;
+  var plinko = { risk: 'low', rows: 14, col: 6, busy: false, msg: '', cls: '', big: '', bigCls: '', sig: '', built: false, hit: -1, ball: null, mults: [] };
+  function pDist(col, rows) {
+    var d = [], u, j, n; for (u = 0; u <= 24; u++) d.push(0); d[col * 2] = 1;
+    for (j = 0; j < rows; j++) {
+      n = []; for (u = 0; u <= 24; u++) n.push(0);
+      for (u = 0; u <= 24; u++) { if (!d[u]) continue; if (u === 0) n[1] += d[u]; else if (u === 24) n[23] += d[u]; else { n[u - 1] += d[u] / 2; n[u + 1] += d[u] / 2; } }
+      d = n;
+    }
+    var p = []; for (u = 0; u <= 12; u++) p.push(d[u * 2]); return p;
   }
-  function pColor(m) { return m >= 100 ? '#b3199c' : m >= 20 ? '#d62f3a' : m >= 5 ? '#e0701c' : m >= 2 ? '#d9a21a' : m >= 1 ? '#2f9e44' : '#3b4a66'; }
-  function pFmt(m) { return m >= 10 ? String(Math.round(m)) : String(m); }
+  function pMults(risk, col, rows) {
+    var h = PBASE[risk], base = h.concat(h.slice(0, 6).reverse()), pr = pDist(6, rows), p = pDist(col, rows), raw = [], k, LO = 0.2, HI = 500, tgt = wheelFav() ? 1.08 : 0.97;
+    for (k = 0; k < 13; k++) raw.push(p[k] > 1e-9 ? pr[k] * base[k] / p[k] : 0);
+    function rtp(c) { var e = 0; for (var i = 0; i < 13; i++) if (p[i] > 1e-9) e += p[i] * Math.min(HI, Math.max(LO, c * raw[i])); return e; }
+    var lo = 0, hi = 1e6, c = 1, n;
+    for (n = 0; n < 70; n++) { c = (lo + hi) / 2; if (rtp(c) < tgt) lo = c; else hi = c; }
+    return raw.map(function (r, i) { if (p[i] <= 1e-9) return null; var v = Math.min(HI, Math.max(LO, c * r)); return v >= 10 ? Math.round(v) : Math.round(v * 10) / 10; });
+  }
+  function pColor(m) { return m === null ? '#2a3040' : m >= 100 ? '#b3199c' : m >= 20 ? '#d62f3a' : m >= 5 ? '#e0701c' : m >= 2 ? '#d9a21a' : m >= 1 ? '#2f9e44' : '#3b4a66'; }
+  function pFmt(m) { return m === null ? '\u2013' : m >= 10 ? String(Math.round(m)) : String(m); }
+  function pX(u) { return PSX + u * PSTEP; }
   function plinkoDraw() {
-    var cv = $('pCanvas'), g = cv.getContext('2d'), W = 340, H = 300, sp = 24, top = 22, vy = 21, cx = W / 2;
-    g.clearRect(0, 0, W, H);
+    var cv = $('pCanvas'), g = cv.getContext('2d'), R = plinko.rows, vy = (PBOT - PTOP) / R, j, u;
+    g.clearRect(0, 0, 340, 300);
     g.fillStyle = 'rgba(255,255,255,0.75)';
-    for (var j = 0; j < PROWS; j++) for (var m = 0; m <= j; m++) { g.beginPath(); g.arc(cx + (m - j / 2) * sp, top + j * vy, 2.6, 0, 6.2832); g.fill(); }
-    var b = plinko.ball;
-    if (b) { g.fillStyle = '#ffd24a'; g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 1.5; g.beginPath(); g.arc(b.x, b.y, 6.5, 0, 6.2832); g.fill(); g.stroke(); }
+    for (j = 0; j < R; j++) for (u = j % 2; u <= 24; u += 2) { g.beginPath(); g.arc(pX(u), PTOP + j * vy, 2.6, 0, 6.2832); g.fill(); }
+    var b = plinko.ball, sx = pX(plinko.col * 2);
+    if (!b) { g.fillStyle = 'rgba(255,210,74,0.9)'; g.beginPath(); g.arc(sx, 7, 6.5, 0, 6.2832); g.fill(); }
+    else { g.fillStyle = '#ffd24a'; g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 1.5; g.beginPath(); g.arc(b.x, b.y, 6.5, 0, 6.2832); g.fill(); g.stroke(); }
   }
   function plinkoBuild() {
-    var box = $('pSlots'), full = pMults(plinko.risk);
-    if (box.children.length !== 13) { box.textContent = ''; for (var k = 0; k < 13; k++) box.appendChild(document.createElement('span')); }
-    Array.prototype.forEach.call(box.children, function (n, k) { n.textContent = pFmt(full[k]); n.style.background = pColor(full[k]); n.className = plinko.hit === k ? 'hit' : ''; });
+    var box = $('pSlots'), full = pMults(plinko.risk, plinko.col, plinko.rows), k;
+    plinko.mults = full;
+    if (box.children.length !== 13) { box.textContent = ''; for (k = 0; k < 13; k++) box.appendChild(document.createElement('span')); }
+    Array.prototype.forEach.call(box.children, function (n, i) { n.textContent = pFmt(full[i]); n.style.background = pColor(full[i]); n.className = plinko.hit === i ? 'hit' : ''; });
+    var dr = $('pDrop');
+    if (!dr.children.length) {
+      for (k = 0; k <= 12; k += 2) (function (c) {
+        var b = document.createElement('button'); b.type = 'button'; b.textContent = '\u25bc'; b.style.gridColumn = String(c + 1); b.dataset.col = String(c); b.setAttribute('aria-label', 'Drop from slot ' + (c + 1));
+        b.addEventListener('click', function () { if (plinko.busy) return; plinko.col = c; plinko.big = ''; plinko.msg = ''; plinko.hit = -1; plinko.built = false; render(); });
+        dr.appendChild(b);
+      })(k);
+    }
+    Array.prototype.forEach.call(dr.children, function (b) { b.setAttribute('aria-pressed', String(parseInt(b.dataset.col, 10) === plinko.col)); b.disabled = plinko.busy; });
     plinko.favBuilt = wheelFav(); plinko.built = true;
     plinkoDraw();
   }
@@ -1650,7 +1686,9 @@ body::before { filter: brightness(var(--dimf, 1)); }
     if (!plinko.built || (!plinko.busy && plinko.favBuilt !== wheelFav())) plinkoBuild();
     var betting = (phase === 'bet' || phase === 'done') && !plinko.busy;
     Array.prototype.forEach.call(document.querySelectorAll('#plinko [data-risk]'), function (b) { b.setAttribute('aria-pressed', String(b.dataset.risk === plinko.risk)); b.disabled = !betting; });
-    $('pSub').textContent = plinko.busy ? 'Dropping…' : 'Pick a risk level and a bet, then drop the ball.' + (wheelFav() ? ' Debt odds: slots pay 12% more while you owe.' : '');
+    Array.prototype.forEach.call(document.querySelectorAll('#plinko [data-rows]'), function (b) { b.setAttribute('aria-pressed', String(parseInt(b.dataset.rows, 10) === plinko.rows)); b.disabled = !betting; });
+    Array.prototype.forEach.call($('pDrop').children, function (b) { b.disabled = !betting; });
+    $('pSub').textContent = plinko.busy ? 'Dropping…' : 'Choose where to drop and how high, then drop the ball.' + (wheelFav() ? ' Debt odds: slots pay more while you owe.' : '');
     $('pBig').textContent = plinko.big; $('pBig').className = 'wbig' + (plinko.bigCls ? ' ' + plinko.bigCls : '');
     var m = $('pMsg'); m.textContent = plinko.msg; m.className = 'msg dmsg' + (plinko.cls ? ' ' + plinko.cls : '');
     $('pWager').textContent = '$' + bet;
@@ -1667,43 +1705,39 @@ body::before { filter: brightness(var(--dimf, 1)); }
     $('pAll').disabled = !betting || bank < MIN; $('pAll').textContent = 'All in: $' + bank;
     var go = $('pGo'); go.disabled = !betting || bank < bet || bank < MIN; go.textContent = plinko.busy ? 'Dropping…' : 'Drop for $' + bet;
   }
-  function plinkoAnimate(path) {
+  function plinkoAnimate(U) {
     return new Promise(function (resolve) {
-      var sp = 24, top = 22, vy = 21, cx = 170, step = 0, t0 = null, DUR = 230, rights = 0, x0 = cx, y0 = 4;
-      plinko.ball = { x: cx, y: 4 };
+      var R = plinko.rows, vy = (PBOT - PTOP) / R, step = 0, t0 = null, DUR = Math.max(150, 2800 / R);
+      function yAbove(j) { return j === 0 ? 7 : PTOP + j * vy - 8; }
+      plinko.ball = { x: pX(U[0]), y: 7 };
       function frame(ts) {
         if (t0 === null) t0 = ts;
-        var t = Math.min(1, (ts - t0) / DUR), x1, y1;
-        if (step < PROWS) { x1 = cx + (rights + (path[step] ? 1 : 0) - (step + 1) / 2) * sp; y1 = top + (step + 1) * vy - (step + 1 === PROWS ? 0 : 0); }
-        var sx = step === 0 ? cx : cx + (rights - step / 2) * sp, sy = step === 0 ? 4 : top + step * vy - 8;
-        var ex = x1, ey = top + (step + 1) * vy - 8;
+        var t = Math.min(1, (ts - t0) / DUR), sx = pX(U[step]), ex = pX(U[step + 1]), sy = yAbove(step), ey = yAbove(step + 1);
         plinko.ball.x = sx + (ex - sx) * t;
         plinko.ball.y = sy + (ey - sy) * (t * t) - Math.sin(Math.PI * t) * 5;
         plinkoDraw();
-        if (t >= 1) { rights += path[step] ? 1 : 0; step++; t0 = null; if (step >= PROWS) { plinko.ball.y = H_END(); plinkoDraw(); resolve(rights); return; } }
+        if (t >= 1) { step++; t0 = null; if (step >= R) { plinko.ball.y = PBOT + 2; plinkoDraw(); resolve(U[R] / 2); return; } }
         requestAnimationFrame(frame);
       }
-      function H_END() { return top + PROWS * vy + 2; }
       requestAnimationFrame(frame);
     });
   }
   async function plinkoGo() {
     if (plinko.busy || (phase !== 'bet' && phase !== 'done') || bank < bet || bank < MIN || bet < MIN) return;
     if (checkStakes()) return;
-    var stake = bet, path = [], j, k;
-    for (j = 0; j < PROWS; j++) path.push(Math.random() < 0.5);
-    k = path.filter(Boolean).length;
-    var full = pMults(plinko.risk), mult = full[k];
+    var stake = bet, U = [plinko.col * 2], j, u;
+    for (j = 0; j < plinko.rows; j++) { u = U[j]; U.push(u === 0 ? 1 : u === 24 ? 23 : (Math.random() < 0.5 ? u - 1 : u + 1)); }
+    var k = U[plinko.rows] / 2, mult = pMults(plinko.risk, plinko.col, plinko.rows)[k] || 0.2;
     plinko.busy = true; phase = 'busy'; plinko.hit = -1; plinko.big = ''; plinko.bigCls = '';
     bank -= stake; save();
     var notes = tickDebts(); blindNext = false; save();
     plinko.msg = notes.length ? notes.join(' \u00b7 ') : ''; plinko.cls = '';
     render();
-    await plinkoAnimate(path);
+    await plinkoAnimate(U);
     var back = Math.floor(stake * mult), net = back - stake;
     bank += back; plinko.hit = k; plinko.busy = false; phase = 'done';
     plinko.big = mult >= 1 ? (mult >= 10 ? 'BIG HIT! ' : '') + pFmt(mult) + 'x  +$' + net : pFmt(mult) + 'x  -$' + (-net);
-    if (mult === 1) plinko.big = '1x  Bet back.';
+    if (back === stake) plinko.big = pFmt(mult) + 'x  Bet back.';
     plinko.bigCls = net < 0 ? 'lose' : '';
     plinko.msg = (plinko.msg ? plinko.msg + ' \u00b7 ' : '') + (net > 0 ? 'Won $' + net + '.' : net < 0 ? 'Lost $' + (-net) + '.' : 'Even.');
     plinko.cls = net > 0 ? 'win' : net < 0 ? 'lose' : '';
@@ -1716,6 +1750,9 @@ body::before { filter: brightness(var(--dimf, 1)); }
     $('pAll').addEventListener('click', function () { if (plinko.busy || (phase !== 'bet' && phase !== 'done')) return; bet = bank; render(); });
     Array.prototype.forEach.call(document.querySelectorAll('#plinko [data-risk]'), function (b) {
       b.addEventListener('click', function () { if (plinko.busy) return; plinko.risk = b.dataset.risk; plinko.big = ''; plinko.msg = ''; plinko.hit = -1; plinko.built = false; render(); });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#plinko [data-rows]'), function (b) {
+      b.addEventListener('click', function () { if (plinko.busy) return; plinko.rows = parseInt(b.dataset.rows, 10); plinko.big = ''; plinko.msg = ''; plinko.hit = -1; plinko.built = false; render(); });
     });
   }
 
