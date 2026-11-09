@@ -583,7 +583,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
       <summary>How the wheel works</summary>
       <p><b>Wheel:</b> 24 wedges, each a multiple of your bet. Land on BUST and you lose it, ½× returns half, and the star pays 10x. Normal odds return about $1.04 per $1 over time. While you owe a shark it is sweetened.</p>
       <p><b>Double or nothing:</b> a coin flip you win 48% of the time. A win pays double your bet. A small edge for the house, and the quickest way to clear a loan or lose it all.</p>
-      <p><b>Side bets:</b> pick <b>Bust</b> (any BUST wedge), <b>Big 2x+</b> (a 2x, 3x or star wedge) or the <b>Star</b> alone, then tap the side stake button to set how much. Your main bet still pays its wedge as usual. The side bet wins the listed multiple if the wheel stops where you called it, otherwise you lose only the side stake. Payouts are set to about 95 cents on the dollar, more while you owe a shark.</p>
+      <p><b>Side bets:</b> <b>Bust cover</b> refunds your main bet (up to 2x your side stake) whenever a BUST wedge comes up, so the spin does not lose, plus a small return on the side stake. <b>Big 2x+</b> wins on a 2x, 3x or star wedge, and <b>Star</b> on the star alone. Tap the side stake button to set how much. A side bet that misses costs only the side stake. They are priced to return about 95 cents on the dollar, more while you owe a shark.</p>
       <p><b>Debt odds:</b> while you owe any loan shark, the wheel pays back about $1.15 per $1 (fewer busts and more big wedges) and the coin lands your way 55% of the time. Pay off every loan and the odds go back to normal.</p>
       <p>Press <b>All in</b> to bet every chip you have. Same chips and same loan sharks as every other table. Interest still ticks on every spin.</p>
     </details>
@@ -1529,6 +1529,12 @@ body::before { filter: brightness(var(--dimf, 1)); }
     var SL = wSlices(), n = SL.filter(WPICKS[k].test).length, tgt = wheelFav() ? 1.08 : 0.95;
     return Math.round(tgt / (n / WSL) * 10) / 10;
   }
+  /* Bust cover: a Bust side bet refunds your main bet (up to 2x the side stake) when BUST lands, plus a small return on the side stake. Priced so it still returns the same share over time. */
+  var BUST_K = 2;
+  function bustSideReturn() {
+    var SL = wSlices(), p = SL.filter(WPICKS.bust.test).length / WSL, tgt = wheelFav() ? 1.08 : 0.95;
+    return Math.max(0, Math.round((tgt / p - BUST_K) * 10) / 10);
+  }
   function wSlices() { return wheelFav() ? WSLICE_FAV : WSLICE; }
   var WSIDES = [5, 10, 25, 50, 100];
   var wheel = { side: 10, pick: 'any', mode: 'wheel', busy: false, rot: 0, crot: 0, msg: '', cls: '', big: '', bigCls: '', sig: '', built: false, hit: -1 };
@@ -1568,7 +1574,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     $('wSide').hidden = !sideOn || wheel.side <= 0; $('wSide').disabled = !betting; $('wSide').textContent = 'Side stake on ' + (sideOn ? WPICKS[wheel.pick].name : '') + ': $' + wheel.side + ' (tap to change)';
     Array.prototype.forEach.call($('wPick').children, function (b) {
       var k = b.dataset.pick; b.disabled = !betting;
-      if (k !== 'any') b.textContent = 'Side: ' + WPICKS[k].name + ' ' + pickPay(k) + '\u00d7';
+      if (k === 'bust') b.textContent = 'Side: Bust cover x' + BUST_K; else if (k !== 'any') b.textContent = 'Side: ' + WPICKS[k].name + ' ' + pickPay(k) + '\u00d7';
       b.setAttribute('aria-pressed', String(wheel.pick === k));
     });
     $('wSub').textContent = wheel.busy ? (flip ? 'Flipping…' : 'Spinning…') : (flip ? 'Double your bet ' + (wheelFav() ? '55' : '48') + '% of the time, or lose it.' : 'Pick a bet, then spin. Land on the star for 10x.') + (wheelFav() ? ' Debt odds: the sharks sweeten the game while you owe.' : '');
@@ -1613,10 +1619,11 @@ body::before { filter: brightness(var(--dimf, 1)); }
       await sleep(4500);
     }
     var wedge = mult, called = sideAmt > 0, calledHit = false, sideBack = 0;
-    if (called) { calledHit = WPICKS[wheel.pick].test(wedge); if (calledHit) sideBack = Math.floor(sideAmt * pickPay(wheel.pick)); }
-    var mainBack = Math.floor(stake * mult), back = mainBack + sideBack, net = back - stake - sideAmt;
+    if (called) { calledHit = WPICKS[wheel.pick].test(wedge); if (calledHit) sideBack = wheel.pick === 'bust' ? Math.floor(sideAmt * bustSideReturn()) : Math.floor(sideAmt * pickPay(wheel.pick)); }
+    var cover = (called && calledHit && wheel.pick === 'bust') ? Math.min(Math.floor(stake * mult) === 0 ? stake : 0, sideAmt * BUST_K) : 0;
+    var mainBack = Math.floor(stake * mult) + cover, back = mainBack + sideBack, net = back - stake - sideAmt;
     bank += back; wheel.hit = flip ? -1 : wedge; wheel.busy = false; phase = 'done';
-    var mainNet = mainBack - stake;
+    var mainNet = mainBack - stake, mainWedgeNet = Math.floor(stake * mult) - stake;
     if (mult === 10) { wheel.big = 'JACKPOT! +$' + mainNet; wheel.bigCls = ''; }
     else if (mult === 0) { wheel.big = flip ? 'The shark wins.' : 'Bust.'; wheel.bigCls = 'lose'; }
     else if (mult === 1) { wheel.big = 'Bet back.'; }
@@ -1624,9 +1631,9 @@ body::before { filter: brightness(var(--dimf, 1)); }
     else { wheel.big = (flip ? 'You win +$' : mult + 'x! +$') + mainNet; }
     var sideTxt = '';
     if (called) {
-      wheel.big = calledHit ? 'Side bet hit! +$' + (sideBack - sideAmt) : wheel.big;
+      wheel.big = calledHit ? (wheel.pick === 'bust' ? 'Bust cover! Refunded $' + cover : 'Side bet hit! +$' + (sideBack - sideAmt)) : wheel.big;
       if (calledHit) wheel.bigCls = '';
-      sideTxt = 'Main: ' + (mainNet >= 0 ? '+$' + mainNet : '-$' + (-mainNet)) + ' \u00b7 Side on ' + WPICKS[wheel.pick].name + ': ' + (calledHit ? '+$' + (sideBack - sideAmt) : '-$' + sideAmt) + ' \u00b7 ';
+      sideTxt = 'Main: ' + (mainNet >= 0 ? '+$' + mainNet : '-$' + (-mainNet)) + ' \u00b7 Side on ' + WPICKS[wheel.pick].name + ': ' + (calledHit ? (sideBack - sideAmt >= 0 ? '+$' + (sideBack - sideAmt) : '-$' + (sideAmt - sideBack)) : '-$' + sideAmt) + ' \u00b7 ';
     }
     wheel.msg = (wheel.msg ? wheel.msg + ' \u00b7 ' : '') + sideTxt + (net > 0 ? 'Net won $' + net + '.' : net < 0 ? 'Net lost $' + (-net) + '.' : 'Net even.');
     wheel.cls = net > 0 ? 'win' : net < 0 ? 'lose' : '';
