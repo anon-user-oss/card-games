@@ -311,6 +311,8 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .wlab { position: absolute; left: 50%; top: 50%; width: 50%; height: 0; line-height: 0; transform-origin: 0 50%; text-align: right; padding-right: 9%; box-sizing: border-box; font-weight: 900; font-size: 0.78rem; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); white-space: nowrap; pointer-events: none; }
 .wlab.jp { color: #3a2a00; text-shadow: none; font-size: 0.85rem; }
 .wlab.bk { color: #ff8a8a; letter-spacing: 0.04em; }
+.wdisc.blessed .whub { animation: hubglow 1.1s ease-in-out infinite alternate; }
+@keyframes hubglow { from { box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.5), 0 0 6px 2px rgba(255, 210, 74, 0.5); } to { box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.5), 0 0 26px 10px rgba(255, 210, 74, 0.95); } }
 .whub { position: absolute; left: 50%; top: 50%; width: 22%; height: 22%; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff3b0, var(--brass) 55%, #9a7410); box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.5); }
 .wcoin { position: absolute; inset: 8%; transform-style: preserve-3d; transition: transform 1.8s cubic-bezier(0.2, 0.7, 0.2, 1); }
 .wcoin[hidden] { display: none; }
@@ -1537,7 +1539,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
   }
   function wSlices() { return wheelFav() ? WSLICE_FAV : WSLICE; }
   var WSIDES = [5, 10, 25, 50, 100];
-  var wheel = { side: 10, pick: 'any', mode: 'wheel', busy: false, rot: 0, crot: 0, msg: '', cls: '', big: '', bigCls: '', sig: '', built: false, hit: -1 };
+  var wheel = { blessed: false, blessHit: false, hubTaps: [], side: 10, pick: 'any', mode: 'wheel', busy: false, rot: 0, crot: 0, msg: '', cls: '', big: '', bigCls: '', sig: '', built: false, hit: -1 };
   function wheelBuild() {
     var stops = [], k, SL = wSlices(), disc = $('wDisc'), old = disc.querySelectorAll('.wlab');
     wheel.favBuilt = wheelFav();
@@ -1613,6 +1615,11 @@ body::before { filter: brightness(var(--dimf, 1)); }
       await sleep(2000);
     } else {
       i = Math.floor(Math.random() * WSL); mult = wSlices()[i];
+      if (wheel.blessed) {
+        wheel.blessed = false; $('wDisc').classList.remove('blessed');
+        try { localStorage.setItem('pocket-bj-blessed', dayKey()); } catch (e) {}
+        if (Math.random() < 1 / 6) { var stars = []; wSlices().forEach(function (m, q) { if (m === 10) stars.push(q); }); i = stars[0]; mult = 10; wheel.blessHit = true; }
+      }
       var centre = i * 360 / WSL + 360 / WSL / 2, jit = (Math.random() - 0.5) * (360 / WSL) * 0.6;
       wheel.rot = (Math.floor(wheel.rot / 360) + 6) * 360 + (360 - centre) + jit;
       $('wDisc').style.transform = 'rotate(' + wheel.rot + 'deg)';
@@ -1636,12 +1643,26 @@ body::before { filter: brightness(var(--dimf, 1)); }
       sideTxt = 'Main: ' + (mainNet >= 0 ? '+$' + mainNet : '-$' + (-mainNet)) + ' \u00b7 Side on ' + WPICKS[wheel.pick].name + ': ' + (calledHit ? (sideBack - sideAmt >= 0 ? '+$' + (sideBack - sideAmt) : '-$' + (sideAmt - sideBack)) : '-$' + sideAmt) + ' \u00b7 ';
     }
     wheel.msg = (wheel.msg ? wheel.msg + ' \u00b7 ' : '') + sideTxt + (net > 0 ? 'Net won $' + net + '.' : net < 0 ? 'Net lost $' + (-net) + '.' : 'Net even.');
+    if (wheel.blessHit) { wheel.blessHit = false; wheel.msg += ' The shark owed you one.'; }
     wheel.cls = net > 0 ? 'win' : net < 0 ? 'lose' : '';
     if (bet > bank) bet = bank >= MIN ? CHIPS.filter(function (v) { return v <= bank; })[0] || MIN : bet;
     save(); render();
     afterHand(function () { if (!checkStakes()) checkSal(); });
   }
+  /* Easter egg: rub the hub seven times to wake the wheel. Once a day, the next spin has a 1 in 6 chance of landing on the star. */
+  function hubRub() {
+    if (wheel.busy || wheel.mode !== 'wheel' || phase === 'busy') return;
+    var now = Date.now(), t = wheel.hubTaps; t.push(now); while (t.length && now - t[0] > 4000) t.shift();
+    if (t.length < 7 || wheel.blessed) return;
+    wheel.hubTaps = [];
+    var used = ''; try { used = localStorage.getItem('pocket-bj-blessed') || ''; } catch (e) {}
+    if (used === dayKey()) { wheel.msg = 'The wheel is asleep. Try again tomorrow.'; wheel.cls = ''; render(); return; }
+    wheel.blessed = true; $('wDisc').classList.add('blessed');
+    wheel.msg = 'The wheel hums. The star glows.'; wheel.cls = 'win'; try { if (navigator.vibrate) navigator.vibrate([60, 40, 60]); } catch (e) {}
+    render();
+  }
   function wheelWire() {
+    document.querySelector('#wDisc .whub').addEventListener('click', hubRub);
     $('wGo').addEventListener('click', wheelGo);
     $('wAll').addEventListener('click', function () { if (wheel.busy || (phase !== 'bet' && phase !== 'done')) return; bet = bank; render(); });
     Array.prototype.forEach.call($('wPick').children, function (b) { b.addEventListener('click', function () { if (wheel.busy) return; wheel.pick = (wheel.pick === b.dataset.pick) ? 'any' : b.dataset.pick; render(); }); });
