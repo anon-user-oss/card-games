@@ -58,21 +58,7 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
-html, body, .wheel, .bac { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; overflow: auto; }
-.bhist { display: flex; flex-wrap: wrap; gap: 4px; min-height: 18px; justify-content: center; }
-.bhist i { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
-.bhist i.p { background: #2a6fdb; } .bhist i.b { background: #d62f3a; } .bhist i.t { background: #2f9e44; }
-.bzone { background: rgba(0, 0, 0, 0.28); border: 2px solid transparent; border-radius: 14px; padding: 8px 10px 10px; }
-.bzone.win { border-color: var(--brass); }
-.blab { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-.blab b { letter-spacing: 0.1em; font-size: 0.8rem; }
-.btot { font-family: var(--display); font-weight: 900; font-size: 1.5rem; min-width: 2ch; text-align: right; }
-.bhand { --ch: 84px; display: flex; justify-content: center; gap: 6px; min-height: 84px; }
-.bhand .card + .card { margin-left: 0; }
-.bhand .card { margin: 0; }
-#bPick button { line-height: 1.15; padding: 4px 2px; }
-#bPick small { font-weight: 600; font-size: 0.68rem; opacity: 0.8; }
-.plinko { touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+html, body, .wheel, .plinko { touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .whub, .wdisc, canvas { touch-action: manipulation; }
 button:focus-visible, summary:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
 
@@ -315,6 +301,20 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .vdealer, .vpicks { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #fff; }
 .vpicks > div { display: flex; gap: 4px; }
 .vdealer small, .vpicks small { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; color: #ffe27a; text-transform: uppercase; }
+.bac { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; overflow: auto; }
+.bhist { display: flex; flex-wrap: wrap; gap: 4px; min-height: 18px; justify-content: center; }
+.bhist i { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+.bhist i.p { background: #2a6fdb; } .bhist i.b { background: #d62f3a; } .bhist i.t { background: #2f9e44; }
+.bzone { background: rgba(0, 0, 0, 0.28); border: 2px solid transparent; border-radius: 14px; padding: 8px 10px 10px; }
+.bzone.win { border-color: var(--brass); }
+.blab { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.blab b { letter-spacing: 0.1em; font-size: 0.8rem; }
+.btot { font-family: var(--display); font-weight: 900; font-size: 1.5rem; min-width: 2ch; text-align: right; }
+.bhand { --ch: 84px; display: flex; justify-content: center; gap: 6px; min-height: 84px; }
+.bhand .card + .card { margin-left: 0; }
+.bhand .card { margin: 0; }
+#bPick button { line-height: 1.15; padding: 4px 2px; }
+#bPick small { font-weight: 600; font-size: 0.68rem; opacity: 0.8; }
 .plinko { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: auto; }
 .pboard { width: min(100%, 340px); margin: 6px auto 0; }
 .pboard canvas { display: block; width: 100%; height: auto; border-radius: 12px 12px 0 0; background: rgba(0, 0, 0, 0.35); }
