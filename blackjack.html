@@ -58,7 +58,21 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
-html, body, .wheel, .plinko { touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+html, body, .wheel, .bac { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; overflow: auto; }
+.bhist { display: flex; flex-wrap: wrap; gap: 4px; min-height: 18px; justify-content: center; }
+.bhist i { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+.bhist i.p { background: #2a6fdb; } .bhist i.b { background: #d62f3a; } .bhist i.t { background: #2f9e44; }
+.bzone { background: rgba(0, 0, 0, 0.28); border: 2px solid transparent; border-radius: 14px; padding: 8px 10px 10px; }
+.bzone.win { border-color: var(--brass); }
+.blab { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.blab b { letter-spacing: 0.1em; font-size: 0.8rem; }
+.btot { font-family: var(--display); font-weight: 900; font-size: 1.5rem; min-width: 2ch; text-align: right; }
+.bhand { --ch: 84px; display: flex; justify-content: center; gap: 6px; min-height: 84px; }
+.bhand .card + .card { margin-left: 0; }
+.bhand .card { margin: 0; }
+#bPick button { line-height: 1.15; padding: 4px 2px; }
+#bPick small { font-weight: 600; font-size: 0.68rem; opacity: 0.8; }
+.plinko { touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .whub, .wdisc, canvas { touch-action: manipulation; }
 button:focus-visible, summary:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
 
@@ -525,6 +539,30 @@ body::before { filter: brightness(var(--dimf, 1)); }
         <li>Nothing: keep one or two high cards (J, Q, K, A), or draw five new cards.</li>
       </ul>
       <p>Stuck? Press <b>Hint</b> any time during step 2 and the game shows the best cards to keep.</p>
+    </details>
+  </section>
+
+  <section class="bac" id="bac" hidden>
+    <div class="dhead"><h2>Baccarat</h2><p class="dsub" id="bSub">Bet on Player, Banker or Tie, then deal.</p></div>
+    <div class="bhist" id="bHist" aria-label="Recent results"></div>
+    <div class="bzone" id="bPZone"><div class="blab"><b>PLAYER</b><span id="bPT" class="btot"></span></div><div class="bhand" id="bPHand"></div></div>
+    <div class="bzone" id="bBZone"><div class="blab"><b>BANKER</b><span id="bBT" class="btot"></span></div><div class="bhand" id="bBHand"></div></div>
+    <p class="wbig" id="bBig" role="status" aria-live="polite"></p>
+    <p class="msg dmsg" id="bMsg"></p>
+    <div class="wtabs" id="bPick" role="group" aria-label="Bet on">
+      <button type="button" data-pick="player" aria-pressed="false">Player<br><small>pays 1 to 1</small></button>
+      <button type="button" data-pick="banker" aria-pressed="true">Banker<br><small id="bBankSub">pays 0.95 to 1</small></button>
+      <button type="button" data-pick="tie" aria-pressed="false">Tie<br><small id="bTieSub">pays 8 to 1</small></button>
+    </div>
+    <div class="betline"><span>Bet</span><b id="bWager">$25</b></div>
+    <div class="chips" id="bChips" role="group" aria-label="Bet size"></div>
+    <div class="sides"><button class="sidebtn" id="bAll" type="button">All in</button></div>
+    <button class="primary" id="bGo" type="button">Deal</button>
+    <details class="pay">
+      <summary>How Baccarat works</summary>
+      <p>Two hands, Player and Banker. Aces count 1, 2 to 9 count face value, and 10, J, Q, K count 0. A hand's total is the last digit of its sum, so 7 + 8 = 15 is a 5. Closest to 9 wins. You are betting on which side wins, not on a hand of your own.</p>
+      <p>An 8 or 9 on the first two cards is a <b>natural</b> and ends the round. Otherwise the Player draws on 0 to 5, and the Banker follows a fixed drawing rule. You never decide whether to draw.</p>
+      <p><b>Player</b> pays 1 to 1. <b>Banker</b> wins slightly more often, so it pays 0.95 to 1 (a 5% commission). <b>Tie</b> pays 8 to 1, and Player or Banker bets are returned on a tie. While you owe a shark the commission is waived and a tie pays 9 to 1. Interest still ticks on every hand.</p>
     </details>
   </section>
 
@@ -1079,7 +1117,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     var wsp = $('wisps'); wsp.style.opacity = room === 'high' || loans < 2 ? '0' : '1';
     Array.prototype.forEach.call(wsp.children, function (w, k) { w.style.display = k < loans ? '' : 'none'; });
     document.body.classList.toggle('hr', room === 'high');
-    $('title').textContent = game === 'derby' ? 'Roach Derby' : game === 'vp' ? 'Jacks or Better' : game === 'wheel' ? "Shark's Wheel" : game === 'plinko' ? 'Plinko' : (room === 'high' ? 'High-Roller Blackjack' : 'Pocket Blackjack');
+    $('title').textContent = game === 'derby' ? 'Roach Derby' : game === 'vp' ? 'Jacks or Better' : game === 'wheel' ? "Shark's Wheel" : game === 'plinko' ? 'Plinko' : game === 'bac' ? 'Baccarat' : (room === 'high' ? 'High-Roller Blackjack' : 'Pocket Blackjack');
   }
 
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
@@ -1799,12 +1837,109 @@ body::before { filter: brightness(var(--dimf, 1)); }
     });
   }
 
+
+  /* ---------- Baccarat (punto banco) ---------- */
+  var bac = { pick: 'banker', busy: false, shoe: [], hist: [], msg: '', cls: '', big: '', bigCls: '', sig: '', hit: '', pt: null, bt: null, ph: [], bh: [] };
+  try { var bh0 = JSON.parse(localStorage.getItem('pocket-bj-bac')); if (bh0 && bh0.length) bac.hist = bh0.slice(-40); } catch (e) {}
+  function bacVal(c) { return c.r === 'A' ? 1 : (RANKS.indexOf(c.r) >= 9 ? 0 : RANKS.indexOf(c.r) + 1); }
+  function bacTot(h) { return h.reduce(function (a, c) { return a + bacVal(c); }, 0) % 10; }
+  function bacShuffle() {
+    var d = [], i, j, k, t;
+    for (i = 0; i < 8; i++) SUITS.forEach(function (st) { RANKS.forEach(function (r) { d.push({ r: r, s: st }); }); });
+    for (j = d.length - 1; j > 0; j--) { k = Math.floor(Math.random() * (j + 1)); t = d[j]; d[j] = d[k]; d[k] = t; }
+    bac.shoe = d;
+  }
+  function bacDraw() { if (bac.shoe.length < 14) bacShuffle(); return bac.shoe.pop(); }
+  function bankerDraws(bt, p3) {
+    if (p3 === null) return bt <= 5;
+    if (bt <= 2) return true;
+    if (bt === 3) return p3 !== 8;
+    if (bt === 4) return p3 >= 2 && p3 <= 7;
+    if (bt === 5) return p3 >= 4 && p3 <= 7;
+    if (bt === 6) return p3 === 6 || p3 === 7;
+    return false;
+  }
+  function bacPays() { return wheelFav() ? { bank: 1, tie: 9 } : { bank: 0.95, tie: 8 }; }
+  function renderBac() {
+    var betting = (phase === 'bet' || phase === 'done') && !bac.busy, pay = bacPays();
+    if (bac.shoe.length === 0) bacShuffle();
+    $('bSub').textContent = bac.busy ? 'Dealing…' : 'Bet on Player, Banker or Tie, then deal.' + (wheelFav() ? ' Debt odds: no commission, tie pays 9 to 1.' : '');
+    $('bBankSub').textContent = 'pays ' + (pay.bank === 1 ? '1' : '0.95') + ' to 1'; $('bTieSub').textContent = 'pays ' + pay.tie + ' to 1';
+    Array.prototype.forEach.call($('bPick').children, function (b) { b.disabled = !betting; b.setAttribute('aria-pressed', String(b.dataset.pick === bac.pick)); });
+    $('bHist').textContent = '';
+    bac.hist.slice(-36).forEach(function (r) { var d = document.createElement('i'); d.className = r; d.title = r === 'p' ? 'Player' : r === 'b' ? 'Banker' : 'Tie'; $('bHist').appendChild(d); });
+    $('bPT').textContent = bac.pt === null ? '' : bac.pt; $('bBT').textContent = bac.bt === null ? '' : bac.bt;
+    $('bPZone').classList.toggle('win', bac.hit === 'p'); $('bBZone').classList.toggle('win', bac.hit === 'b');
+    $('bBig').textContent = bac.big; $('bBig').className = 'wbig' + (bac.bigCls ? ' ' + bac.bigCls : '');
+    var m = $('bMsg'); m.textContent = bac.msg; m.className = 'msg dmsg' + (bac.cls ? ' ' + bac.cls : '');
+    $('bWager').textContent = '$' + bet;
+    var box = $('bChips'), sg = CHIPS.join(',');
+    if (bac.sig !== sg) {
+      bac.sig = sg; box.textContent = '';
+      CHIPS.slice().reverse().forEach(function (v) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.dataset.v = String(v); b.textContent = v >= 1000 ? (v / 1000) + 'K' : String(v);
+        b.addEventListener('click', function () { if (bac.busy || (phase !== 'bet' && phase !== 'done')) return; bet = v; render(); });
+        box.appendChild(b);
+      });
+    }
+    Array.prototype.forEach.call(box.children, function (b) { var v = parseInt(b.dataset.v, 10); b.disabled = !betting || v > bank; b.setAttribute('aria-pressed', String(v === bet)); });
+    $('bAll').disabled = !betting || bank < MIN; $('bAll').textContent = 'All in: $' + bank;
+    var go = $('bGo'); go.disabled = !betting || bank < bet || bank < MIN; go.textContent = bac.busy ? 'Dealing…' : 'Deal $' + bet + ' on ' + (bac.pick === 'player' ? 'Player' : bac.pick === 'banker' ? 'Banker' : 'Tie');
+  }
+  function bacShow(node, c) { var e = cardEl(c, false, true); e.classList.add('flipin'); node.appendChild(e); }
+  async function bacGo() {
+    if (bac.busy || (phase !== 'bet' && phase !== 'done') || bank < bet || bank < MIN || bet < MIN) return;
+    if (checkStakes()) return;
+    var stake = bet, pick = bac.pick, pay = bacPays();
+    bac.busy = true; phase = 'busy'; bac.hit = ''; bac.big = ''; bac.bigCls = ''; bac.pt = null; bac.bt = null;
+    $('bPHand').textContent = ''; $('bBHand').textContent = '';
+    bank -= stake; save();
+    var notes = tickDebts(); blindNext = false; save();
+    bac.msg = notes.length ? notes.join(' \u00b7 ') : ''; bac.cls = '';
+    render();
+    var P = [], B = [], p3 = null;
+    function deal(h, node, who) { var c = bacDraw(); h.push(c); bacShow(node, c); if (who === 'p') bac.pt = bacTot(P); else bac.bt = bacTot(B); renderBacTotals(); }
+    function renderBacTotals() { $('bPT').textContent = bac.pt === null ? '' : bac.pt; $('bBT').textContent = bac.bt === null ? '' : bac.bt; }
+    deal(P, $('bPHand'), 'p'); await sleep(550);
+    deal(B, $('bBHand'), 'b'); await sleep(550);
+    deal(P, $('bPHand'), 'p'); await sleep(550);
+    deal(B, $('bBHand'), 'b'); await sleep(700);
+    var pt = bacTot(P), bt = bacTot(B);
+    if (pt < 8 && bt < 8) {
+      if (pt <= 5) { var c3 = bacDraw(); P.push(c3); p3 = bacVal(c3); bacShow($('bPHand'), c3); bac.pt = bacTot(P); renderBacTotals(); await sleep(700); }
+      if (bankerDraws(bacTot(B), p3)) { var c4 = bacDraw(); B.push(c4); bacShow($('bBHand'), c4); bac.bt = bacTot(B); renderBacTotals(); await sleep(700); }
+    }
+    pt = bacTot(P); bt = bacTot(B);
+    var winner = pt > bt ? 'player' : bt > pt ? 'banker' : 'tie', back = 0;
+    if (winner === 'tie') back = pick === 'tie' ? stake * (pay.tie + 1) : stake;
+    else if (winner === pick) back = pick === 'player' ? stake * 2 : stake + Math.floor(stake * pay.bank);
+    back = Math.floor(back);
+    var net = back - stake;
+    bank += back; bac.busy = false; phase = 'done';
+    bac.hit = winner === 'player' ? 'p' : winner === 'banker' ? 'b' : 't';
+    bac.hist.push(bac.hit); if (bac.hist.length > 60) bac.hist.shift();
+    try { localStorage.setItem('pocket-bj-bac', JSON.stringify(bac.hist)); } catch (e) {}
+    var nat = (bacTot(P.slice(0, 2)) >= 8 || bacTot(B.slice(0, 2)) >= 8) ? ' (natural)' : '';
+    bac.big = (winner === 'tie' ? 'TIE ' + pt : (winner === 'player' ? 'PLAYER ' + pt + ' beats ' + bt : 'BANKER ' + bt + ' beats ' + pt)) + nat;
+    bac.bigCls = '';
+    bac.msg = (bac.msg ? bac.msg + ' \u00b7 ' : '') + (net > 0 ? 'You won $' + net + '.' : net < 0 ? 'You lost $' + (-net) + '.' : 'Bet returned.');
+    bac.cls = net > 0 ? 'win' : net < 0 ? 'lose' : '';
+    if (bet > bank) bet = bank >= MIN ? CHIPS.filter(function (v) { return v <= bank; })[0] || MIN : bet;
+    save(); render();
+    afterHand(function () { if (!checkStakes()) checkSal(); });
+  }
+  function bacWire() {
+    $('bGo').addEventListener('click', bacGo);
+    $('bAll').addEventListener('click', function () { if (bac.busy || (phase !== 'bet' && phase !== 'done')) return; bet = bank; render(); });
+    Array.prototype.forEach.call($('bPick').children, function (b) { b.addEventListener('click', function () { if (bac.busy) return; bac.pick = b.dataset.pick; render(); }); });
+  }
+
   /* ---------- Switching tables ---------- */
   function setGame(g) {
     if (g === game) return;
     game = g;
     if (g === 'derby') { if (CHIPS.indexOf(bet) < 0 || bet > bank) bet = bestChip(); newRace(); }
-    if (g === 'vp' || g === 'wheel' || g === 'plinko') { if (CHIPS.indexOf(bet) < 0 || bet > bank) bet = bestChip(); }
+    if (g === 'vp' || g === 'wheel' || g === 'plinko' || g === 'bac') { if (CHIPS.indexOf(bet) < 0 || bet > bank) bet = bestChip(); }
     if (g === 'bj' && bet > maxBet()) bet = bestChip();
     render();
     if (bank < MIN) checkSal();
@@ -1813,7 +1948,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     SHARKS.forEach(function (sh) { S[sh.id] = { debt: 0, held: 0, due: 0, hidden: false, bounty: 0 }; });
     wanted = 0; blindNext = false; blind = false; interestMsg = ''; insBet = 0; susp = 0; backoff = 0; deck = []; updateGlow();
     if (full) { unlocked = false; cleared = {}; stakesUnlocked = false; STORY = { mid: {}, paid: {} }; storyQ = []; saveStats(); }
-    room = 'low'; game = 'bj'; derby.phase = 'bet'; derby.pick = -1; derby.prop = 0; wheel.busy = false; plinko.busy = false; plinko.msg = ''; plinko.big = ''; wheel.mode = 'wheel'; wheel.msg = ''; wheel.big = ''; vp.phase = 'bet'; vp.cards = []; vp.hidden = [1, 1, 1, 1, 1]; vp.win = 0; vp.dbl = null; vp.result = '';
+    room = 'low'; game = 'bj'; derby.phase = 'bet'; derby.pick = -1; derby.prop = 0; wheel.busy = false; plinko.busy = false; bac.busy = false; bac.msg = ''; bac.big = ''; plinko.msg = ''; plinko.big = ''; wheel.mode = 'wheel'; wheel.msg = ''; wheel.big = ''; vp.phase = 'bet'; vp.cards = []; vp.hidden = [1, 1, 1, 1, 1]; vp.win = 0; vp.dbl = null; vp.result = '';
     clearInterval(derby.timer); derby.timer = null; rnd = Math.random;
     resetStack();
   }
@@ -1831,6 +1966,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
       { label: 'Jacks or Better' + (game === 'vp' ? ' (here)' : ''), sub: 'Video poker. Hold, draw, get paid.', go: false, disabled: game === 'vp', fn: function () { setGame('vp'); } },
       { label: "Shark's Wheel" + (game === 'wheel' ? ' (here)' : ''), sub: 'Spin for a 10x jackpot or flip double or nothing', go: false, disabled: game === 'wheel', fn: function () { setGame('wheel'); } },
       { label: 'Plinko' + (game === 'plinko' ? ' (here)' : ''), sub: 'Drop the ball, up to 250x on the high-risk board', go: false, disabled: game === 'plinko', fn: function () { setGame('plinko'); } },
+      { label: 'Baccarat' + (game === 'bac' ? ' (here)' : ''), sub: 'Bet on Player, Banker or Tie. Closest to 9 wins', go: false, disabled: game === 'bac', fn: function () { setGame('bac'); } },
       { label: 'Restart game…', sub: 'Start over with a fresh stack', go: false, fn: restartMenu },
       { label: 'Close', go: false, fn: function () {} }
     ];
@@ -1838,8 +1974,8 @@ body::before { filter: brightness(var(--dimf, 1)); }
   }
   function renderTables() {
     var d = game === 'derby', betting = phase === 'bet' || phase === 'done';
-    $('bjTable').hidden = game !== 'bj'; $('tray').hidden = game !== 'bj'; $('bjControls').hidden = game !== 'bj'; $('derby').hidden = !d; $('vp').hidden = game !== 'vp'; $('wheel').hidden = game !== 'wheel'; $('plinko').hidden = game !== 'plinko';
-    el.stakesBtn.hidden = !(stakesUnlocked && room === 'low' && !d && game !== 'wheel' && game !== 'plinko' && betting);
+    $('bjTable').hidden = game !== 'bj'; $('tray').hidden = game !== 'bj'; $('bjControls').hidden = game !== 'bj'; $('derby').hidden = !d; $('vp').hidden = game !== 'vp'; $('wheel').hidden = game !== 'wheel'; $('plinko').hidden = game !== 'plinko'; $('bac').hidden = game !== 'bac';
+    el.stakesBtn.hidden = !(stakesUnlocked && room === 'low' && !d && game !== 'wheel' && game !== 'plinko' && game !== 'bac' && betting);
     el.stakesBtn.textContent = stakes ? 'Lower stakes' : 'Raise stakes';
     el.stakesBtn2.hidden = !(stakesUnlocked && room === 'low' && d && derby.phase !== 'run');
     el.stakesBtn2.textContent = stakes ? 'Lower stakes' : 'Raise stakes';
@@ -1847,6 +1983,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     if (game === 'vp') renderVp();
     if (game === 'wheel') renderWheel();
     if (game === 'plinko') renderPlinko();
+    if (game === 'bac') renderBac();
   }
 
   /* ---------- Back Alley Roach Derby ---------- */
@@ -2442,7 +2579,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     render();
   }
 
-  applySkin(); wheelWire(); plinkoWire();
+  applySkin(); wheelWire(); plinkoWire(); bacWire();
   /* iOS: touch-action manipulation above stops double-tap zoom without blocking fast taps; this stops pinch zoom. */
   document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
   $('skinBtn').addEventListener('click', function () { skin = (skin + 1) % SKINS.length; applySkin(); });
