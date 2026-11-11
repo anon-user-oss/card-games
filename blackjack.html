@@ -278,6 +278,13 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .tally b { font-size: 0.8rem; color: #ffe27a; }
 .tally div.lo { background: rgba(125, 255, 154, 0.12); } .tally div.hi { background: rgba(255, 120, 120, 0.12); }
 /* ---- Jacks or Better ---- */
+/* Table headers: the top bar already names the table. */
+.vp .dhead h2, .wheel .dhead h2, .plinko .dhead h2, .bac .dhead h2 { display: none; }
+.dhead { margin-bottom: -2px; }
+.vp > .dhead { order: 0; } .vp > .vsteps { order: 1; } .vp > .vstage { order: 2; } .vp > .vhand { order: 3; } .vp > .vhint { order: 4; } .vp > .vdbl { order: 5; }
+.vp > .dmsg { order: 6; } .vp > .vsides, .vp > #vSides { order: 7; } .vp > #vGo { order: 8; } .vp > .betline { order: 9; } .vp > #vChips { order: 10; } .vp > .vpay { order: 11; } .vp > .vhelp { order: 12; }
+.vp p:empty, .vp .dmsg:empty { display: none; }
+.vp { gap: 6px; }
 .vp { flex: 1; display: flex; flex-direction: column; gap: 8px; }
 .vsteps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .vsteps li { padding: 6px 4px; border-radius: 10px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.25); color: rgba(255, 255, 255, 0.7); font-size: 0.78rem; font-weight: 700; text-align: center; }
@@ -285,7 +292,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .vsteps.s1 li:nth-child(1), .vsteps.s2 li:nth-child(2), .vsteps.s3 li:nth-child(3) { background: #ffe27a; color: #1a1a1a; border-color: #ffe27a; }
 .vsteps.s1 li:nth-child(1) b, .vsteps.s2 li:nth-child(2) b, .vsteps.s3 li:nth-child(3) b { background: #1a1a1a; color: #ffe27a; }
 .vstage { position: relative; }
-.vpcards { --ch: 88px; display: flex; justify-content: center; gap: 5px; margin: 8px 0 2px; padding: 0 4px 18px; }
+.vpcards { --ch: min(88px, calc((100vw - 128px) / 3.5)); display: flex; justify-content: center; gap: 5px; margin: 8px 0 2px; padding: 0 4px 18px; }
 .vpc { position: relative; padding: 0; background: none; border: 0; cursor: pointer; border-radius: 10px; }
 .vpc:disabled { cursor: default; }
 .vpc .card { margin: 0; }
@@ -309,7 +316,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .vpicks > div { display: flex; gap: 4px; }
 .vdealer small, .vpicks small { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; color: #ffe27a; text-transform: uppercase; }
 .plinko { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: auto; }
-.pboard { width: min(92vw, 340px); margin: 6px auto 0; }
+.pboard { width: min(100%, 340px); margin: 6px auto 0; }
 .pboard canvas { display: block; width: 100%; height: auto; border-radius: 12px 12px 0 0; background: rgba(0, 0, 0, 0.35); }
 .pdrop { display: grid; grid-template-columns: repeat(13, 1fr); padding: 0 4.1176%; margin-bottom: 2px; }
 .pdrop button { grid-row: 1; min-height: 34px; padding: 0; border: 0; border-radius: 8px; background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 0.9rem; }
@@ -321,7 +328,7 @@ body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); -
 .wtabs { display: flex; gap: 8px; }
 .wtabs button { flex: 1; min-height: 44px; border-radius: 12px; border: 2px solid var(--line); background: rgba(0, 0, 0, 0.3); font-weight: 800; }
 .wtabs button[aria-pressed="true"] { border-color: var(--brass); color: var(--brass); background: rgba(0, 0, 0, 0.5); }
-.wstage { position: relative; width: min(78vw, 300px); aspect-ratio: 1; margin: 14px auto 6px; }
+.wstage { position: relative; width: min(100%, 300px); aspect-ratio: 1; margin: 14px auto 6px; }
 .wptr { position: absolute; left: 50%; top: -12px; width: 0; height: 0; margin-left: -12px; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 26px solid var(--brass); z-index: 3; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.6)); }
 .wdisc { position: absolute; inset: 0; border-radius: 50%; border: 6px solid var(--brass); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55); transition: transform 4.2s cubic-bezier(0.12, 0.6, 0.12, 1); }
 .wlab { position: absolute; left: 50%; top: 50%; width: 50%; height: 0; line-height: 0; transform-origin: 0 50%; text-align: right; padding-right: 9%; box-sizing: border-box; font-weight: 900; font-size: 0.78rem; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); white-space: nowrap; pointer-events: none; }
