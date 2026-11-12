@@ -201,7 +201,11 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
 .ver { margin: 0; text-align: center; font-size: 0.7rem; color: var(--muted); opacity: 0.6; }
 
 /* ---- Black speckled felt, dim room, sharks, high-roller room ---- */
-body.hr { --felt: #0b0a22; --felt-hi: #25206a; --spk: rgba(255, 210, 74, 0.9); --spk2: rgba(255, 240, 190, 0.9); }
+body.hr { --felt: #050403; --felt-hi: #1a120c; --spk: rgba(150, 96, 52, 0.9); --spk2: rgba(103, 64, 34, 0.95); }
+body.hr .card:not(.back) { color: #2a1b05; }
+body.hr .card.red:not(.back) { color: #8f1d12; }
+body.hr .card:not(.back) { background-image: linear-gradient(135deg, #fbe7a0 0%, #e9bd49 45%, #c99622 100%); box-shadow: 0 0 0 1px rgba(60, 40, 5, 0.6), 0 8px 16px rgba(0, 0, 0, 0.6), inset 0 0 0 2px rgba(255, 244, 200, 0.45); }
+body.hr .card.back { background-color: #0d0a06; background-image: repeating-linear-gradient(45deg, rgba(233, 189, 73, 0.55) 0 2px, transparent 2px 9px), repeating-linear-gradient(-45deg, rgba(233, 189, 73, 0.55) 0 2px, transparent 2px 9px); border-color: #e9bd49; }
 .app { position: relative; z-index: 1; }
 .table { padding: 10px 8px; border-radius: 22px; border: 2px solid rgba(255, 210, 74, 0.45); box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.65), 0 0 18px rgba(255, 210, 74, 0.12); }
 .chip { box-shadow: 0 0 10px rgba(255, 210, 74, 0.3), inset 0 0 0 4px rgba(0, 0, 0, 0.3); }
