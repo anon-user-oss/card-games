@@ -2177,7 +2177,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     if (phase !== 'bet' && phase !== 'done') return;
     var btns = [
       { label: 'Blackjack' + (game === 'bj' ? ' (here)' : ''), sub: 'Splits, side bets, loan sharks', go: false, disabled: game === 'bj', fn: function () { setGame('bj'); } },
-      { label: 'Back Alley Roach Derby' + (game === 'derby' ? ' (here)' : ''), sub: room === 'high' ? 'Back alley only. Head downstairs first.' : 'Bet on bugs. Boots may fall.', go: false, disabled: game === 'derby' || room === 'high', fn: function () { setGame('derby'); } },
+      { label: 'Back Alley Roach Derby' + (game === 'derby' ? ' (here)' : ''), sub: 'Bet on bugs. Boots may fall.', go: false, disabled: game === 'derby', fn: function () { setGame('derby'); } },
       { label: 'Jacks or Better' + (game === 'vp' ? ' (here)' : ''), sub: 'Video poker. Hold, draw, get paid.', go: false, disabled: game === 'vp', fn: function () { setGame('vp'); } },
       { label: "Shark's Wheel" + (game === 'wheel' ? ' (here)' : ''), sub: 'Spin for a 10x jackpot, with side bets', go: false, disabled: game === 'wheel', fn: function () { setGame('wheel'); } },
       { label: 'Baccarat' + (game === 'bac' ? ' (here)' : ''), sub: 'Bet on Player, Banker or Tie. Closest to 9 wins', go: false, disabled: game === 'bac', fn: function () { setGame('bac'); } },
