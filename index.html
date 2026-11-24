@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Apps</title>
+<style>
+:root{--bg:#0e1330;--fg:#fff;--gold:#ffd24a;color-scheme:dark}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;display:flex;flex-direction:column;justify-content:center;gap:14px;box-sizing:border-box;padding:16px max(16px,env(safe-area-inset-right)) 16px max(16px,env(safe-area-inset-left));max-width:520px;margin:0 auto}
+h1{margin:0 0 6px;font-size:1.6rem}
+a{display:block;padding:18px;border-radius:14px;background:#1b2358;color:var(--fg);text-decoration:none;font-weight:700;font-size:1.15rem;border:2px solid var(--gold)}
+a small{display:block;font-weight:500;color:#c9d1f2;font-size:.85rem;margin-top:4px}
+</style><link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<script>if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) { window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); }); }</script>
+</head><body>
+<h1>My Apps</h1>
+<a href="steelica.html">Steelica Pinball<small>Heavy metal arcade table with a python, a cobra and bumpers</small></a>
+<a href="blackjack.html">Pocket Blackjack<small>Splits, side bets, six loan sharks with a story, a daily bonus, a high-roller room, roach racing and Jacks or Better video poker</small></a>
+<a href="workout.html">EMOM Workout Clock<small>Work and rest intervals by the round, like 45 on / 15 off for 15 rounds</small></a>
+<a href="#" id="rf" style="margin-top:24px;background:transparent;border:1px solid rgba(255,255,255,.25)">&#8635; Refresh<small>Get the latest version of every app</small></a>
+<script>document.getElementById("rf").addEventListener("click",function(e){e.preventDefault();location.replace(location.pathname+"?r="+Date.now());});</script>
+</body></html>
