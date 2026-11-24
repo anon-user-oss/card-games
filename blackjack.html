@@ -163,8 +163,8 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
 }
 .sidebtn span { font-size: 1.1rem; color: var(--brass); font-weight: 800; font-variant-numeric: tabular-nums; }
 .sidebtn[aria-pressed="true"] { border-color: var(--brass); background: rgba(255, 210, 74, 0.16); }
-#deal, #bjControls .insrow, #bjControls .playrow { position: sticky; bottom: max(8px, env(safe-area-inset-bottom, 0px)); z-index: 3; }
-#deal { box-shadow: 0 0 0 6px rgba(8, 40, 24, 0.55), 0 8px 18px rgba(0, 0, 0, 0.4); }
+.actions { display: flex; flex-direction: column; gap: 8px; }
+.actions[hidden] { display: none; }
 .payrow { display: flex; flex-wrap: wrap; gap: 4px 16px; }
 .payrow .pay { flex: 1 1 40%; }
 .payrow .pay[open] { flex-basis: 100%; }
@@ -525,6 +525,21 @@ body::before { filter: brightness(var(--dimf, 1)); }
     </div>
   </section>
 
+  <div class="actions" id="bjActions">
+    <button class="primary" id="deal">Deal</button>
+    <div class="insrow" id="insRow" hidden>
+      <button class="act yes" id="insYes">Insure</button>
+      <button class="act" id="insNo">No thanks</button>
+    </div>
+
+    <div class="playrow" id="playRow" hidden>
+      <button class="act hit" id="hit">Hit</button>
+      <button class="act" id="stand">Stand</button>
+      <button class="act dbl" id="dbl">Double</button>
+      <button class="act spl" id="spl">Split</button>
+    </div>
+  </div>
+
   <div class="tray" id="tray" role="button" tabindex="0" aria-expanded="false" aria-label="Shoe and discard tray. Tap to show the cards seen.">
     <div class="trayrow">
       <div class="pile" id="pile" aria-hidden="true"><i></i></div>
@@ -726,19 +741,6 @@ body::before { filter: brightness(var(--dimf, 1)); }
       </details>
       </div>
       <button class="sharkbtn" id="roomBtn" hidden></button>
-      <button class="primary" id="deal">Deal</button>
-    </div>
-
-    <div class="insrow" id="insRow" hidden>
-      <button class="act yes" id="insYes">Insure</button>
-      <button class="act" id="insNo">No thanks</button>
-    </div>
-
-    <div class="playrow" id="playRow" hidden>
-      <button class="act hit" id="hit">Hit</button>
-      <button class="act" id="stand">Stand</button>
-      <button class="act dbl" id="dbl">Double</button>
-      <button class="act spl" id="spl">Split</button>
     </div>
   </section>
 </main>
@@ -1441,7 +1443,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     else if (hole && !showHole && dealer.length > 1) { el.dTot.textContent = String(cardVal(dealer[0])); el.dTot.className = 'tot'; }
     else { var ds = score(dealer); el.dTot.textContent = label(ds); el.dTot.className = 'tot' + (ds.total > 21 ? ' bust' : ''); }
 
-    el.betRow.hidden = !betting;
+    el.betRow.hidden = !betting; el.deal.hidden = !betting;
     el.insRow.hidden = phase !== 'insure';
     el.playRow.hidden = !(phase === 'play' || phase === 'busy');
 
@@ -2217,7 +2219,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
   }
   function renderTables() {
     var d = game === 'derby', betting = phase === 'bet' || phase === 'done';
-    $('bjTable').hidden = game !== 'bj'; $('tray').hidden = game !== 'bj'; $('bjControls').hidden = game !== 'bj'; $('derby').hidden = !d; $('vp').hidden = game !== 'vp'; $('wheel').hidden = game !== 'wheel'; $('plinko').hidden = game !== 'plinko'; $('bac').hidden = game !== 'bac'; $('rl').hidden = game !== 'rl';
+    $('bjTable').hidden = game !== 'bj'; $('tray').hidden = game !== 'bj'; $('bjControls').hidden = game !== 'bj'; $('bjActions').hidden = game !== 'bj'; $('derby').hidden = !d; $('vp').hidden = game !== 'vp'; $('wheel').hidden = game !== 'wheel'; $('plinko').hidden = game !== 'plinko'; $('bac').hidden = game !== 'bac'; $('rl').hidden = game !== 'rl';
     el.stakesBtn.hidden = !(stakesUnlocked && room === 'low' && !d && game !== 'wheel' && game !== 'plinko' && game !== 'bac' && game !== 'rl' && betting);
     el.stakesBtn.textContent = stakes ? 'Lower stakes' : 'Raise stakes';
     el.stakesBtn2.hidden = !(stakesUnlocked && room === 'low' && d && derby.phase !== 'run');
