@@ -35,6 +35,15 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: var(--bg); c
 canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
 .snd { position: absolute; top: 4px; right: 4px; min-width: 44px; min-height: 36px; border-radius: 10px; border: 2px solid #ffffff55;
   background: #0008; color: var(--fg); font-family: var(--led); font-size: 9px; }
+.pzb { right: 54px; min-width: 40px; letter-spacing: 1px; }
+#ov { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; background: rgba(5, 6, 10, 0.72); padding: 16px; }
+#ov .oc { width: min(300px, 100%); box-sizing: border-box; padding: 18px 16px 16px; border-radius: 16px; border: 2px solid var(--hot); background: #0d0e14; text-align: center; display: flex; flex-direction: column; gap: 10px; }
+#ov h2 { margin: 0; font-family: var(--display); font-size: 2.3rem; line-height: 1; color: #ff5a4d; letter-spacing: 0.04em; font-weight: 400; }
+#ov .os { margin: 0; font-family: var(--led); font-size: 10px; line-height: 1.7; color: var(--muted); }
+#ov .os b { color: var(--gold); font-weight: 400; }
+#ov .os.hi { color: #7dffb0; }
+.obtn { min-height: 52px; border-radius: 14px; border: 2px solid #ffffff44; background: linear-gradient(#444a5e, #1b1d26); color: var(--fg); font-family: var(--display); font-size: 1.35rem; letter-spacing: 0.06em; text-decoration: none; display: flex; align-items: center; justify-content: center; }
+.obtn.go { background: linear-gradient(#ffd95a, #c78f00); color: #231800; }
 .bar { display: grid; grid-template-columns: 1fr 0.78fr 1fr; gap: 10px; flex: 1 1 auto; min-height: 92px; max-height: 190px; }
 .btn { min-height: 92px; border-radius: 18px; border: 3px solid #ffffff44; background: linear-gradient(#444a5e, #1b1d26); color: var(--fg);
   font-family: var(--display); font-size: 1.7rem; letter-spacing: 0.06em; box-shadow: 0 5px 0 #000a; touch-action: none; }
@@ -52,6 +61,8 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
   <div class="stage">
     <canvas id="cv" aria-label="Steelica pinball table"></canvas>
     <button class="snd" id="snd" type="button" aria-pressed="true">SND</button>
+    <button class="snd pzb" id="pzBtn" type="button" aria-label="Pause">II</button>
+    <div id="ov" hidden></div>
   </div>
   <div class="bar">
     <button class="btn" id="bl" type="button" aria-label="Left flipper">LEFT</button>
@@ -152,6 +163,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
 
   /* ---------- Game state ---------- */
   var mode = 'title'; // title | ready | playing | lost | over
+  var paused = false;
   var score = 0, hiScore = 10000, newHigh = false;
   var mult = 1, ballNum = 1, totalBalls = START_BALLS;
   var ball = { x: 335, y: 584, vx: 0, vy: 0, entered: false, still: 0 };
@@ -357,7 +369,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
   function newGame() {
     score = 0; mult = 1; ballNum = 1; totalBalls = START_BALLS; newHigh = false; popups = []; banner = null;
     targets.forEach(function (t) { t.lit = false; }); pathLit = 0; pathFlash = 0; ramp.on = false; ramp.count = 0; cobra.active = false; cobra.next = 10 + Math.random() * 8;
-    resetBall(); mode = 'ready'; sfx.go(); say('BALL 1', '#ffffff');
+    resetBall(); mode = 'ready'; sfx.go(); say('BALL 1', '#ffffff'); showOv(null);
   }
   function launch() {
     if (mode !== 'ready') return;
@@ -369,7 +381,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     saveHi();
   }
   function afterLost() {
-    if (ballNum >= totalBalls) { mode = 'over'; sfx.over(); if (newHigh) say('NEW HIGH SCORE!', '#7dffb0'); }
+    if (ballNum >= totalBalls) { mode = 'over'; sfx.over(); if (newHigh) say('NEW HIGH SCORE!', '#7dffb0'); showOv('over'); }
     else { ballNum++; resetBall(); mode = 'ready'; say('BALL ' + ballNum, '#ffffff'); }
   }
   function unstick() {
@@ -381,7 +393,44 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     if (mode !== 'playing' || nudgeCd > 0) return;
     nudgeCd = 1.1; ball.vx += (Math.random() < 0.5 ? -1 : 1) * (90 + Math.random() * 90); ball.vy -= 90; shake = 6; popup(180, 560, 'NUDGE', '#ffffff', 10, 0.5); sfx.wall();
   }
+  /* ---------- Pause, menu and game-over overlay ---------- */
+  var elOv = document.getElementById('ov'), elPz = document.getElementById('pzBtn');
+  function ovButton(label, cls, fn) {
+    var b = document.createElement(fn ? 'button' : 'a'); b.className = 'obtn ' + cls; b.textContent = label;
+    if (fn) { b.type = 'button'; b.addEventListener('click', fn); } else b.href = 'index.html';
+    return b;
+  }
+  function ovPara(html, cls) { var p = document.createElement('p'); p.className = 'os ' + (cls || ''); p.innerHTML = html; return p; }
+  function showOv(kind) {
+    elOv.textContent = '';
+    if (!kind) { elOv.hidden = true; return; }
+    var c = document.createElement('div'); c.className = 'oc'; var h = document.createElement('h2');
+    if (kind === 'pause') {
+      h.textContent = 'PAUSED'; c.appendChild(h);
+      c.appendChild(ovPara('LEFT / RIGHT = FLIP<br>MIDDLE BUTTON = NUDGE<br><b>TOP BUMPERS = MULTIPLIER</b><br>BEWARE THE COBRA'));
+      c.appendChild(ovButton('RESUME', 'go', function () { setPaused(false); }));
+      c.appendChild(ovButton('RESTART', '', function () { setPaused(false); newGame(); }));
+      c.appendChild(ovButton('MENU', ''));
+    } else {
+      h.textContent = 'GAME OVER'; c.appendChild(h);
+      c.appendChild(ovPara('SCORE <b>' + pad(score, 7) + '</b>'));
+      c.appendChild(ovPara(newHigh ? 'NEW HIGH SCORE!' : 'HIGH <b>' + pad(hiScore, 7) + '</b>', newHigh ? 'hi' : ''));
+      c.appendChild(ovButton('PLAY AGAIN', 'go', function () { audio(); newGame(); }));
+      c.appendChild(ovButton('MENU', ''));
+    }
+    elOv.appendChild(c); elOv.hidden = false;
+  }
+  function setPaused(p) {
+    if (p === paused) return;
+    if (p && mode !== 'playing' && mode !== 'ready' && mode !== 'lost') return;
+    paused = p; setFlip(0, false); setFlip(1, false); elL.classList.remove('on'); elR.classList.remove('on');
+    showOv(p ? 'pause' : null); last = 0;
+  }
+  elPz.addEventListener('click', function () { setPaused(!paused); });
+  document.addEventListener('visibilitychange', function () { if (document.hidden) setPaused(true); });
+
   function centerAction() {
+    if (paused) return;
     audio();
     if (mode === 'title' || mode === 'over') newGame();
     else if (mode === 'ready') launch();
@@ -810,17 +859,10 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
     }
     var pulse = Math.floor(time * 2.5) % 2 === 0;
     if (mode === 'title') {
-      panel([{ t: 'STEELICA', f: '40px "Metal Mania", Impact, sans-serif', c: '#ff5a4d', y: 305 },
-        { t: 'PINBALL', f: '12px "Press Start 2P", monospace', c: '#e8ebf5', y: 330 },
-        { t: 'LEFT / RIGHT = FLIP', f: '8px "Press Start 2P", monospace', c: '#a6a9b8', y: 362 },
-        { t: 'TOP BUMPERS = MULTIPLIER', f: '8px "Press Start 2P", monospace', c: '#ffcf3a', y: 382 },
-        { t: 'BEWARE THE COBRA', f: '8px "Press Start 2P", monospace', c: '#ff6a5c', y: 402 },
-        { t: pulse ? 'PRESS START' : '', f: '11px "Press Start 2P", monospace', c: '#7dffb0', y: 428 }]);
-    } else if (mode === 'over') {
-      panel([{ t: 'GAME OVER', f: '34px "Metal Mania", Impact, sans-serif', c: '#ff5a4d', y: 305 },
-        { t: 'SCORE ' + pad(score, 7), f: '11px "Press Start 2P", monospace', c: '#ffffff', y: 340 },
-        { t: newHigh ? (pulse ? 'NEW HIGH SCORE!' : '') : 'HIGH ' + pad(hiScore, 7), f: '10px "Press Start 2P", monospace', c: newHigh ? '#7dffb0' : '#ffcf3a', y: 370 },
-        { t: pulse ? 'PRESS AGAIN' : '', f: '10px "Press Start 2P", monospace', c: '#7dffb0', y: 415 }]);
+      ctx.fillStyle = 'rgba(5,6,10,0.7)'; rr(88, 440, 190, 62, 10); ctx.fill();
+      ctx.strokeStyle = '#ff3b30'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.font = '11px "Press Start 2P", monospace'; ctx.fillStyle = pulse ? '#7dffb0' : '#4aa675'; ctx.fillText('PRESS START', 180, 466);
+      ctx.font = '8px "Press Start 2P", monospace'; ctx.fillStyle = '#a6a9b8'; ctx.fillText('LEFT / RIGHT = FLIP', 180, 487);
     }
     if (mode === 'ready') {
       ctx.font = '9px "Press Start 2P", monospace'; ctx.fillStyle = pulse ? '#ffcf3a' : '#ffffff'; ctx.fillText('PRESS LAUNCH', 180, 520);
@@ -850,6 +892,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
 
   /* ---------- Input ---------- */
   function setFlip(i, down) {
+    if (paused && down) return;
     var f = flippers[i]; if (f.held === down) return;
     f.held = down;
     if (down && (mode === 'playing' || mode === 'ready' || mode === 'lost')) { audio(); sfx.flip(); }
@@ -865,6 +908,8 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
   elSnd.addEventListener('click', function () { muted = !muted; elSnd.textContent = muted ? 'MUTE' : 'SND'; elSnd.setAttribute('aria-pressed', String(!muted)); if (!muted) { audio(); tone(660, 0.08, 'square', 0.12); } });
   var KEYS = { ArrowLeft: 0, KeyZ: 0, KeyA: 0, ArrowRight: 1, KeyM: 1, KeyL: 1, Slash: 1 };
   window.addEventListener('keydown', function (e) {
+    if ((e.code === 'Escape' || e.code === 'KeyP') && !e.repeat) { e.preventDefault(); setPaused(!paused); return; }
+    if (paused) return;
     if (e.code in KEYS) { e.preventDefault(); (KEYS[e.code] === 0 ? elL : elR).classList.add('on'); setFlip(KEYS[e.code], true); }
     else if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat) { e.preventDefault(); centerAction(); }
   });
@@ -876,7 +921,8 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: co
   var last = 0;
   function frame(ts) {
     var dt = last ? Math.min(0.05, (ts - last) / 1000) : 0.016; last = ts;
-    update(dt); draw(); requestAnimationFrame(frame);
+    if (!paused) update(dt);
+    draw(); requestAnimationFrame(frame);
   }
   if (window.__steelicaTest) {
     window.__steelica = { update: update, draw: draw, centerAction: centerAction, setFlip: setFlip, state: function () { return { mode: mode, score: score, mult: mult, ball: ball, ballNum: ballNum, totalBalls: totalBalls, cobra: cobra, newHigh: newHigh, hi: hiScore, pathLit: pathLit, pathFlash: pathFlash, ramp: ramp }; }, setCobra: function () { spawnCobra(); } };
