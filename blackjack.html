@@ -34,7 +34,7 @@
   --line: rgba(255, 255, 255, 0.4);
   --display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --ch-base: clamp(8.5rem, 21svh, 12rem);
+  --ch-base: clamp(5.4rem, 12.5svh, 9rem);
   --ch: var(--ch-base);
   color-scheme: dark;
 }
@@ -69,8 +69,8 @@ button:focus-visible, summary:focus-visible { outline: 3px solid var(--brass); o
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding-block: 10px;
+  gap: 8px;
+  padding-block: 8px;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
@@ -134,19 +134,19 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
 @keyframes deal { from { transform: translateY(-16px) scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
 
 .band { text-align: center; display: flex; flex-direction: column; gap: 4px; padding-block: 2px; }
-.msg { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.5rem; text-wrap: balance; min-height: 2.2rem; }
+.msg { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.45rem; line-height: 1.2; text-wrap: balance; min-height: 1.8rem; }
 .msg.win { color: var(--brass); }
 .msg.lose { color: var(--lose); }
 .sidemsg { margin: 0; font-size: 0.9rem; font-weight: 700; color: var(--brass); text-wrap: balance; }
 .sidemsg:empty { display: none; }
-.rules { margin: 0; font-size: 0.8rem; color: var(--muted); letter-spacing: 0.02em; font-weight: 500; }
+.rules { margin: 0 auto; max-width: 30em; font-size: 0.78rem; line-height: 1.35; color: var(--muted); letter-spacing: 0.02em; font-weight: 500; text-wrap: balance; }
 .rules b { color: var(--brass); font-weight: 700; }
 
 .controls { display: flex; flex-direction: column; gap: 8px; justify-content: flex-end; }
-.betline { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.9rem; color: var(--muted); font-weight: 700; }
-.betline b { color: var(--fg); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.betline { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.72rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; }
+.betline b { color: var(--brass); font-size: 1.35rem; letter-spacing: 0; font-variant-numeric: tabular-nums; }
 .stack { display: flex; flex-direction: column; gap: 10px; }
-.chips { display: flex; gap: 10px; justify-content: center; }
+.chips { display: flex; gap: 12px; justify-content: center; padding: 4px 0 6px; }
 .chip {
   width: 58px; height: 58px; border-radius: 50%; border: 3px dashed #fff;
   background: #b3202a; color: #fff; font-weight: 800; font-size: 1.05rem; font-variant-numeric: tabular-nums;
@@ -163,6 +163,11 @@ h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 1.25re
 }
 .sidebtn span { font-size: 1.1rem; color: var(--brass); font-weight: 800; font-variant-numeric: tabular-nums; }
 .sidebtn[aria-pressed="true"] { border-color: var(--brass); background: rgba(255, 210, 74, 0.16); }
+#deal, #bjControls .insrow, #bjControls .playrow { position: sticky; bottom: max(8px, env(safe-area-inset-bottom, 0px)); z-index: 3; }
+#deal { box-shadow: 0 0 0 6px rgba(8, 40, 24, 0.55), 0 8px 18px rgba(0, 0, 0, 0.4); }
+.payrow { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.payrow .pay { flex: 1 1 40%; }
+.payrow .pay[open] { flex-basis: 100%; }
 .pay { font-size: 0.8rem; color: var(--muted); }
 .pay summary { cursor: pointer; font-weight: 700; padding: 2px 0; }
 .pay p { margin: 6px 0 0; line-height: 1.4; }
@@ -255,12 +260,12 @@ body.hr .card.back { background-color: #0d0a06; background-image: repeating-line
 #coachBet { color: #7dff9a; border-color: #7dff9a; }
 .coachrow:has(#coachTip:empty):has(#coachBet[hidden]) { display: none; }
 /* ---- Shoe and discard tray ---- */
-.tray { margin: 8px 0 0; padding: 8px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 210, 74, 0.35); cursor: pointer; color: #fff; }
+.tray { margin: 6px 0 0; padding: 6px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 210, 74, 0.35); cursor: pointer; color: #fff; }
 .trayrow { display: flex; align-items: center; gap: 12px; }
-.pile { position: relative; flex: 0 0 34px; height: 46px; }
+.pile { position: relative; flex: 0 0 34px; height: 38px; }
 .pile i { position: absolute; left: 2px; right: 2px; bottom: 0; height: 4px; border-radius: 4px; background: repeating-linear-gradient(135deg, #7a1f2b 0 4px, #9b2c3a 4px 8px); border: 1px solid #f4efe0; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.6); transition: height 0.5s ease; }
 .trayinfo { flex: 1; min-width: 0; }
-.traytxt { display: flex; justify-content: space-between; gap: 8px; font-size: 0.8rem; font-weight: 700; margin-bottom: 5px; }
+.traytxt { display: flex; justify-content: space-between; gap: 8px; font-size: 0.74rem; font-weight: 600; color: var(--muted); letter-spacing: 0.02em; margin-bottom: 5px; }
 .shoebar { position: relative; height: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.15); overflow: visible; }
 .shoefill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #7a1f2b, #e2b04a); transition: width 0.5s ease; }
 .cutmark { position: absolute; top: -3px; bottom: -3px; left: 75%; width: 3px; border-radius: 2px; background: #ffe27a; box-shadow: 0 0 6px rgba(255, 226, 122, 0.9); }
@@ -702,6 +707,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
         <button class="sidebtn" id="ppBtn" aria-pressed="false">Lucky Lucky<span id="ppAmt">$0</span></button>
         <button class="sidebtn" id="t3Btn" aria-pressed="false">Bust-It<span id="t3Amt">$0</span></button>
       </div>
+      <div class="payrow">
       <details class="pay">
         <summary>Side bet payouts</summary>
         <p><b>Long shots:</b> while you owe a shark, side bets go up to $100. Suited 7-7-7 pays 200 to 1 and a seven-card dealer bust pays 100 to 1.</p>
@@ -718,6 +724,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
         </div>
         <p>Coach shows the true count, whether to bet heavy or light, the best play and insurance advice. Dust makes the room glitter gold when the count is high and turn blue when it is low.</p>
       </details>
+      </div>
       <button class="sharkbtn" id="roomBtn" hidden></button>
       <button class="primary" id="deal">Deal</button>
     </div>
@@ -1340,16 +1347,37 @@ body::before { filter: brightness(var(--dimf, 1)); }
     var need = cw - (avail - cw) / (n - 1);
     node.style.setProperty('--ov', Math.max(cw * 0.35, need) + 'px');
   }
+  /* Deal animation: each new card slides out of the shoe (top right of the table), tilting and turning as it lands, with a tiny settle. */
+  var calmMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function flyIn(c) {
+    if (calmMotion || !c.animate) return;
+    var tb = $('bjTable'), tr = tb ? tb.getBoundingClientRect() : null, cr = c.getBoundingClientRect();
+    if (!tr || !tr.width || !cr.width) return;
+    var dx = (tr.right - 36) - (cr.left + cr.width / 2), dy = (tr.top + 6) - (cr.top + cr.height / 2);
+    var down = c.classList.contains('back'), tilt = 10 + Math.random() * 8;
+    c.style.zIndex = '2';
+    var a = c.animate([
+      { transform: 'translate(' + dx + 'px,' + dy + 'px) rotate(' + tilt + 'deg) scale(0.78)' + (down ? '' : ' perspective(500px) rotateY(70deg)'), opacity: 0, offset: 0 },
+      { opacity: 1, offset: 0.18 },
+      { transform: 'translate(0,0) rotate(-1.5deg) scale(1.05)' + (down ? '' : ' perspective(500px) rotateY(0deg)'), opacity: 1, offset: 0.82 },
+      { transform: 'none', opacity: 1, offset: 1 }
+    ], { duration: 380, easing: 'cubic-bezier(0.22, 0.8, 0.3, 1)', fill: 'backwards' });
+    a.onfinish = a.oncancel = function () { c.style.zIndex = ''; };
+  }
   function syncHand(node, cards, hideIdx) {
     if (cards.length === 0) { node.textContent = ''; node._n = 0; node._h = -1; return; }
+    var fresh = null;
     if (node._h !== hideIdx || node._n > cards.length) {
-      node.textContent = '';
-      cards.forEach(function (c, i) { node.appendChild(cardEl(c, i === hideIdx, true)); });
+      var prevN = node._n > cards.length ? 0 : (node._n || 0);
+      node.textContent = ''; fresh = [];
+      cards.forEach(function (c, i) { var ce = cardEl(c, i === hideIdx, true); node.appendChild(ce); if (i >= prevN) fresh.push(ce); });
     } else {
-      for (var i = node._n || 0; i < cards.length; i++) node.appendChild(cardEl(cards[i], i === hideIdx, false));
+      fresh = [];
+      for (var i = node._n || 0; i < cards.length; i++) { var ce = cardEl(cards[i], i === hideIdx, true); node.appendChild(ce); fresh.push(ce); }
     }
     node._n = cards.length; node._h = hideIdx;
     setOverlap(node);
+    if (fresh) fresh.forEach(flyIn);
   }
   function ensureHands(n) {
     while (el.pHands.children.length < n) {
