@@ -336,6 +336,11 @@ body.hr .card.back { background-color: #0d0a06; background-image: repeating-line
 .rc { position: relative; min-height: 40px; padding: 0; border-radius: 8px; border: 2px solid rgba(255, 255, 255, 0.55); background: rgba(0, 0, 0, 0.35); color: #fff; font-weight: 800; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
 .rc.r { background: #c4222d; } .rc.k { background: #1a1a1d; } .rc.g { background: #1f8a45; }
 .rc.w { font-size: 0.78rem; line-height: 1.1; }
+.rgrid { position: relative; }
+.rc.rq { position: absolute; z-index: 3; width: 24px; height: 24px; min-height: 0; padding: 0; transform: translate(-50%, -50%); border-radius: 50%; border: 2px solid rgba(255, 210, 74, 0.8); background: rgba(255, 210, 74, 0.22); }
+.rc.rq::before { content: ''; position: absolute; inset: -9px; }
+.rc.rq i { right: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.rc.rq.win { background: var(--brass); }
 .rc.win { border-color: var(--brass); box-shadow: 0 0 0 2px var(--brass), 0 0 14px rgba(255, 210, 74, 0.85); }
 .rc:active { transform: translateY(1px); }
 .rc i { position: absolute; right: -3px; top: -7px; z-index: 2; min-width: 24px; height: 24px; padding: 0 3px; box-sizing: border-box; border-radius: 50%; border: 2px dashed #fff; background: #1f5fa8; color: #fff; font-style: normal; font-size: 0.6rem; font-weight: 900; display: grid; place-items: center; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6); pointer-events: none; }
@@ -633,7 +638,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     <details class="pay">
       <summary>How Roulette works</summary>
       <p>One ball, 37 pockets: the numbers 1 to 36 (red or black) and a single green <b>0</b>. Tap the board to put your chosen chip on as many spots as you like, then spin. Tap a spot again to stack more chips. <b>Undo</b> takes back your last chip, and <b>Repeat</b> replays your last spin's bets.</p>
-      <p><b>A single number</b> pays 35 to 1. <b>Dozens</b> (1st 12, 2nd 12, 3rd 12) and the three <b>2 to 1</b> columns pay 2 to 1. <b>Red, Black, Odd, Even, 1-18 and 19-36</b> pay 1 to 1. The 0 loses every bet except a bet on 0 itself, so the house keeps a small edge.</p>
+      <p><b>A single number</b> pays 35 to 1. a <b>corner</b> (tap the gold dot where four numbers meet) pays 8 to 1. <b>Dozens</b> (1st 12, 2nd 12, 3rd 12) and the three <b>2 to 1</b> columns pay 2 to 1. <b>Red, Black, Odd, Even, 1-18 and 19-36</b> pay 1 to 1. The 0 loses every bet except a bet on 0 itself, so the house keeps a small edge.</p>
       <p>While you owe a shark, a spin that lands on 0 hands back half of each even-money bet. Interest still ticks on every spin.</p>
     </details>
     <div class="rbar" id="rBar">
@@ -2031,6 +2036,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
   function rlWins(k, n) {
     if (k.charAt(0) === 'n') return n === parseInt(k.slice(1), 10);
     if (n === 0) return false;
+    if (k.charAt(0) === 'q') { var qa = parseInt(k.slice(1), 10); return n === qa || n === qa + 1 || n === qa + 3 || n === qa + 4; }
     switch (k) {
       case 'red': return !!RL_RED[n]; case 'black': return !RL_RED[n];
       case 'odd': return n % 2 === 1; case 'even': return n % 2 === 0;
@@ -2040,7 +2046,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     }
     return false;
   }
-  function rlPay(k) { return k.charAt(0) === 'n' ? 35 : RL_EVEN_MONEY[k] ? 1 : 2; }
+  function rlPay(k) { return k.charAt(0) === 'n' ? 35 : k.charAt(0) === 'q' ? 8 : RL_EVEN_MONEY[k] ? 1 : 2; }
   function rlTotal() { var t = 0; for (var k in rl.bets) t += rl.bets[k]; return t; }
   function rlAbbr(v) { return v >= 1000 ? (Math.round(v / 100) / 10) + 'K' : String(v); }
   function rlBuild() {
@@ -2054,11 +2060,28 @@ body::before { filter: brightness(var(--dimf, 1)); }
     }
     cell(grid, 'n0', '0', 'g', '2 / 5', '1');
     for (var r = 1; r <= 12; r++) for (var c = 1; c <= 3; c++) { var n = 3 * (r - 1) + c; cell(grid, 'n' + n, String(n), rlCol(n), String(c + 1), String(r + 1)); }
+    for (var qr = 1; qr <= 11; qr++) for (var qc = 1; qc <= 2; qc++) {
+      var qa = 3 * (qr - 1) + qc, qb = document.createElement('button'); qb.type = 'button'; qb.className = 'rc rq'; qb.dataset.k = 'q' + qa; qb.dataset.lab = 'Corner ' + qa + ', ' + (qa + 1) + ', ' + (qa + 3) + ', ' + (qa + 4);
+      qb.appendChild(document.createTextNode('')); qb.appendChild(document.createElement('i'));
+      (function (k) { qb.addEventListener('click', function () { rlPlace(k); }); })('q' + qa);
+      grid.appendChild(qb);
+    }
     cell(grid, 'd1', '1st 12', 'w', '1', '2 / 6'); cell(grid, 'd2', '2nd 12', 'w', '1', '6 / 10'); cell(grid, 'd3', '3rd 12', 'w', '1', '10 / 14');
     cell(grid, 'c1', '2 to 1', 'w', '2', '14'); cell(grid, 'c2', '2 to 1', 'w', '3', '14'); cell(grid, 'c3', '2 to 1', 'w', '4', '14');
     cell(out, 'low', '1-18', 'w'); cell(out, 'even', 'Even', 'w'); cell(out, 'red', 'Red', 'w r');
     cell(out, 'black', 'Black', 'w k'); cell(out, 'odd', 'Odd', 'w'); cell(out, 'high', '19-36', 'w');
   }
+  /* Corner bets sit on the points where four numbers meet; position them from the real cell boxes so they line up at any screen size. */
+  function rlLayoutCorners() {
+    var grid = $('rGrid'); if (!grid || !grid.offsetWidth) return;
+    var gr = grid.getBoundingClientRect(), cells = {};
+    Array.prototype.forEach.call(grid.querySelectorAll('.rc[data-k^="n"]'), function (b) { cells[b.dataset.k] = b.getBoundingClientRect(); });
+    Array.prototype.forEach.call(grid.querySelectorAll('.rq'), function (b) {
+      var a = parseInt(b.dataset.k.slice(1), 10), tl = cells['n' + a], br = cells['n' + (a + 4)]; if (!tl || !br) return;
+      b.style.left = ((tl.right + br.left) / 2 - gr.left) + 'px'; b.style.top = ((tl.bottom + br.top) / 2 - gr.top) + 'px';
+    });
+  }
+  window.addEventListener('resize', function () { if (game === 'rl') rlLayoutCorners(); });
   function rlPlace(k) {
     if (rl.busy || (phase !== 'bet' && phase !== 'done')) return;
     var v = bet; if (CHIPS.indexOf(v) < 0) v = bestChip();
@@ -2117,8 +2140,9 @@ body::before { filter: brightness(var(--dimf, 1)); }
       var k = b.dataset.k, a = rl.bets[k] || 0;
       b.lastChild.textContent = a ? rlAbbr(a) : '';
       b.classList.toggle('win', rl.hit >= 0 && rlWins(k, rl.hit));
-      b.setAttribute('aria-label', b.firstChild.textContent + (a ? ', $' + a + ' bet' : ''));
+      b.setAttribute('aria-label', (b.dataset.lab || b.firstChild.textContent) + (a ? ', $' + a + ' bet' : ''));
     });
+    rlLayoutCorners();
     if (rl.sig !== sg) {
       rl.sig = sg; box.textContent = '';
       CHIPS.slice().reverse().forEach(function (v) {
