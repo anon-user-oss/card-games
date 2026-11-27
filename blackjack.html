@@ -770,7 +770,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
   var ROOMS = {
     low:  { min: 10,  chips: [10, 25, 50, 100],     sides: [0, 5, 10, 25],    bet: 25 },
     mid:  { min: 50,  chips: [50, 100, 250, 500],   sides: [0, 10, 25, 50],   bet: 50 },
-    high: { min: 100, chips: [100, 250, 500, 1000], sides: [0, 25, 50, 100], bet: 100 }
+    high: { min: 250, chips: [250, 1000, 5000, 10000], sides: [0, 100, 500, 1000], bet: 250 }
   };
   var STAKES_UNLOCK = 1000; // chips needed to open the higher-stakes bets
   var MIN = 10, CHIPS = [100, 50, 25, 10], SIDE_STEPS = [0, 5, 10, 25];
@@ -1248,7 +1248,7 @@ body::before { filter: brightness(var(--dimf, 1)); }
     return 'hit';
   }
   function maxBet() {
-    var cap = Math.min(bank - pp - t3, CHIPS[0] * 10);
+    var cap = Math.min(bank - pp - t3, room === 'high' ? 10000 : CHIPS[0] * 10);
     if (backoff > 0) cap = Math.min(cap, CHIPS[1]);
     return Math.floor(cap / MIN) * MIN;
   }
